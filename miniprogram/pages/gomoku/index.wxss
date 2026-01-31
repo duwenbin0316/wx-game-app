@@ -1,0 +1,205 @@
+.container {
+  padding: 20rpx;
+  background: #f5f5f5;
+  min-height: 100vh;
+}
+
+.game-header {
+  background: white;
+  border-radius: 16rpx;
+  padding: 20rpx;
+  margin-bottom: 20rpx;
+  box-shadow: 0 2rpx 10rpx rgba(0, 0, 0, 0.1);
+}
+
+.mode-info {
+  text-align: center;
+  margin-bottom: 20rpx;
+  padding-bottom: 20rpx;
+  border-bottom: 1rpx solid #f0f0f0;
+}
+
+.mode-text {
+  font-size: 32rpx;
+  font-weight: bold;
+  color: #333;
+  margin-right: 20rpx;
+}
+
+.my-color {
+  font-size: 28rpx;
+  color: #1976d2;
+  margin-left: 20rpx;
+}
+
+.wait-text {
+  font-size: 28rpx;
+  color: #ff9800;
+  margin-left: 20rpx;
+  animation: blink 1s infinite;
+}
+
+@keyframes blink {
+  0%, 50% { opacity: 1; }
+  51%, 100% { opacity: 0.5; }
+}
+
+.players {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.player-info {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 20rpx;
+  border-radius: 12rpx;
+  transition: all 0.3s ease;
+}
+
+.player-info.active {
+  background: #e3f2fd;
+  transform: scale(1.05);
+}
+
+.player-info.my-player {
+  border: 2rpx solid #4caf50;
+}
+
+.player-name {
+  font-size: 32rpx;
+  font-weight: bold;
+  color: #333;
+  margin-bottom: 10rpx;
+}
+
+.vs {
+  font-size: 36rpx;
+  font-weight: bold;
+  color: #666;
+  letter-spacing: 4rpx;
+}
+
+.chess-piece {
+  width: 40rpx;
+  height: 40rpx;
+  border-radius: 50%;
+  border: 2rpx solid #ddd;
+}
+
+.chess-piece.black {
+  background: radial-gradient(circle at 30% 30%, #666, #000);
+}
+
+.chess-piece.white {
+  background: radial-gradient(circle at 30% 30%, #fff, #f0f0f0);
+}
+
+.game-board {
+  background: #deb887;
+  border-radius: 16rpx;
+  padding: 20rpx;
+  box-shadow: 0 4rpx 20rpx rgba(0, 0, 0, 0.2);
+  margin-bottom: 20rpx;
+}
+
+.board-grid {
+  position: relative;
+  background: #deb887;
+}
+
+.board-row {
+  display: flex;
+}
+
+.board-cell {
+  width: 40rpx;
+  height: 40rpx;
+  border: 1rpx solid #8b7355;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+}
+
+.board-cell::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 0;
+  right: 0;
+  height: 1rpx;
+  background: #8b7355;
+  transform: translateY(-50%);
+}
+
+.board-cell::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 0;
+  bottom: 0;
+  width: 1rpx;
+  background: #8b7355;
+  transform: translateX(-50%);
+}
+
+.chess {
+  width: 32rpx;
+  height: 32rpx;
+  border-radius: 50%;
+  z-index: 2;
+  position: relative;
+  box-shadow: 0 2rpx 4rpx rgba(0, 0, 0, 0.3);
+}
+
+.chess.black {
+  background: radial-gradient(circle at 30% 30%, #666, #000);
+}
+
+.chess.white {
+  background: radial-gradient(circle at 30% 30%, #fff, #f0f0f0);
+  border: 1rpx solid #ddd;
+}
+
+.game-controls {
+  display: flex;
+  justify-content: center;
+  gap: 20rpx;
+}
+
+.restart-btn, .winner-btn, .leave-btn {
+  background: #1976d2;
+  color: white;
+  border-radius: 12rpx;
+  font-size: 32rpx;
+  padding: 20rpx 40rpx;
+  user-select: none;
+  cursor: pointer;
+}
+
+.leave-btn {
+  background: #ff6b6b;
+}
+
+.leave-btn:hover {
+  background: #ee5a52;
+}
+
+.restart-btn:hover {
+  background: #1565c0;
+}
+
+.winner-btn {
+  background: #4caf50;
+  animation: pulse 1s infinite;
+}
+
+@keyframes pulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+  100% { transform: scale(1); }
+}

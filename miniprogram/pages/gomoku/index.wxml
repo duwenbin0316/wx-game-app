@@ -1,0 +1,50 @@
+<view class="container">
+  <view class="game-header">
+    <view class="mode-info">
+      <text class="mode-text">{{mode === 'online' ? '联机对战' : '单机模式'}}</text>
+      <text wx:if="{{mode === 'online' && myColor}}" class="my-color">
+        你是：{{myColor === 'black' ? '黑棋' : '白棋'}}
+      </text>
+      <text wx:if="{{mode === 'online' && !canPlay && !winner}}" class="wait-text">
+        等待对手下棋...
+      </text>
+    </view>
+    
+    <view class="players">
+      <view class="player-info {{currentPlayer === 'black' ? 'active' : ''}} {{myColor === 'black' ? 'my-player' : ''}}">
+        <text class="player-name">
+          {{mode === 'online' && roomInfo ? (roomInfo.creatorInfo && roomInfo.creatorInfo.nickName ? roomInfo.creatorInfo.nickName : '玩家1') : '黑棋'}}
+        </text>
+        <view class="chess-piece black"></view>
+      </view>
+      <view class="vs">VS</view>
+      <view class="player-info {{currentPlayer === 'white' ? 'active' : ''}} {{myColor === 'white' ? 'my-player' : ''}}">
+        <text class="player-name">
+          {{mode === 'online' && roomInfo ? (roomInfo.whitePlayerInfo && roomInfo.whitePlayerInfo.nickName ? roomInfo.whitePlayerInfo.nickName : '等待加入...') : '白棋'}}
+        </text>
+        <view class="chess-piece white"></view>
+      </view>
+    </view>
+  </view>
+
+  <view class="game-board" bindtap="onBoardTap">
+    <view class="board-grid">
+      <view wx:for="{{board}}" wx:key="index" class="board-row">
+        <view wx:for="{{item}}" wx:for-item="cell" wx:for-index="colIndex" wx:key="colIndex" 
+              class="board-cell {{cell}}" 
+              data-row="{{index}}" 
+              data-col="{{colIndex}}"
+              bindtap="onCellTap">
+          <view wx:if="{{cell === 'black'}}" class="chess black"></view>
+          <view wx:if="{{cell === 'white'}}" class="chess white"></view>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <view class="game-controls">
+    <view wx:if="{{mode === 'online'}}" class="leave-btn" bindtap="onLeaveRoom">关闭并离开房间</view>
+    <view class="restart-btn" bindtap="onRestart">重新开始</view>
+    <view wx:if="{{winner}}" class="winner-btn">{{winner}}获胜!</view>
+  </view>
+</view>

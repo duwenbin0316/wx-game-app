@@ -1,0 +1,85 @@
+<view class="online-container">
+  <!-- 顶部标题 -->
+  <view class="header">
+    <text class="title">联机对战</text>
+    <text class="subtitle">创建房间与好友一起下五子棋</text>
+  </view>
+
+  <!-- 操作按钮 -->
+  <view class="actions">
+    <view class="create-btn action-btn" bindtap="onCreateRoom">
+      <text class="btn-icon">+</text>
+      <text class="btn-text">创建房间</text>
+    </view>
+    <view class="refresh-btn action-btn" bindtap="onRefreshRooms">
+      <text class="btn-icon">↻</text>
+      <text class="btn-text">刷新列表</text>
+    </view>
+    <view class="clear-btn action-btn" bindtap="onClearAllRooms">
+      <text class="btn-icon">🗑</text>
+      <text class="btn-text">清空房间</text>
+    </view>
+  </view>
+
+  <!-- 创建房间弹窗 -->
+  <view class="modal-mask" wx:if="{{showRoomNameModal}}" bindtap="onCancelRoomName">
+    <view class="modal-card" catchtap="onModalTap">
+      <view class="modal-title">创建房间</view>
+      <view class="modal-subtitle">请输入房间名</view>
+      <input
+        class="modal-input"
+        placeholder="例如：好友对战房间"
+        maxlength="20"
+        value="{{roomNameInput}}"
+        bindinput="onRoomNameInput"
+      />
+      <view class="modal-actions">
+        <view class="modal-btn cancel-btn" bindtap="onCancelRoomName">取消</view>
+        <view class="modal-btn confirm-btn" bindtap="onConfirmRoomName">创建</view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 加载状态 -->
+  <view class="loading" wx:if="{{loading}}">
+    <text class="loading-icon">⚡</text>
+    <text class="loading-text">加载中...</text>
+  </view>
+
+  <!-- 房间列表 -->
+  <view class="room-list" wx:else>
+    <text class="section-title">可用房间</text>
+    
+    <!-- 空状态 -->
+    <view wx:if="{{rooms.length === 0}}" class="empty-state">
+      <text class="empty-icon">🎮</text>
+      <text class="empty-text">暂无房间</text>
+      <text class="empty-hint">创建一个新房间<br/>开始游戏吧</text>
+      <view class="empty-action">
+        <view class="empty-action-btn" bindtap="onCreateRoom">创建房间</view>
+      </view>
+    </view>
+    
+    <!-- 房间卡片 -->
+    <view wx:for="{{rooms}}" wx:key="_id" class="room-item">
+      <view class="room-main-info">
+        <view class="room-name">
+          {{item.name}}
+          <view class="room-status">等待加入</view>
+        </view>
+        <view class="room-details">
+          <view class="creator-info">
+            <view class="creator-avatar">{{item.creatorInfo.nickName.charAt(0)}}</view>
+            <text>{{item.creatorInfo.nickName}}</text>
+          </view>
+          <text class="time">{{item.createdAt}}</text>
+        </view>
+      </view>
+      <view class="room-actions">
+        <view class="join-btn" data-room-id="{{item._id}}" bindtap="onJoinRoom">
+          加入
+        </view>
+      </view>
+    </view>
+  </view>
+</view>
