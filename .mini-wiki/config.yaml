@@ -1,0 +1,50 @@
+﻿generation:
+  language: zh
+  detail_level: detailed
+  include_diagrams: true
+  include_examples: true
+  link_to_source: true
+  min_sections: 10
+
+diagrams:
+  architecture_style: flowchart TB
+  dataflow_style: sequenceDiagram
+  use_colors: true
+
+linking:
+  auto_cross_links: true
+  generate_doc_map: true
+  generate_dependency_graph: true
+
+progressive:
+  enabled: auto
+  batch_size: 1
+  min_lines_per_doc: 150
+  min_code_examples: 3
+  quality_check: false
+  auto_continue: false
+
+domain_hierarchy:
+  enabled: true
+  auto_detect: true
+  language: zh
+  priority_weights:
+    entry_point: 5
+    dependency_count: 4
+    code_lines: 2
+    has_docs: 3
+    recent_modified: 1
+  skip_modules:
+    - node_modules
+    - images
+    - dist
+    - "*.png"
+    - "*.svg"
+    - "*.lock"
+
+exclude:
+  - node_modules
+  - dist
+  - "*.test.js"
+  - "*.test.ts"
+  - "miniprogram/images"

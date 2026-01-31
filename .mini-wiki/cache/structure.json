@@ -1,0 +1,89 @@
+﻿{
+  "project_type": "fullstack",
+  "language": "javascript",
+  "entry_points": [
+    "miniprogram/app.js",
+    "cloudfunctions/quickstartFunctions/index.js"
+  ],
+  "domains": {
+    "客户端小程序": {
+      "modules": [
+        "app-bootstrap",
+        "online-lobby",
+        "gomoku-game",
+        "cloud-tip-modal"
+      ]
+    },
+    "云函数与数据": {
+      "modules": [
+        "quickstart-functions",
+        "data-models"
+      ]
+    },
+    "配置与环境": {
+      "modules": [
+        "project-config"
+      ]
+    }
+  },
+  "modules": {
+    "app-bootstrap": {
+      "role": "core",
+      "files": [
+        "miniprogram/app.js",
+        "miniprogram/app.json",
+        "miniprogram/app.wxss",
+        "miniprogram/envList.js"
+      ]
+    },
+    "online-lobby": {
+      "role": "core",
+      "files": [
+        "miniprogram/pages/online/index.js",
+        "miniprogram/pages/online/index.wxml",
+        "miniprogram/pages/online/index.wxss",
+        "miniprogram/pages/online/index.json"
+      ]
+    },
+    "gomoku-game": {
+      "role": "core",
+      "files": [
+        "miniprogram/pages/gomoku/index.js",
+        "miniprogram/pages/gomoku/index.wxml",
+        "miniprogram/pages/gomoku/index.wxss",
+        "miniprogram/pages/gomoku/index.json"
+      ]
+    },
+    "cloud-tip-modal": {
+      "role": "util",
+      "files": [
+        "miniprogram/components/cloudTipModal/index.js",
+        "miniprogram/components/cloudTipModal/index.wxml",
+        "miniprogram/components/cloudTipModal/index.wxss",
+        "miniprogram/components/cloudTipModal/index.json"
+      ]
+    },
+    "quickstart-functions": {
+      "role": "core",
+      "files": [
+        "cloudfunctions/quickstartFunctions/index.js",
+        "cloudfunctions/quickstartFunctions/package.json",
+        "cloudfunctions/quickstartFunctions/config.json"
+      ]
+    },
+    "data-models": {
+      "role": "core",
+      "files": [
+        "cloudfunctions/quickstartFunctions/index.js"
+      ]
+    },
+    "project-config": {
+      "role": "config",
+      "files": [
+        "project.config.json",
+        "project.private.config.json",
+        "cloudbaserc.json"
+      ]
+    }
+  }
+}
