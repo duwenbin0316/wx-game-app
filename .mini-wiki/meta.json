@@ -1,17 +1,19 @@
-﻿{
-  "generator_version": "3.0.6",
-  "quality_standard": "professional-v2",
-  "generated_at": "2026-01-31T17:19:38.0847103+08:00",
-  "project": {
-    "name": "miniprogram-1",
-    "type": "fullstack",
-    "language": "javascript",
-    "miniprogram_root": "miniprogram/",
-    "cloudfunction_root": "cloudfunctions/"
-  },
-  "modules": {},
-  "globals": {
-    "index": "wiki/index.md",
-    "architecture": "wiki/architecture.md"
-  }
+{
+    "generator_version":  "3.0.6",
+    "quality_standard":  "professional-v2",
+    "generated_at":  "2026-01-31T22:09:30.0891809+08:00",
+    "project":  {
+                    "name":  "miniprogram-1",
+                    "type":  "fullstack",
+                    "language":  "javascript",
+                    "miniprogram_root":  "miniprogram/",
+                    "cloudfunction_root":  "cloudfunctions/"
+                },
+    "modules":  {
+
+                },
+    "globals":  {
+                    "index":  "wiki/index.md",
+                    "architecture":  "wiki/architecture.md"
+                }
 }
