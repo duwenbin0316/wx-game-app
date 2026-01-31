@@ -30,6 +30,13 @@
     this.stopRoomWatch();
   },
 
+  onShareAppMessage() {
+    return {
+      title: '联机对战',
+      path: '/pages/online/index'
+    };
+  },
+
   async getUserInfo() {
     try {
       const userInfo = await wx.getUserProfile({
