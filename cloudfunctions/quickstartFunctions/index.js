@@ -1,12 +1,12 @@
-const cloud = require("wx-server-sdk");
+﻿const cloud = require("wx-server-sdk");
 cloud.init({
   env: cloud.DYNAMIC_CURRENT_ENV,
 });
 
 const db = cloud.database();
-// 鑾峰彇openid
+
+// 获取 openid
 const getOpenId = async () => {
-  // 鑾峰彇鍩虹淇℃伅
   const wxContext = cloud.getWXContext();
   return {
     openid: wxContext.OPENID,
@@ -15,14 +15,12 @@ const getOpenId = async () => {
   };
 };
 
-// 鑾峰彇灏忕▼搴忎簩缁寸爜
+// 获取小程序码
 const getMiniProgramCode = async () => {
-  // 鑾峰彇灏忕▼搴忎簩缁寸爜鐨刡uffer
   const resp = await cloud.openapi.wxacode.get({
-    path: "pages/index/index",
+    path: "pages/online/index",
   });
   const { buffer } = resp;
-  // 灏嗗浘鐗囦笂浼犱簯瀛樺偍绌洪棿
   const upload = await cloud.uploadFile({
     cloudPath: "code.png",
     fileContent: buffer,
@@ -30,17 +28,15 @@ const getMiniProgramCode = async () => {
   return upload.fileID;
 };
 
-// 鍒涘缓娓告垙鎴块棿闆嗗悎
+// 创建游戏房间集合
 const createGameCollection = async () => {
   try {
-    // 鍒涘缓娓告垙鎴块棿闆嗗悎
     await db.createCollection("gameRooms");
     return {
       success: true,
       data: "gameRooms collection created",
     };
   } catch (e) {
-    // 闆嗗悎宸插瓨鍦ㄦ椂涔熻繑鍥炴垚鍔?
     return {
       success: true,
       data: "gameRooms collection already exists",
@@ -48,40 +44,35 @@ const createGameCollection = async () => {
   }
 };
 
-// 鍒涘缓闆嗗悎
+// 创建示例集合
 const createCollection = async () => {
   try {
-    // 鍒涘缓闆嗗悎
     await db.createCollection("sales");
     await db.collection("sales").add({
-      // data 瀛楁琛ㄧず闇€鏂板鐨?JSON 鏁版嵁
       data: {
-        region: "鍗庝笢",
-        city: "涓婃捣",
+        region: "华东",
+        city: "上海",
         sales: 11,
       },
     });
     await db.collection("sales").add({
-      // data 瀛楁琛ㄧず闇€鏂板鐨?JSON 鏁版嵁
       data: {
-        region: "鍗庝笢",
-        city: "鍗椾含",
+        region: "华东",
+        city: "杭州",
         sales: 11,
       },
     });
     await db.collection("sales").add({
-      // data 瀛楁琛ㄧず闇€鏂板鐨?JSON 鏁版嵁
       data: {
-        region: "鍗庡崡",
-        city: "骞垮窞",
+        region: "华南",
+        city: "广州",
         sales: 22,
       },
     });
     await db.collection("sales").add({
-      // data 瀛楁琛ㄧず闇€鏂板鐨?JSON 鏁版嵁
       data: {
-        region: "鍗庡崡",
-        city: "娣卞湷",
+        region: "华南",
+        city: "深圳",
         sales: 22,
       },
     });
@@ -89,7 +80,6 @@ const createCollection = async () => {
       success: true,
     };
   } catch (e) {
-    // 杩欓噷catch鍒扮殑鏄collection宸茬粡瀛樺湪锛屼粠涓氬姟閫昏緫涓婃潵璇存槸杩愯鎴愬姛鐨勶紝鎵€浠atch杩斿洖success缁欏墠绔紝閬垮厤宸ュ叿鍦ㄥ墠绔姏鍑哄紓甯?
     return {
       success: true,
       data: "create collection success",
@@ -97,16 +87,14 @@ const createCollection = async () => {
   }
 };
 
-// 鏌ヨ鏁版嵁
+// 查询示例数据
 const selectRecord = async () => {
-  // 杩斿洖鏁版嵁搴撴煡璇㈢粨鏋?
-    return await db.collection("sales").get();
+  return await db.collection("sales").get();
 };
 
-// 鏇存柊鏁版嵁
+// 更新示例数据
 const updateRecord = async (event) => {
   try {
-    // 閬嶅巻淇敼鏁版嵁搴撲俊鎭?
     for (let i = 0; i < event.data.length; i++) {
       await db
         .collection("sales")
@@ -131,11 +119,10 @@ const updateRecord = async (event) => {
   }
 };
 
-// 鏂板鏁版嵁
+// 插入示例数据
 const insertRecord = async (event) => {
   try {
     const insertRecord = event.data;
-    // 鎻掑叆鏁版嵁
     await db.collection("sales").add({
       data: {
         region: insertRecord.region,
@@ -155,7 +142,7 @@ const insertRecord = async (event) => {
   }
 };
 
-// 鍒犻櫎鏁版嵁
+// 删除示例数据
 const deleteRecord = async (event) => {
   try {
     await db
@@ -175,7 +162,7 @@ const deleteRecord = async (event) => {
   }
 };
 
-// 鍒涘缓娓告垙鎴块棿
+// 创建房间
 const createRoom = async (event) => {
   try {
     await createGameCollection();
@@ -184,7 +171,7 @@ const createRoom = async (event) => {
     const creatorNickName = creatorInfo && creatorInfo.nickName ? creatorInfo.nickName : '玩家';
     const trimmedRoomName = roomName && roomName.trim() ? roomName.trim() : '';
     const finalRoomName = trimmedRoomName ? trimmedRoomName.slice(0, 20) : (creatorNickName + '的房间');
-    
+
     const roomData = {
       name: finalRoomName,
       creatorOpenid: wxContext.OPENID,
@@ -219,7 +206,7 @@ const createRoom = async (event) => {
   }
 };
 
-// 鑾峰彇鎴块棿鍒楄〃
+// 获取可加入房间列表
 const getRoomList = async () => {
   try {
     await createGameCollection();
@@ -242,7 +229,7 @@ const getRoomList = async () => {
   }
 };
 
-// Join room
+// 加入房间
 const joinRoom = async (event) => {
   try {
     const wxContext = cloud.getWXContext();
@@ -276,7 +263,7 @@ const joinRoom = async (event) => {
         whitePlayer: wxContext.OPENID,
         whitePlayerInfo: {
           avatarUrl: event.playerInfo?.avatarUrl || '',
-          nickName: event.playerInfo?.nickName || 'Player 2'
+          nickName: event.playerInfo?.nickName || '玩家2'
         },
         lastActionAt: new Date()
       }
@@ -294,7 +281,7 @@ const joinRoom = async (event) => {
   }
 };
 
-// Make a move
+// 落子
 const makeMove = async (event) => {
   try {
     const wxContext = cloud.getWXContext();
@@ -364,7 +351,7 @@ const makeMove = async (event) => {
   }
 };
 
-// 妫€鏌ヨ幏鑳滆€?
+// 胜负判定
 const checkWinner = (board, row, col) => {
   const directions = [
     [[0, 1], [0, -1]],
@@ -382,8 +369,8 @@ const checkWinner = (board, row, col) => {
       let newRow = row + dx;
       let newCol = col + dy;
 
-      while (newRow >= 0 && newRow < 15 && 
-             newCol >= 0 && newCol < 15 && 
+      while (newRow >= 0 && newRow < 15 &&
+             newCol >= 0 && newCol < 15 &&
              board[newRow][newCol] === color) {
         count++;
         newRow += dx;
@@ -397,7 +384,7 @@ const checkWinner = (board, row, col) => {
   return null;
 };
 
-// Get room info
+// 获取房间信息
 const getRoomInfo = async (event) => {
   try {
     const { roomId } = event;
@@ -422,63 +409,60 @@ const getRoomInfo = async (event) => {
   }
 };
 
-// Clear all rooms
+// 清空所有房间
 const clearAllRooms = async () => {
   try {
     console.log('开始清空所有房间...');
-    
+
     await createGameCollection();
-    
-    // 方法1: 先获取房间数量，然后批量删除
+
+    // 方法1：先获取房间数量，然后批量删除
     const getResult = await db.collection('gameRooms').get();
     const rooms = getResult.data;
     const totalCount = rooms.length;
-    
+
     console.log(`找到 ${totalCount} 个房间`);
-    
+
     if (totalCount === 0) {
       return {
         success: true,
         clearedCount: 0
       };
     }
-    
-    // 方法2: 使用 where 条件批量删除（更高效）
+
+    // 方法2：使用 where 条件批量删除（更高效）
     try {
-      // 尝试批量删除所有房间
       const deleteResult = await db.collection('gameRooms').where({
         _id: db.command.exists(true)
       }).remove();
-      
-      console.log(`批量删除结果:`, deleteResult);
-      
+
+      console.log('批量删除结果:', deleteResult);
+
       return {
         success: true,
         clearedCount: totalCount
       };
     } catch (batchError) {
       console.log('批量删除失败，改用逐个删除:', batchError.message);
-      
-      // 如果批量删除失败，则逐个删除
+
       let deletedCount = 0;
       for (const room of rooms) {
         try {
           await db.collection('gameRooms').doc(room._id).remove();
           deletedCount++;
-          console.log(`已删除房间: ${room._id}`);
+          console.log(`已删除房间 ${room._id}`);
         } catch (deleteError) {
-          // 忽略文档不存在的错误
           if (deleteError.message && deleteError.message.includes('does not exist')) {
             console.log(`房间 ${room._id} 已不存在，跳过`);
-            deletedCount++; // 仍然计数，因为目标已达成
+            deletedCount++;
           } else {
             console.error(`删除房间 ${room._id} 失败:`, deleteError);
           }
         }
       }
-      
+
       console.log(`逐个删除完成，成功删除 ${deletedCount} 个房间`);
-      
+
       return {
         success: true,
         clearedCount: deletedCount
@@ -493,7 +477,7 @@ const clearAllRooms = async () => {
   }
 };
 
-// Close room
+// 关闭房间
 const closeRoom = async (event) => {
   try {
     await createGameCollection();
@@ -538,13 +522,6 @@ const closeRoom = async (event) => {
   }
 };
 
-// const getOpenId = require('./getOpenId/index');
-// const getMiniProgramCode = require('./getMiniProgramCode/index');
-// const createCollection = require('./createCollection/index');
-// const selectRecord = require('./selectRecord/index');
-// const updateRecord = require('./updateRecord/index');
-// const fetchGoodsList = require('./fetchGoodsList/index');
-// const genMpQrcode = require('./genMpQrcode/index');
 // Cloud function entry
 exports.main = async (event, context) => {
   switch (event.type) {
@@ -580,8 +557,3 @@ exports.main = async (event, context) => {
       return await clearAllRooms();
   }
 };
-
-
-
-
-

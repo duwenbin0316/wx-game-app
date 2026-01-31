@@ -9,32 +9,35 @@
 
 /* 顶部标题区域 */
 .header {
-  margin-bottom: 40rpx;
-  padding: 30rpx 0 35rpx 0;
+  margin-bottom: 14rpx;
+  padding: 24rpx 0 18rpx 0;
 }
 
 .title {
+  display: block;
   font-size: 52rpx;
   font-weight: 800;
   color: #0f172a;
-  margin-bottom: 14rpx;
+  margin-bottom: 18rpx;
   letter-spacing: -1rpx;
   line-height: 1.2;
 }
 
 .subtitle {
+  display: block;
   font-size: 30rpx;
   color: #64748b;
   font-weight: 400;
   line-height: 1.5;
   opacity: 0.9;
+  margin-top: 0;
 }
 
 /* 操作按钮区域 */
 .actions {
   display: flex;
   gap: 20rpx;
-  margin-bottom: 45rpx;
+  margin-bottom: 34rpx;
   flex-wrap: wrap;
   padding: 0 4rpx;
 }
@@ -75,12 +78,6 @@
   background: linear-gradient(145deg, #6366f1 0%, #8b5cf6 100%);
   color: white;
   box-shadow: 0 8rpx 25rpx rgba(99, 102, 241, 0.35);
-}
-
-.refresh-btn {
-  background: linear-gradient(145deg, #f472b6 0%, #ec4899 100%);
-  color: white;
-  box-shadow: 0 8rpx 25rpx rgba(244, 114, 182, 0.35);
 }
 
 .clear-btn {

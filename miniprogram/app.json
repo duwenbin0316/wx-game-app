@@ -1,9 +1,7 @@
 {
   "pages": [
-    "pages/index/index",
-    "pages/example/index",
-    "pages/gomoku/index",
-    "pages/online/index"
+    "pages/online/index",
+    "pages/gomoku/index"
   ],
   "window": {
     "backgroundColor": "#F6F6F6",

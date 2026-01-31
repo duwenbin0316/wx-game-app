@@ -1,4 +1,4 @@
-<view class="online-container">
+﻿<view class="online-container">
   <!-- 顶部标题 -->
   <view class="header">
     <text class="title">联机对战</text>
@@ -10,10 +10,6 @@
     <view class="create-btn action-btn" bindtap="onCreateRoom">
       <text class="btn-icon">+</text>
       <text class="btn-text">创建房间</text>
-    </view>
-    <view class="refresh-btn action-btn" bindtap="onRefreshRooms">
-      <text class="btn-icon">↻</text>
-      <text class="btn-text">刷新列表</text>
     </view>
     <view class="clear-btn action-btn" bindtap="onClearAllRooms">
       <text class="btn-icon">🗑</text>
@@ -42,24 +38,24 @@
 
   <!-- 加载状态 -->
   <view class="loading" wx:if="{{loading}}">
-    <text class="loading-icon">⚡</text>
+    <text class="loading-icon">⏳</text>
     <text class="loading-text">加载中...</text>
   </view>
 
   <!-- 房间列表 -->
   <view class="room-list" wx:else>
     <text class="section-title">可用房间</text>
-    
+
     <!-- 空状态 -->
     <view wx:if="{{rooms.length === 0}}" class="empty-state">
-      <text class="empty-icon">🎮</text>
+      <text class="empty-icon">📭</text>
       <text class="empty-text">暂无房间</text>
       <text class="empty-hint">创建一个新房间<br/>开始游戏吧</text>
       <view class="empty-action">
         <view class="empty-action-btn" bindtap="onCreateRoom">创建房间</view>
       </view>
     </view>
-    
+
     <!-- 房间卡片 -->
     <view wx:for="{{rooms}}" wx:key="_id" class="room-item">
       <view class="room-main-info">

@@ -1,4 +1,4 @@
-Page({
+﻿Page({
   data: {
     board: [],
     currentPlayer: 'black',
@@ -14,7 +14,7 @@ Page({
 
   onLoad(options) {
     const { roomId, mode } = options;
-    
+
     if (mode === 'online' && roomId) {
       this.setData({ mode: 'online', roomId }, () => {
         this.initOnlineGame();
@@ -25,11 +25,19 @@ Page({
   },
 
   onUnload() {
+    this.isPageActive = false;
+    this.clearWatchRetry();
     this.stopRoomWatch();
     // 页面卸载时不自动删除房间，保留房间供其他玩家使用
   },
 
+  onShow() {
+    this.isPageActive = true;
+  },
+
   onHide() {
+    this.isPageActive = false;
+    this.clearWatchRetry();
     this.stopRoomWatch();
     // 页面隐藏时不自动删除房间，保留房间供其他玩家使用
   },
@@ -48,7 +56,7 @@ Page({
   async initOnlineGame() {
     try {
       wx.showLoading({ title: '加载游戏...' });
-      
+
       const result = await wx.cloud.callFunction({
         name: 'quickstartFunctions',
         data: {
@@ -59,7 +67,7 @@ Page({
 
       if (result.result.success) {
         const room = result.result.room;
-        
+
         wx.cloud.callFunction({
           name: 'quickstartFunctions',
           data: { type: 'getOpenId' }
@@ -67,7 +75,7 @@ Page({
           const myOpenid = openidResult.result.openid;
           const myColor = room.blackPlayer === myOpenid ? 'black' : 'white';
           const canPlay = room.currentPlayer === myColor && room.status === 'playing';
-          
+
           this.setData({
             roomInfo: room,
             board: room.board,
@@ -87,7 +95,7 @@ Page({
         });
       }
     } catch (e) {
-      console.error('初始化在线游戏失�?, e);
+      console.error('初始化在线游戏失败', e);
       wx.showToast({
         title: '网络错误',
         icon: 'none'
@@ -100,22 +108,29 @@ Page({
   startRoomWatch() {
     if (this.roomWatcher || !this.data.roomId) return;
     const db = wx.cloud.database();
+    this.clearWatchRetry();
     this.roomWatcher = db.collection('gameRooms')
       .where({ _id: this.data.roomId })
       .watch({
         onChange: (snapshot) => {
           const docs = snapshot.docs || [];
           if (!docs.length) {
-            wx.showToast({ title: '�����ѹر�', icon: 'none' });
+            if (snapshot.type === 'init') {
+              this.fallbackFetchRoom();
+              return;
+            }
+            wx.showToast({ title: '房间已关闭', icon: 'none' });
             this.stopRoomWatch();
             return;
           }
           this.applyRoomUpdate(docs[0]);
         },
         onError: (err) => {
-          console.error('�������ʧ��', err);
+          console.error('房间监听失败', err);
           this.stopRoomWatch();
-          setTimeout(() => {
+          if (!this.isPageActive) return;
+          if (err && String(err).includes('CLOSED')) return;
+          this.watchRetryTimer = setTimeout(() => {
             if (this.data.mode === 'online' && this.data.roomId) {
               this.startRoomWatch();
             }
@@ -131,18 +146,72 @@ Page({
     }
   },
 
+  clearWatchRetry() {
+    if (this.watchRetryTimer) {
+      clearTimeout(this.watchRetryTimer);
+      this.watchRetryTimer = null;
+    }
+  },
+
+  async fallbackFetchRoom() {
+    try {
+      const result = await wx.cloud.callFunction({
+        name: 'quickstartFunctions',
+        data: {
+          type: 'getRoomInfo',
+          roomId: this.data.roomId
+        }
+      });
+      if (result.result && result.result.success) {
+        this.applyRoomUpdate(result.result.room);
+      } else {
+        wx.showToast({ title: '房间已关闭', icon: 'none' });
+      }
+    } catch (e) {
+      console.error('回退拉取房间失败', e);
+    }
+  },
+
   applyRoomUpdate(room) {
     const canPlay = room.currentPlayer === this.data.myColor && room.status === 'playing';
-    this.setData({
-      board: room.board,
+    const updates = {
+      roomInfo: room,
       currentPlayer: room.currentPlayer,
       winner: room.winner,
       status: room.status,
       canPlay
-    });
+    };
+    const currentBoard = this.data.board;
+    const nextBoard = room.board;
+    if (Array.isArray(currentBoard) &&
+        Array.isArray(nextBoard) &&
+        currentBoard.length === nextBoard.length) {
+      const changes = [];
+      for (let r = 0; r < nextBoard.length; r++) {
+        const nextRow = nextBoard[r] || [];
+        const curRow = currentBoard[r] || [];
+        for (let c = 0; c < nextRow.length; c++) {
+          if (nextRow[c] !== curRow[c]) {
+            changes.push({ r, c });
+            if (changes.length > 3) break;
+          }
+        }
+        if (changes.length > 3) break;
+      }
+      if (changes.length > 0 && changes.length <= 3) {
+        changes.forEach(({ r, c }) => {
+          updates[`board[${r}][${c}]`] = nextBoard[r][c];
+        });
+      } else {
+        updates.board = nextBoard;
+      }
+    } else {
+      updates.board = nextBoard;
+    }
+    this.setData(updates);
 
     if (room.winner) {
-      const winnerText = room.winner === this.data.myColor ? '��Ӯ�ˣ�' : '���ֻ�ʤ';
+      const winnerText = room.winner === this.data.myColor ? '你赢了！' : '对手获胜';
       wx.showToast({
         title: winnerText,
         icon: room.winner === this.data.myColor ? 'success' : 'none'
@@ -197,9 +266,20 @@ Page({
   },
 
   async makeOnlineMove(row, col) {
+    const prevBoard = this.data.board.map(rowItem => [...rowItem]);
+    const prevCurrentPlayer = this.data.currentPlayer;
+    const prevWinner = this.data.winner;
+    const prevCanPlay = this.data.canPlay;
+    const nextPlayer = prevCurrentPlayer === 'black' ? 'white' : 'black';
+    const boardPath = `board[${row}][${col}]`;
+
+    this.setData({
+      [boardPath]: prevCurrentPlayer,
+      currentPlayer: nextPlayer,
+      canPlay: false
+    });
+
     try {
-      wx.showLoading({ title: '下棋�?.' });
-      
       const result = await wx.cloud.callFunction({
         name: 'quickstartFunctions',
         data: {
@@ -210,32 +290,40 @@ Page({
         }
       });
 
-      wx.hideLoading();
-
       if (result.result.success) {
         this.setData({
-          board: result.result.board,
           currentPlayer: result.result.currentPlayer,
           winner: result.result.winner,
-          canPlay: false
+          status: result.result.status
         });
 
         if (result.result.winner) {
-          const winnerText = result.result.winner === this.data.myColor ? '你赢了！' : '对手获胜�?;
+          const winnerText = result.result.winner === this.data.myColor ? '你赢了！' : '对手获胜';
           wx.showToast({
             title: winnerText,
             icon: result.result.winner === this.data.myColor ? 'success' : 'none'
           });
         }
       } else {
+        this.setData({
+          board: prevBoard,
+          currentPlayer: prevCurrentPlayer,
+          winner: prevWinner,
+          canPlay: prevCanPlay
+        });
         wx.showToast({
-          title: result.result.errMsg || '下棋失败',
+          title: result.result.errMsg || '落子失败',
           icon: 'none'
         });
       }
     } catch (e) {
-      wx.hideLoading();
-      console.error('在线下棋失败', e);
+      console.error('在线落子失败', e);
+      this.setData({
+        board: prevBoard,
+        currentPlayer: prevCurrentPlayer,
+        winner: prevWinner,
+        canPlay: prevCanPlay
+      });
       wx.showToast({
         title: '网络错误',
         icon: 'none'
@@ -247,7 +335,8 @@ Page({
     const directions = [
       [[0, 1], [0, -1]],   // 水平
       [[1, 0], [-1, 0]],   // 垂直
-      [[1, 1], [-1, -1]],  // 对角�?      [[1, -1], [-1, 1]]   // 反对角线
+      [[1, 1], [-1, -1]],  // 对角线
+      [[1, -1], [-1, 1]]   // 反对角线
     ];
 
     const color = board[row][col];
@@ -259,8 +348,8 @@ Page({
         let newRow = row + dx;
         let newCol = col + dy;
 
-        while (newRow >= 0 && newRow < this.data.boardSize && 
-               newCol >= 0 && newCol < this.data.boardSize && 
+        while (newRow >= 0 && newRow < this.data.boardSize &&
+               newCol >= 0 && newCol < this.data.boardSize &&
                board[newRow][newCol] === color) {
           count++;
           newRow += dx;
@@ -285,8 +374,8 @@ Page({
     }
 
     wx.showModal({
-      title: '重新开�?,
-      content: '确定要重新开始游戏吗�?,
+      title: '重新开始',
+      content: '确定要重新开始游戏吗？',
       success: (res) => {
         if (res.confirm) {
           this.initLocalGame();
@@ -295,37 +384,20 @@ Page({
     });
   },
 
-  onBoardTap(e) {
-    // 防止事件冒泡
+  onBoardTap() {
+    // 阻止事件冒泡
   },
 
   onLeaveRoom() {
     wx.showModal({
       title: '离开房间',
-      content: '确定要离开当前房间吗？离开后房间将被关闭�?,
+      content: '确定要离开当前房间吗？离开后房间将被关闭。',
       confirmText: '确定离开',
       cancelText: '继续游戏',
       success: (res) => {
         if (res.confirm) {
-          // 关闭房间
-          this.closeRoomOnExit();
-          // 返回到房间列表页�?          wx.navigateBack();
-        }
-      }
-    });
-  },
-
-  onLeaveRoom() {
-    wx.showModal({
-      title: '离开房间',
-      content: '确定要离开当前房间吗？离开后房间将被关闭�?,
-      confirmText: '确定离开',
-      cancelText: '继续游戏',
-      success: (res) => {
-        if (res.confirm) {
-          // 关闭房间
           this.closeRoom();
-          // 返回到房间列表页�?          wx.navigateBack();
+          wx.navigateBack();
         }
       }
     });
@@ -337,7 +409,7 @@ Page({
 
     this.data.hasClosedRoom = true;
     wx.setStorageSync('pendingCloseRoomId', this.data.roomId);
-    
+
     wx.cloud.callFunction({
       name: 'quickstartFunctions',
       data: {
@@ -351,5 +423,3 @@ Page({
     });
   }
 });
-
-

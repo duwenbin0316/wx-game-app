@@ -1,4 +1,4 @@
-Page({
+﻿Page({
   data: {
     rooms: [],
     loading: false,
@@ -14,6 +14,20 @@ Page({
   onShow() {
     // 不再自动关闭待关闭的房间，改为保留房间
     this.loadRoomList();
+    this.isPageActive = true;
+    this.startRoomWatch();
+  },
+
+  onHide() {
+    this.isPageActive = false;
+    this.clearWatchRetry();
+    this.stopRoomWatch();
+  },
+
+  onUnload() {
+    this.isPageActive = false;
+    this.clearWatchRetry();
+    this.stopRoomWatch();
   },
 
   async getUserInfo() {
@@ -29,7 +43,7 @@ Page({
 
   async loadRoomList() {
     this.setData({ loading: true });
-    
+
     try {
       const result = await wx.cloud.callFunction({
         name: 'quickstartFunctions',
@@ -61,6 +75,49 @@ Page({
     }
   },
 
+  startRoomWatch() {
+    if (this.roomWatcher) return;
+    const db = wx.cloud.database();
+    this.clearWatchRetry();
+    this.roomWatcher = db.collection('gameRooms')
+      .where({ status: 'waiting' })
+      .orderBy('createdAt', 'desc')
+      .watch({
+        onChange: (snapshot) => {
+          const rooms = (snapshot.docs || []).map(room => ({
+            ...room,
+            createdAt: this.formatTime(room.createdAt)
+          }));
+          this.setData({ rooms });
+        },
+        onError: (err) => {
+          console.error('房间列表监听失败', err);
+          this.stopRoomWatch();
+          if (!this.isPageActive) return;
+          if (err && String(err).includes('CLOSED')) return;
+          this.watchRetryTimer = setTimeout(() => {
+            if (this.isPageActive) {
+              this.startRoomWatch();
+            }
+          }, 2000);
+        }
+      });
+  },
+
+  stopRoomWatch() {
+    if (this.roomWatcher) {
+      this.roomWatcher.close();
+      this.roomWatcher = null;
+    }
+  },
+
+  clearWatchRetry() {
+    if (this.watchRetryTimer) {
+      clearTimeout(this.watchRetryTimer);
+      this.watchRetryTimer = null;
+    }
+  },
+
   async onCreateRoom() {
     const roomName = (this.data.roomNameInput || '').trim();
     if (!roomName) {
@@ -82,7 +139,7 @@ Page({
 
     try {
       wx.showLoading({ title: '创建房间中...' });
-      
+
       const result = await wx.cloud.callFunction({
         name: 'quickstartFunctions',
         data: {
@@ -100,7 +157,7 @@ Page({
           icon: 'success'
         });
         this.setData({ roomNameInput: '' });
-        
+
         wx.navigateTo({
           url: `/pages/gomoku/index?roomId=${result.result.roomId}&mode=online`
         });
@@ -158,7 +215,7 @@ Page({
 
     try {
       wx.showLoading({ title: '加入房间中...' });
-      
+
       const result = await wx.cloud.callFunction({
         name: 'quickstartFunctions',
         data: {
@@ -175,7 +232,7 @@ Page({
           title: '加入房间成功',
           icon: 'success'
         });
-        
+
         wx.navigateTo({
           url: `/pages/gomoku/index?roomId=${roomId}&mode=online`
         });
@@ -195,10 +252,6 @@ Page({
     }
   },
 
-  onRefreshRooms() {
-    this.loadRoomList();
-  },
-
   async onClearAllRooms() {
     wx.showModal({
       title: '确认清空',
@@ -207,7 +260,7 @@ Page({
         if (res.confirm) {
           try {
             wx.showLoading({ title: '清空中...' });
-            
+
             const result = await wx.cloud.callFunction({
               name: 'quickstartFunctions',
               data: {
@@ -224,14 +277,14 @@ Page({
                 title: `已清空${result.result.clearedCount}个房间`,
                 icon: 'success'
               });
-              
+
               // 延迟500ms后重新加载房间列表，确保数据库同步完成
               setTimeout(() => {
                 this.loadRoomList();
               }, 500);
             } else {
-              const errorMsg = result && result.result ? 
-                (result.result.errMsg || '清空失败') : 
+              const errorMsg = result && result.result ?
+                (result.result.errMsg || '清空失败') :
                 '服务器响应异常';
               wx.showToast({
                 title: errorMsg,
@@ -255,7 +308,7 @@ Page({
     const now = new Date();
     const target = new Date(date);
     const diff = now - target;
-    
+
     if (diff < 60000) {
       return '刚刚';
     } else if (diff < 3600000) {
