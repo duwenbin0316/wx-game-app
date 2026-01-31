@@ -165,8 +165,10 @@
         });
         this.setData({ roomNameInput: '' });
 
+        const createdRoomName = result.result.name || roomName;
+        const encodedRoomName = encodeURIComponent(createdRoomName || '');
         wx.navigateTo({
-          url: `/pages/gomoku/index?roomId=${result.result.roomId}&mode=online`
+          url: `/pages/gomoku/index?roomId=${result.result.roomId}&mode=online&roomName=${encodedRoomName}&created=1`
         });
       } else {
         wx.showToast({
@@ -219,6 +221,8 @@
     }
 
     const roomId = e.currentTarget.dataset.roomId;
+    const roomName = e.currentTarget.dataset.roomName || '';
+    const encodedRoomName = encodeURIComponent(roomName);
 
     try {
       wx.showLoading({ title: '加入房间中...' });
@@ -241,7 +245,7 @@
         });
 
         wx.navigateTo({
-          url: `/pages/gomoku/index?roomId=${roomId}&mode=online`
+          url: `/pages/gomoku/index?roomId=${roomId}&mode=online&roomName=${encodedRoomName}`
         });
       } else {
         wx.showToast({
@@ -266,7 +270,26 @@
       success: async (res) => {
         if (res.confirm) {
           try {
-            wx.showLoading({ title: '清空中...' });
+            wx.showLoading({ title: '处理中...' });
+
+            let repairedCount = 0;
+            let repairOk = true;
+            try {
+              const repairResult = await wx.cloud.callFunction({
+                name: 'quickstartFunctions',
+                data: {
+                  type: 'repairRooms'
+                }
+              });
+              if (repairResult && repairResult.result && repairResult.result.success) {
+                repairedCount = repairResult.result.repairedCount || 0;
+              } else {
+                repairOk = false;
+              }
+            } catch (repairError) {
+              console.error('修复房间失败', repairError);
+              repairOk = false;
+            }
 
             const result = await wx.cloud.callFunction({
               name: 'quickstartFunctions',
@@ -280,8 +303,9 @@
             console.log('清空房间结果:', result);
 
             if (result && result.result && result.result.success) {
+              const tip = '清理成功';
               wx.showToast({
-                title: `已清空${result.result.clearedCount}个房间`,
+                title: tip,
                 icon: 'success'
               });
 

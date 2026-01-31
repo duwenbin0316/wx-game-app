@@ -4,6 +4,85 @@ cloud.init({
 });
 
 const db = cloud.database();
+const BOARD_SIZE = 15;
+
+const createEmptyBoard = () =>
+  Array(BOARD_SIZE).fill(null).map(() => Array(BOARD_SIZE).fill(''));
+
+const isBoardSizeValid = (board) =>
+  Array.isArray(board) &&
+  board.length === BOARD_SIZE &&
+  board.every(row => Array.isArray(row) && row.length === BOARD_SIZE);
+
+const normalizeRoomBoardIfNeeded = async (roomId, roomData) => {
+  if (!roomData) return roomData;
+
+  const needsBoardFix = !isBoardSizeValid(roomData.board);
+  const needsWhiteInfoFix = roomData.whitePlayerInfo === null;
+
+  if (!needsBoardFix && !needsWhiteInfoFix) return roomData;
+
+  const updates = {};
+
+  if (needsBoardFix) {
+    const normalizedBoard = createEmptyBoard();
+    updates.board = normalizedBoard;
+    updates.currentPlayer = 'black';
+    updates.winner = null;
+    updates.status = 'waiting';
+    updates.whitePlayer = null;
+    updates.whitePlayerInfo = {};
+    updates.lastActionAt = new Date();
+  } else if (needsWhiteInfoFix) {
+    updates.whitePlayerInfo = {};
+  }
+
+  await db.collection('gameRooms').doc(roomId).update({ data: updates });
+
+  return {
+    ...roomData,
+    ...updates
+  };
+};
+
+// 修复历史房间数据（whitePlayerInfo 为 null 或缺失）
+const repairRooms = async () => {
+  try {
+    await createGameCollection();
+    const _ = db.command;
+    const query = db.collection('gameRooms').where(
+      _.or([
+        { whitePlayerInfo: _.eq(null) },
+        { whitePlayerInfo: _.exists(false) }
+      ])
+    );
+
+    const result = await query.get();
+    const rooms = result.data || [];
+
+    if (!rooms.length) {
+      return { success: true, repairedCount: 0 };
+    }
+
+    let repairedCount = 0;
+    for (const room of rooms) {
+      try {
+        await db.collection('gameRooms').doc(room._id).update({
+          data: {
+            whitePlayerInfo: {}
+          }
+        });
+        repairedCount++;
+      } catch (e) {
+        console.error('修复房间失败:', room._id, e);
+      }
+    }
+
+    return { success: true, repairedCount };
+  } catch (e) {
+    return { success: false, errMsg: e.message };
+  }
+};
 
 // 获取 openid
 const getOpenId = async () => {
@@ -180,10 +259,11 @@ const createRoom = async (event) => {
         nickName: creatorNickName
       },
       status: 'waiting', // waiting, playing, finished
-      board: Array(15).fill(null).map(() => Array(15).fill('')),
+      board: createEmptyBoard(),
       currentPlayer: 'black',
       blackPlayer: wxContext.OPENID,
       whitePlayer: null,
+      whitePlayerInfo: {},
       winner: null,
       createdAt: new Date(),
       lastActionAt: new Date()
@@ -243,14 +323,16 @@ const joinRoom = async (event) => {
       };
     }
 
-    if (room.data.status !== 'waiting') {
+    const normalizedRoom = await normalizeRoomBoardIfNeeded(roomId, room.data);
+
+    if (normalizedRoom.status !== 'waiting') {
       return {
         success: false,
         errMsg: 'Room is full or already in game'
       };
     }
 
-    if (room.data.creatorOpenid === wxContext.OPENID) {
+    if (normalizedRoom.creatorOpenid === wxContext.OPENID) {
       return {
         success: false,
         errMsg: 'Cannot join your own room'
@@ -271,7 +353,7 @@ const joinRoom = async (event) => {
 
     return {
       success: true,
-      room: { ...room.data, status: 'playing', whitePlayer: wxContext.OPENID }
+      room: { ...normalizedRoom, status: 'playing', whitePlayer: wxContext.OPENID }
     };
   } catch (e) {
     return {
@@ -299,6 +381,13 @@ const makeMove = async (event) => {
       return {
         success: false,
         errMsg: 'Game not started or already finished'
+      };
+    }
+
+    if (row < 0 || row >= BOARD_SIZE || col < 0 || col >= BOARD_SIZE) {
+      return {
+        success: false,
+        errMsg: 'Move out of board range'
       };
     }
 
@@ -369,8 +458,8 @@ const checkWinner = (board, row, col) => {
       let newRow = row + dx;
       let newCol = col + dy;
 
-      while (newRow >= 0 && newRow < 15 &&
-             newCol >= 0 && newCol < 15 &&
+      while (newRow >= 0 && newRow < BOARD_SIZE &&
+             newCol >= 0 && newCol < BOARD_SIZE &&
              board[newRow][newCol] === color) {
         count++;
         newRow += dx;
@@ -397,9 +486,10 @@ const getRoomInfo = async (event) => {
       };
     }
 
+    const normalizedRoom = await normalizeRoomBoardIfNeeded(roomId, room.data);
     return {
       success: true,
-      room: room.data
+      room: normalizedRoom
     };
   } catch (e) {
     return {
@@ -555,5 +645,7 @@ exports.main = async (event, context) => {
       return await closeRoom(event);
     case "clearAllRooms":
       return await clearAllRooms();
+    case "repairRooms":
+      return await repairRooms();
   }
 };

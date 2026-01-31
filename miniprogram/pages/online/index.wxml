@@ -72,7 +72,7 @@
         </view>
       </view>
       <view class="room-actions">
-        <view class="join-btn" data-room-id="{{item._id}}" bindtap="onJoinRoom">
+        <view class="join-btn" data-room-id="{{item._id}}" data-room-name="{{item.name}}" bindtap="onJoinRoom">
           加入
         </view>
       </view>

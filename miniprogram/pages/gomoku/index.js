@@ -4,19 +4,41 @@
     currentPlayer: 'black',
     winner: null,
     boardSize: 15,
+    gridSize: 14,
+    lineGrid: [],
+    points: [],
     mode: 'local', // local or online
     roomId: null,
     myColor: null, // black or white
     roomInfo: null,
+    roomName: '',
+    inviteJoin: false,
+    inviteFromCreate: false,
+    userInfo: null,
+    blackName: '玩家1',
+    whiteName: '玩家2',
     canPlay: false,
     hasClosedRoom: false
   },
 
   onLoad(options) {
-    const { roomId, mode } = options;
+    const { roomId, mode, roomName, created, invite } = options;
+    const decodedRoomName = roomName ? decodeURIComponent(roomName) : '';
+
+    this.initBoardMeta();
+    this.initAudio();
 
     if (mode === 'online' && roomId) {
-      this.setData({ mode: 'online', roomId }, () => {
+      this.setData({
+        mode: 'online',
+        roomId,
+        roomName: decodedRoomName,
+        inviteJoin: invite === '1',
+        inviteFromCreate: created === '1'
+      }, () => {
+        if (decodedRoomName) {
+          wx.setNavigationBarTitle({ title: `房间：${decodedRoomName}` });
+        }
         this.initOnlineGame();
       });
     } else {
@@ -28,6 +50,14 @@
     this.isPageActive = false;
     this.clearWatchRetry();
     this.stopRoomWatch();
+    if (this.audioContext) {
+      this.audioContext.destroy();
+      this.audioContext = null;
+    }
+    if (this.opponentAudioContext) {
+      this.opponentAudioContext.destroy();
+      this.opponentAudioContext = null;
+    }
     // 页面卸载时不自动删除房间，保留房间供其他玩家使用
   },
 
@@ -49,7 +79,9 @@
       board,
       currentPlayer: 'black',
       winner: null,
-      canPlay: true
+      canPlay: true,
+      blackName: '玩家1',
+      whiteName: '玩家2'
     });
   },
 
@@ -65,32 +97,47 @@
         }
       });
 
-      if (result.result.success) {
+      if (result.result && result.result.success) {
         const room = result.result.room;
 
-        wx.cloud.callFunction({
+        const openidResult = await wx.cloud.callFunction({
           name: 'quickstartFunctions',
           data: { type: 'getOpenId' }
-        }).then(openidResult => {
-          const myOpenid = openidResult.result.openid;
-          const myColor = room.blackPlayer === myOpenid ? 'black' : 'white';
-          const canPlay = room.currentPlayer === myColor && room.status === 'playing';
-
-          this.setData({
-            roomInfo: room,
-            board: room.board,
-            currentPlayer: room.currentPlayer,
-            winner: room.winner,
-            myColor,
-            canPlay,
-            status: room.status
-          });
-
-          this.startRoomWatch();
         });
+        const myOpenid = openidResult.result.openid;
+        const myColor = room.blackPlayer === myOpenid ? 'black' : 'white';
+        const canPlay = room.currentPlayer === myColor && room.status === 'playing';
+
+        this.setData({
+          roomInfo: room,
+          roomName: room.name || this.data.roomName,
+          board: room.board,
+          currentPlayer: room.currentPlayer,
+          winner: room.winner,
+          myColor,
+          blackName: room.creatorInfo && room.creatorInfo.nickName ? room.creatorInfo.nickName : '玩家1',
+          whiteName: room.whitePlayerInfo && room.whitePlayerInfo.nickName ? room.whitePlayerInfo.nickName : '等待加入...',
+          canPlay,
+          status: room.status
+        });
+        this.hasRoomReady = true;
+        if (room.name) {
+          wx.setNavigationBarTitle({ title: `房间：${room.name}` });
+        }
+
+        if (this.data.inviteJoin) {
+          await this.tryJoinRoomFromInvite(room, myOpenid);
+        }
+
+        if (this.data.inviteFromCreate && !this.hasPromptedInvite) {
+          this.hasPromptedInvite = true;
+          this.promptInvite();
+        }
+
+        this.startRoomWatch();
       } else {
         wx.showToast({
-          title: result.result.errMsg || '加载游戏失败',
+          title: (result.result && result.result.errMsg) || '加载游戏失败',
           icon: 'none'
         });
       }
@@ -103,6 +150,166 @@
     } finally {
       wx.hideLoading();
     }
+  },
+
+  initBoardMeta() {
+    const boardSize = this.data.boardSize;
+    const gridSize = boardSize - 1;
+    const lineGrid = Array(gridSize).fill(0);
+    const points = [];
+    for (let r = 0; r < boardSize; r++) {
+      for (let c = 0; c < boardSize; c++) {
+        points.push({ id: `${r}-${c}`, r, c });
+      }
+    }
+    this.setData({ gridSize, lineGrid, points });
+  },
+
+  initAudio() {
+    if (this.audioContext) return;
+    const audioContext = wx.createInnerAudioContext();
+    audioContext.src = '/assets/sounds/place.wav';
+    audioContext.autoplay = false;
+    audioContext.onError((err) => {
+      console.error('音效播放失败', err);
+    });
+    this.audioContext = audioContext;
+
+    const opponentAudioContext = wx.createInnerAudioContext();
+    opponentAudioContext.src = '/assets/sounds/place-opponent.wav';
+    opponentAudioContext.autoplay = false;
+    opponentAudioContext.onError((err) => {
+      console.error('对手音效播放失败', err);
+    });
+    this.opponentAudioContext = opponentAudioContext;
+  },
+
+  playPlaceSound() {
+    if (!this.audioContext) return;
+    try {
+      this.audioContext.stop();
+      this.audioContext.play();
+    } catch (e) {
+      console.error('音效播放异常', e);
+    }
+  },
+
+  playOpponentSound() {
+    if (!this.opponentAudioContext) return;
+    try {
+      this.opponentAudioContext.stop();
+      this.opponentAudioContext.play();
+    } catch (e) {
+      console.error('对手音效播放异常', e);
+    }
+  },
+
+  async ensureUserInfo() {
+    if (this.data.userInfo) return this.data.userInfo;
+    try {
+      const userInfo = await wx.getUserProfile({
+        desc: '用于游戏昵称和头像显示'
+      });
+      this.setData({ userInfo: userInfo.userInfo });
+      return userInfo.userInfo;
+    } catch (e) {
+      return null;
+    }
+  },
+
+  async tryJoinRoomFromInvite(room, myOpenid) {
+    this.setData({ inviteJoin: false });
+    if (!room || room.blackPlayer === myOpenid) return;
+    if (room.status !== 'waiting' || room.whitePlayer) {
+      wx.showToast({ title: '房间已开始或已满', icon: 'none' });
+      return;
+    }
+
+    const userInfo = await this.ensureUserInfo();
+    if (!userInfo) return;
+
+    try {
+      wx.showLoading({ title: '加入房间中...' });
+      const joinResult = await wx.cloud.callFunction({
+        name: 'quickstartFunctions',
+        data: {
+          type: 'joinRoom',
+          roomId: this.data.roomId,
+          playerInfo: userInfo
+        }
+      });
+      wx.hideLoading();
+
+      if (!joinResult.result || !joinResult.result.success) {
+        wx.showToast({
+          title: (joinResult.result && joinResult.result.errMsg) || '加入房间失败',
+          icon: 'none'
+        });
+        return;
+      }
+
+      const refreshResult = await wx.cloud.callFunction({
+        name: 'quickstartFunctions',
+        data: {
+          type: 'getRoomInfo',
+          roomId: this.data.roomId
+        }
+      });
+      if (refreshResult.result && refreshResult.result.success) {
+        this.applyRoomUpdate(refreshResult.result.room);
+      }
+    } catch (e) {
+      wx.hideLoading();
+      wx.showToast({ title: '网络错误', icon: 'none' });
+    }
+  },
+
+  promptInvite() {
+    if (!this.data.roomId) return;
+    wx.showModal({
+      title: '邀请好友',
+      content: '房间已创建，是否立即邀请好友加入？',
+      confirmText: '邀请好友',
+      cancelText: '稍后',
+      success: (res) => {
+        if (res.confirm) {
+          this.onInviteFriend();
+        }
+      }
+    });
+  },
+
+  onInviteFriend() {
+    if (!this.data.roomId) return;
+    const roomName = this.data.roomName ||
+      (this.data.roomInfo && this.data.roomInfo.name) ||
+      '联机房间';
+    const path = `/pages/gomoku/index?roomId=${this.data.roomId}&mode=online&invite=1&roomName=${encodeURIComponent(roomName)}`;
+    if (wx.shareAppMessage) {
+      wx.shareAppMessage({
+        title: `加入房间：${roomName}`,
+        path
+      });
+    } else {
+      wx.showShareMenu({ withShareTicket: false });
+      wx.showToast({ title: '请使用右上角分享', icon: 'none' });
+    }
+  },
+
+  onShareAppMessage() {
+    const roomName = this.data.roomName ||
+      (this.data.roomInfo && this.data.roomInfo.name) ||
+      '联机房间';
+    if (this.data.mode !== 'online' || !this.data.roomId) {
+      return {
+        title: '五子棋对战',
+        path: '/pages/online/index'
+      };
+    }
+    return {
+      title: `加入房间：${roomName}`,
+      path: `/pages/gomoku/index?roomId=${this.data.roomId}&mode=online&invite=1&roomName=${encodeURIComponent(roomName)}`
+    };
   },
 
   startRoomWatch() {
@@ -176,13 +383,20 @@
     const canPlay = room.currentPlayer === this.data.myColor && room.status === 'playing';
     const updates = {
       roomInfo: room,
+      roomName: room.name || this.data.roomName,
       currentPlayer: room.currentPlayer,
       winner: room.winner,
       status: room.status,
-      canPlay
+      canPlay,
+      blackName: room.creatorInfo && room.creatorInfo.nickName ? room.creatorInfo.nickName : '玩家1',
+      whiteName: room.whitePlayerInfo && room.whitePlayerInfo.nickName ? room.whitePlayerInfo.nickName : '等待加入...'
     };
+    if (room.name) {
+      wx.setNavigationBarTitle({ title: `房间：${room.name}` });
+    }
     const currentBoard = this.data.board;
     const nextBoard = room.board;
+    let hasBoardChange = false;
     if (Array.isArray(currentBoard) &&
         Array.isArray(nextBoard) &&
         currentBoard.length === nextBoard.length) {
@@ -199,16 +413,29 @@
         if (changes.length > 3) break;
       }
       if (changes.length > 0 && changes.length <= 3) {
+        hasBoardChange = true;
         changes.forEach(({ r, c }) => {
           updates[`board[${r}][${c}]`] = nextBoard[r][c];
         });
       } else {
+        hasBoardChange = changes.length > 0;
         updates.board = nextBoard;
       }
     } else {
+      hasBoardChange = true;
       updates.board = nextBoard;
     }
     this.setData(updates);
+
+    const shouldPlayRemoteSound =
+      this.hasRoomReady &&
+      this.data.myColor &&
+      hasBoardChange &&
+      room.status === 'playing' &&
+      room.currentPlayer === this.data.myColor;
+    if (shouldPlayRemoteSound) {
+      this.playOpponentSound();
+    }
 
     if (room.winner) {
       const winnerText = room.winner === this.data.myColor ? '你赢了！' : '对手获胜';
@@ -253,6 +480,7 @@
       board,
       currentPlayer: this.data.currentPlayer === 'black' ? 'white' : 'black'
     });
+    this.playPlaceSound();
 
     if (this.checkWinner(board, row, col)) {
       this.setData({
@@ -278,6 +506,7 @@
       currentPlayer: nextPlayer,
       canPlay: false
     });
+    this.playPlaceSound();
 
     try {
       const result = await wx.cloud.callFunction({

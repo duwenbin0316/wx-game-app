@@ -13,14 +13,14 @@
       <view class="player-card {{currentPlayer === 'black' ? 'active' : ''}} {{myColor === 'black' ? 'my-player' : ''}}">
         <view class="chess-piece black"></view>
         <view class="player-label">
-          {{mode === 'online' && roomInfo ? (roomInfo.creatorInfo && roomInfo.creatorInfo.nickName ? roomInfo.creatorInfo.nickName : '玩家1') : '黑棋'}}
+          {{mode === 'online' ? blackName : blackName}}
         </view>
       </view>
       <view class="vs">VS</view>
       <view class="player-card {{currentPlayer === 'white' ? 'active' : ''}} {{myColor === 'white' ? 'my-player' : ''}}">
         <view class="chess-piece white"></view>
         <view class="player-label">
-          {{mode === 'online' && roomInfo ? (roomInfo.whitePlayerInfo && roomInfo.whitePlayerInfo.nickName ? roomInfo.whitePlayerInfo.nickName : '等待加入...') : '白棋'}}
+          {{mode === 'online' ? whiteName : whiteName}}
         </view>
       </view>
     </view>
@@ -28,20 +28,33 @@
 
   <view class="game-board" bindtap="onBoardTap">
     <view class="board-grid">
-      <view wx:for="{{board}}" wx:key="index" class="board-row">
-        <view wx:for="{{item}}" wx:for-item="cell" wx:for-index="colIndex" wx:key="colIndex"
-              class="board-cell {{cell}}"
-              data-row="{{index}}"
-              data-col="{{colIndex}}"
+      <view class="star-points" aria-hidden="true">
+        <view class="star-point star-point-1"></view>
+        <view class="star-point star-point-2"></view>
+        <view class="star-point star-point-3"></view>
+        <view class="star-point star-point-4"></view>
+        <view class="star-point star-point-5"></view>
+      </view>
+      <view class="lines-layer">
+        <view wx:for="{{lineGrid}}" wx:key="row" class="board-row">
+          <view wx:for="{{lineGrid}}" wx:key="col" class="board-cell"></view>
+        </view>
+      </view>
+      <view class="points-layer" wx:if="{{board.length}}">
+        <view wx:for="{{points}}" wx:key="id"
+              class="intersection r-{{item.r}} c-{{item.c}}"
+              data-row="{{item.r}}"
+              data-col="{{item.c}}"
               bindtap="onCellTap">
-          <view wx:if="{{cell === 'black'}}" class="chess black"></view>
-          <view wx:if="{{cell === 'white'}}" class="chess white"></view>
+          <view wx:if="{{board[item.r][item.c] === 'black'}}" class="chess black"></view>
+          <view wx:if="{{board[item.r][item.c] === 'white'}}" class="chess white"></view>
         </view>
       </view>
     </view>
   </view>
 
   <view class="game-controls">
+    <view wx:if="{{mode === 'online'}}" class="invite-btn" bindtap="onInviteFriend">邀请好友</view>
     <view wx:if="{{mode === 'online'}}" class="leave-btn" bindtap="onLeaveRoom">离开</view>
     <view class="restart-btn" bindtap="onRestart">重新开始</view>
   </view>
