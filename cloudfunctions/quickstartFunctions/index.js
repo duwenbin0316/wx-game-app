@@ -5,6 +5,7 @@ cloud.init({
 
 const db = cloud.database();
 const BOARD_SIZE = 15;
+const MAX_UNDO_COUNT = 3;
 
 const createEmptyBoard = () =>
   Array(BOARD_SIZE).fill(null).map(() => Array(BOARD_SIZE).fill(''));
@@ -19,8 +20,10 @@ const normalizeRoomBoardIfNeeded = async (roomId, roomData) => {
 
   const needsBoardFix = !isBoardSizeValid(roomData.board);
   const needsWhiteInfoFix = roomData.whitePlayerInfo === null;
+  const needsPendingUndoFix = roomData.pendingUndo === null || typeof roomData.pendingUndo === 'undefined';
+  const needsUndoCountsFix = roomData.undoCounts === null || typeof roomData.undoCounts === 'undefined';
 
-  if (!needsBoardFix && !needsWhiteInfoFix) return roomData;
+  if (!needsBoardFix && !needsWhiteInfoFix && !needsPendingUndoFix && !needsUndoCountsFix) return roomData;
 
   const updates = {};
 
@@ -35,6 +38,13 @@ const normalizeRoomBoardIfNeeded = async (roomId, roomData) => {
     updates.lastActionAt = new Date();
   } else if (needsWhiteInfoFix) {
     updates.whitePlayerInfo = {};
+  }
+
+  if (needsPendingUndoFix) {
+    updates.pendingUndo = {};
+  }
+  if (needsUndoCountsFix) {
+    updates.undoCounts = { black: 0, white: 0 };
   }
 
   await db.collection('gameRooms').doc(roomId).update({ data: updates });
@@ -53,7 +63,11 @@ const repairRooms = async () => {
     const query = db.collection('gameRooms').where(
       _.or([
         { whitePlayerInfo: _.eq(null) },
-        { whitePlayerInfo: _.exists(false) }
+        { whitePlayerInfo: _.exists(false) },
+        { pendingUndo: _.eq(null) },
+        { pendingUndo: _.exists(false) },
+        { undoCounts: _.eq(null) },
+        { undoCounts: _.exists(false) }
       ])
     );
 
@@ -69,7 +83,15 @@ const repairRooms = async () => {
       try {
         await db.collection('gameRooms').doc(room._id).update({
           data: {
-            whitePlayerInfo: {}
+            whitePlayerInfo: room.whitePlayerInfo === null || typeof room.whitePlayerInfo === 'undefined'
+              ? {}
+              : room.whitePlayerInfo,
+            pendingUndo: room.pendingUndo === null || typeof room.pendingUndo === 'undefined'
+              ? {}
+              : room.pendingUndo,
+            undoCounts: room.undoCounts === null || typeof room.undoCounts === 'undefined'
+              ? { black: 0, white: 0 }
+              : room.undoCounts
           }
         });
         repairedCount++;
@@ -265,6 +287,10 @@ const createRoom = async (event) => {
       whitePlayer: null,
       whitePlayerInfo: {},
       winner: null,
+      moveHistory: [],
+      pendingUndo: {},
+      undoCounts: { black: 0, white: 0 },
+      lastActionType: 'create',
       createdAt: new Date(),
       lastActionAt: new Date()
     };
@@ -347,6 +373,7 @@ const joinRoom = async (event) => {
           avatarUrl: event.playerInfo?.avatarUrl || '',
           nickName: event.playerInfo?.nickName || '玩家2'
         },
+        lastActionType: 'join',
         lastActionAt: new Date()
       }
     });
@@ -411,6 +438,13 @@ const makeMove = async (event) => {
     const newBoard = board.map(row => [...row]);
     newBoard[row][col] = currentPlayer;
     const nextPlayer = currentPlayer === 'black' ? 'white' : 'black';
+    const moveHistory = Array.isArray(room.data.moveHistory) ? room.data.moveHistory : [];
+    const nextHistory = moveHistory.concat({
+      row,
+      col,
+      player: currentPlayer,
+      ts: new Date()
+    });
 
     const winner = checkWinner(newBoard, row, col);
     const finalStatus = winner ? 'finished' : 'playing';
@@ -421,6 +455,8 @@ const makeMove = async (event) => {
         currentPlayer: nextPlayer,
         winner: winner,
         status: finalStatus,
+        moveHistory: nextHistory,
+        lastActionType: 'move',
         lastActionAt: new Date()
       }
     });
@@ -612,6 +648,191 @@ const closeRoom = async (event) => {
   }
 };
 
+// 悔棋申请（联机）
+const requestUndo = async (event) => {
+  try {
+    const wxContext = cloud.getWXContext();
+    const { roomId } = event;
+    if (!roomId) {
+      return { success: false, errMsg: 'roomId is required' };
+    }
+
+    const room = await db.collection('gameRooms').doc(roomId).get();
+    if (!room.data) {
+      return { success: false, errMsg: 'Room not found' };
+    }
+
+    const normalizedRoom = await normalizeRoomBoardIfNeeded(roomId, room.data);
+    if (normalizedRoom.status !== 'playing') {
+      return { success: false, errMsg: 'Game not in playing status' };
+    }
+
+    const { currentPlayer, blackPlayer, whitePlayer } = normalizedRoom;
+    const moveHistory = Array.isArray(normalizedRoom.moveHistory) ? normalizedRoom.moveHistory : [];
+    if (!moveHistory.length) {
+      return { success: false, errMsg: 'No move to undo' };
+    }
+
+    const myColor = blackPlayer === wxContext.OPENID
+      ? 'black'
+      : (whitePlayer === wxContext.OPENID ? 'white' : null);
+    if (!myColor) {
+      return { success: false, errMsg: 'No permission' };
+    }
+
+    const undoCounts = normalizedRoom.undoCounts || { black: 0, white: 0 };
+    if ((undoCounts[myColor] || 0) >= MAX_UNDO_COUNT) {
+      return { success: false, errMsg: 'Undo limit reached' };
+    }
+
+    const lastMove = moveHistory[moveHistory.length - 1];
+    if (!lastMove || !lastMove.player) {
+      return { success: false, errMsg: 'Invalid move history' };
+    }
+    if (lastMove.player !== myColor) {
+      return { success: false, errMsg: 'Not your last move' };
+    }
+    if (currentPlayer === myColor) {
+      return { success: false, errMsg: 'Not your undo window' };
+    }
+
+    if (normalizedRoom.pendingUndo && normalizedRoom.pendingUndo.byOpenid) {
+      const pendingMove = normalizedRoom.pendingUndo.move;
+      const isSameMove = pendingMove &&
+        pendingMove.row === lastMove.row &&
+        pendingMove.col === lastMove.col &&
+        pendingMove.player === lastMove.player;
+      if (isSameMove) {
+        return { success: false, errMsg: 'Undo already requested' };
+      }
+      await db.collection('gameRooms').doc(roomId).update({
+        data: {
+          pendingUndo: {},
+          lastActionType: 'undo_stale_clear',
+          lastActionAt: new Date()
+        }
+      });
+    }
+
+    await db.collection('gameRooms').doc(roomId).update({
+      data: {
+        pendingUndo: {
+          byOpenid: wxContext.OPENID,
+          byColor: myColor,
+          at: new Date(),
+          move: lastMove
+        },
+        lastActionType: 'undo_request',
+        lastActionAt: new Date()
+      }
+    });
+
+    return {
+      success: true
+    };
+  } catch (e) {
+    return { success: false, errMsg: e.message };
+  }
+};
+
+// 悔棋响应（联机）
+const respondUndo = async (event) => {
+  try {
+    const wxContext = cloud.getWXContext();
+    const { roomId, approve } = event;
+    if (!roomId) {
+      return { success: false, errMsg: 'roomId is required' };
+    }
+
+    const room = await db.collection('gameRooms').doc(roomId).get();
+    if (!room.data) {
+      return { success: false, errMsg: 'Room not found' };
+    }
+
+    const normalizedRoom = await normalizeRoomBoardIfNeeded(roomId, room.data);
+    if (normalizedRoom.status !== 'playing') {
+      return { success: false, errMsg: 'Game not in playing status' };
+    }
+
+    const pendingUndo = normalizedRoom.pendingUndo;
+    if (!pendingUndo || !pendingUndo.byOpenid) {
+      return { success: false, errMsg: 'No pending undo request' };
+    }
+
+    const { board, blackPlayer, whitePlayer } = normalizedRoom;
+    const myColor = blackPlayer === wxContext.OPENID
+      ? 'black'
+      : (whitePlayer === wxContext.OPENID ? 'white' : null);
+    if (!myColor) {
+      return { success: false, errMsg: 'No permission' };
+    }
+
+    if (pendingUndo.byOpenid === wxContext.OPENID) {
+      return { success: false, errMsg: 'Requester cannot respond' };
+    }
+
+    if (!approve) {
+      await db.collection('gameRooms').doc(roomId).update({
+        data: {
+          pendingUndo: {},
+          lastActionType: 'undo_reject',
+          lastActionAt: new Date()
+        }
+      });
+      return { success: true, rejected: true };
+    }
+
+    const moveHistory = Array.isArray(normalizedRoom.moveHistory) ? normalizedRoom.moveHistory : [];
+    const lastMove = moveHistory[moveHistory.length - 1];
+    if (!lastMove || !lastMove.player) {
+      return { success: false, errMsg: 'Invalid move history' };
+    }
+
+    if (pendingUndo.move &&
+        (pendingUndo.move.row !== lastMove.row ||
+         pendingUndo.move.col !== lastMove.col ||
+         pendingUndo.move.player !== lastMove.player)) {
+      return { success: false, errMsg: 'Move history changed' };
+    }
+
+    const newBoard = board.map(row => [...row]);
+    if (newBoard[lastMove.row] && newBoard[lastMove.row][lastMove.col] === lastMove.player) {
+      newBoard[lastMove.row][lastMove.col] = '';
+    }
+
+    const nextHistory = moveHistory.slice(0, -1);
+    const undoCounts = normalizedRoom.undoCounts || { black: 0, white: 0 };
+    const requesterColor = pendingUndo.byColor;
+    if (requesterColor === 'black' || requesterColor === 'white') {
+      undoCounts[requesterColor] = (undoCounts[requesterColor] || 0) + 1;
+    }
+
+    await db.collection('gameRooms').doc(roomId).update({
+      data: {
+        board: newBoard,
+        currentPlayer: lastMove.player,
+        winner: null,
+        status: 'playing',
+        moveHistory: nextHistory,
+        pendingUndo: {},
+        undoCounts,
+        lastActionType: 'undo',
+        lastActionAt: new Date()
+      }
+    });
+
+    return {
+      success: true,
+      board: newBoard,
+      currentPlayer: lastMove.player,
+      winner: null,
+      status: 'playing'
+    };
+  } catch (e) {
+    return { success: false, errMsg: e.message };
+  }
+};
+
 // Cloud function entry
 exports.main = async (event, context) => {
   switch (event.type) {
@@ -647,5 +868,14 @@ exports.main = async (event, context) => {
       return await clearAllRooms();
     case "repairRooms":
       return await repairRooms();
+    case "requestUndo":
+      return await requestUndo(event);
+    case "respondUndo":
+      return await respondUndo(event);
+    default:
+      return {
+        success: false,
+        errMsg: `Unknown type: ${event && event.type ? event.type : 'undefined'}`
+      };
   }
 };

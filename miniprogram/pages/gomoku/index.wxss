@@ -352,7 +352,7 @@
   flex-wrap: wrap;
 }
 
-.restart-btn, .winner-btn, .leave-btn, .invite-btn {
+.restart-btn, .winner-btn, .leave-btn, .undo-btn {
   background: #2563eb;
   color: white;
   border-radius: 14rpx;
@@ -361,8 +361,13 @@
   user-select: none;
 }
 
-.invite-btn {
-  background: #8b5cf6;
+.undo-btn {
+  background: #f59e0b;
+}
+
+.undo-btn.disabled {
+  background: #d1d5db;
+  color: #9ca3af;
 }
 
 .leave-btn {

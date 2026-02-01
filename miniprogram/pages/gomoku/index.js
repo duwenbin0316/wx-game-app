@@ -10,6 +10,7 @@
     mode: 'local', // local or online
     roomId: null,
     myColor: null, // black or white
+    myOpenid: null,
     roomInfo: null,
     roomName: '',
     inviteJoin: false,
@@ -17,7 +18,13 @@
     userInfo: null,
     blackName: '玩家1',
     whiteName: '玩家2',
+    moveHistory: [],
     canPlay: false,
+    canUndo: false,
+    myUndoCount: 0,
+    undoLimit: 3,
+    undoLeft: 0,
+    isUndoWaiting: false,
     hasClosedRoom: false
   },
 
@@ -27,6 +34,8 @@
 
     this.initBoardMeta();
     this.initAudio();
+    this.pendingMove = null;
+    this.isUndoModalOpen = false;
 
     if (mode === 'online' && roomId) {
       this.setData({
@@ -50,6 +59,12 @@
     this.isPageActive = false;
     this.clearWatchRetry();
     this.stopRoomWatch();
+    this.stopRoomPolling();
+    if (this.data.isUndoWaiting) {
+      wx.hideLoading();
+      this.setData({ isUndoWaiting: false });
+    }
+    this.stopUndoPolling();
     if (this.audioContext) {
       this.audioContext.destroy();
       this.audioContext = null;
@@ -69,6 +84,12 @@
     this.isPageActive = false;
     this.clearWatchRetry();
     this.stopRoomWatch();
+    this.stopRoomPolling();
+    if (this.data.isUndoWaiting) {
+      wx.hideLoading();
+      this.setData({ isUndoWaiting: false });
+    }
+    this.stopUndoPolling();
     // 页面隐藏时不自动删除房间，保留房间供其他玩家使用
   },
 
@@ -81,7 +102,12 @@
       winner: null,
       canPlay: true,
       blackName: '玩家1',
-      whiteName: '玩家2'
+      whiteName: '玩家2',
+      moveHistory: [],
+      canUndo: false,
+      myUndoCount: 0,
+      undoLeft: this.data.undoLimit,
+      isUndoWaiting: false
     });
   },
 
@@ -108,6 +134,7 @@
         const myColor = room.blackPlayer === myOpenid ? 'black' : 'white';
         const canPlay = room.currentPlayer === myColor && room.status === 'playing';
 
+        const undoState = this.getOnlineUndoState(room, myColor);
         this.setData({
           roomInfo: room,
           roomName: room.name || this.data.roomName,
@@ -115,15 +142,21 @@
           currentPlayer: room.currentPlayer,
           winner: room.winner,
           myColor,
+          myOpenid,
           blackName: room.creatorInfo && room.creatorInfo.nickName ? room.creatorInfo.nickName : '玩家1',
           whiteName: room.whitePlayerInfo && room.whitePlayerInfo.nickName ? room.whitePlayerInfo.nickName : '等待加入...',
           canPlay,
-          status: room.status
+          status: room.status,
+          canUndo: undoState.canUndo,
+          myUndoCount: undoState.myUndoCount,
+          undoLeft: undoState.undoLeft
         });
         this.hasRoomReady = true;
         if (room.name) {
           wx.setNavigationBarTitle({ title: `房间：${room.name}` });
         }
+
+        this.handlePendingUndo(room);
 
         if (this.data.inviteJoin) {
           await this.tryJoinRoomFromInvite(room, myOpenid);
@@ -135,6 +168,7 @@
         }
 
         this.startRoomWatch();
+        this.startRoomPolling();
       } else {
         wx.showToast({
           title: (result.result && result.result.errMsg) || '加载游戏失败',
@@ -202,6 +236,55 @@
     } catch (e) {
       console.error('对手音效播放异常', e);
     }
+  },
+
+  async handlePendingUndo(room) {
+    const pending = room && room.pendingUndo;
+    if (!pending || !pending.byOpenid || !this.data.myOpenid) {
+      this.lastUndoPromptKey = null;
+      this.isUndoModalOpen = false;
+      return;
+    }
+    if (this.isUndoModalOpen) return;
+    if (pending.byOpenid === this.data.myOpenid) return;
+
+    const key = `${pending.byOpenid}-${pending.move && pending.move.row}-${pending.move && pending.move.col}-${pending.move && pending.move.player}`;
+    if (this.lastUndoPromptKey === key) return;
+    this.lastUndoPromptKey = key;
+    this.isUndoModalOpen = true;
+
+    wx.showModal({
+      title: '对方请求悔棋',
+      content: '是否同意对方悔棋？',
+      confirmText: '同意',
+      cancelText: '拒绝',
+      success: async (res) => {
+        try {
+          wx.showLoading({ title: '处理中...' });
+          const result = await wx.cloud.callFunction({
+            name: 'quickstartFunctions',
+            data: {
+              type: 'respondUndo',
+              roomId: this.data.roomId,
+              approve: !!res.confirm
+            }
+          });
+          wx.hideLoading();
+          if (!result || !result.result || !result.result.success) {
+            wx.showToast({
+              title: (result && result.result && result.result.errMsg) || '处理失败',
+              icon: 'none'
+            });
+          }
+        } catch (e) {
+          wx.hideLoading();
+          wx.showToast({ title: '网络错误', icon: 'none' });
+        }
+      },
+      complete: () => {
+        this.isUndoModalOpen = false;
+      }
+    });
   },
 
   async ensureUserInfo() {
@@ -353,6 +436,49 @@
     }
   },
 
+  startRoomPolling() {
+    if (this.roomPollTimer || !this.data.roomId) return;
+    this.roomPollTimer = setInterval(() => {
+      if (!this.isPageActive) return;
+      this.pollRoomInfo();
+    }, 2000);
+  },
+
+  stopRoomPolling() {
+    if (this.roomPollTimer) {
+      clearInterval(this.roomPollTimer);
+      this.roomPollTimer = null;
+    }
+  },
+
+  async pollRoomInfo() {
+    try {
+      const result = await wx.cloud.callFunction({
+        name: 'quickstartFunctions',
+        data: {
+          type: 'getRoomInfo',
+          roomId: this.data.roomId
+        }
+      });
+      if (result.result && result.result.success) {
+        this.applyRoomUpdate(result.result.room);
+        return;
+      }
+      const errMsg = result && result.result && result.result.errMsg ? String(result.result.errMsg) : '';
+      if (errMsg.includes('Room not found')) {
+        if (!this.hasRoomClosedToast) {
+          this.hasRoomClosedToast = true;
+          wx.showToast({ title: '房间已关闭', icon: 'none' });
+        }
+        this.stopRoomWatch();
+        this.stopRoomPolling();
+      }
+    } catch (e) {
+      // 轮询失败时不提示，避免频繁 toast
+      console.error('轮询房间失败', e);
+    }
+  },
+
   clearWatchRetry() {
     if (this.watchRetryTimer) {
       clearTimeout(this.watchRetryTimer);
@@ -372,7 +498,10 @@
       if (result.result && result.result.success) {
         this.applyRoomUpdate(result.result.room);
       } else {
-        wx.showToast({ title: '房间已关闭', icon: 'none' });
+        const errMsg = result && result.result && result.result.errMsg ? String(result.result.errMsg) : '';
+        if (errMsg.includes('Room not found')) {
+          wx.showToast({ title: '房间已关闭', icon: 'none' });
+        }
       }
     } catch (e) {
       console.error('回退拉取房间失败', e);
@@ -380,6 +509,39 @@
   },
 
   applyRoomUpdate(room) {
+    const undoState = this.getOnlineUndoState(room, this.data.myColor);
+    const pendingMove = this.pendingMove;
+    const hasPendingMove = !!(pendingMove && typeof pendingMove.row === 'number');
+    const serverHasPendingMove =
+      hasPendingMove &&
+      room &&
+      room.board &&
+      room.board[pendingMove.row] &&
+      room.board[pendingMove.row][pendingMove.col] === pendingMove.player;
+
+    if (hasPendingMove && !serverHasPendingMove) {
+      const partialUpdates = {
+        roomInfo: room,
+        roomName: room.name || this.data.roomName,
+        canUndo: this.data.canUndo,
+        myUndoCount: this.data.myUndoCount,
+        undoLeft: this.data.undoLeft,
+        blackName: room.creatorInfo && room.creatorInfo.nickName ? room.creatorInfo.nickName : '玩家1',
+        whiteName: room.whitePlayerInfo && room.whitePlayerInfo.nickName ? room.whitePlayerInfo.nickName : '等待加入...'
+      };
+      if (room.name) {
+        wx.setNavigationBarTitle({ title: `房间：${room.name}` });
+      }
+      this.setData(partialUpdates);
+      this.handlePendingUndo(room);
+      this.updateUndoLoading(room);
+      return;
+    }
+
+    if (serverHasPendingMove) {
+      this.pendingMove = null;
+    }
+
     const canPlay = room.currentPlayer === this.data.myColor && room.status === 'playing';
     const updates = {
       roomInfo: room,
@@ -388,6 +550,9 @@
       winner: room.winner,
       status: room.status,
       canPlay,
+      canUndo: undoState.canUndo,
+      myUndoCount: undoState.myUndoCount,
+      undoLeft: undoState.undoLeft,
       blackName: room.creatorInfo && room.creatorInfo.nickName ? room.creatorInfo.nickName : '玩家1',
       whiteName: room.whitePlayerInfo && room.whitePlayerInfo.nickName ? room.whitePlayerInfo.nickName : '等待加入...'
     };
@@ -427,12 +592,16 @@
     }
     this.setData(updates);
 
+    this.handlePendingUndo(room);
+    this.updateUndoLoading(room);
+
     const shouldPlayRemoteSound =
       this.hasRoomReady &&
       this.data.myColor &&
       hasBoardChange &&
       room.status === 'playing' &&
-      room.currentPlayer === this.data.myColor;
+      room.currentPlayer === this.data.myColor &&
+      room.lastActionType !== 'undo';
     if (shouldPlayRemoteSound) {
       this.playOpponentSound();
     }
@@ -473,12 +642,16 @@
   },
 
   makeLocalMove(row, col) {
-    const board = this.data.board;
+    const board = this.data.board.map(rowItem => [...rowItem]);
+    const moveHistory = (this.data.moveHistory || []).slice();
     board[row][col] = this.data.currentPlayer;
+    moveHistory.push({ row, col, player: this.data.currentPlayer });
 
     this.setData({
       board,
-      currentPlayer: this.data.currentPlayer === 'black' ? 'white' : 'black'
+      currentPlayer: this.data.currentPlayer === 'black' ? 'white' : 'black',
+      moveHistory,
+      canUndo: moveHistory.length > 0
     });
     this.playPlaceSound();
 
@@ -498,13 +671,16 @@
     const prevCurrentPlayer = this.data.currentPlayer;
     const prevWinner = this.data.winner;
     const prevCanPlay = this.data.canPlay;
+    const prevCanUndo = this.data.canUndo;
     const nextPlayer = prevCurrentPlayer === 'black' ? 'white' : 'black';
     const boardPath = `board[${row}][${col}]`;
+    this.pendingMove = { row, col, player: prevCurrentPlayer, ts: Date.now() };
 
     this.setData({
       [boardPath]: prevCurrentPlayer,
       currentPlayer: nextPlayer,
-      canPlay: false
+      canPlay: false,
+      canUndo: false
     });
     this.playPlaceSound();
 
@@ -534,11 +710,13 @@
           });
         }
       } else {
+        this.pendingMove = null;
         this.setData({
           board: prevBoard,
           currentPlayer: prevCurrentPlayer,
           winner: prevWinner,
-          canPlay: prevCanPlay
+          canPlay: prevCanPlay,
+          canUndo: prevCanUndo
         });
         wx.showToast({
           title: result.result.errMsg || '落子失败',
@@ -547,11 +725,13 @@
       }
     } catch (e) {
       console.error('在线落子失败', e);
+      this.pendingMove = null;
       this.setData({
         board: prevBoard,
         currentPlayer: prevCurrentPlayer,
         winner: prevWinner,
-        canPlay: prevCanPlay
+        canPlay: prevCanPlay,
+        canUndo: prevCanUndo
       });
       wx.showToast({
         title: '网络错误',
@@ -613,6 +793,118 @@
     });
   },
 
+  async onUndo() {
+    if (this.data.mode === 'online') {
+      if (!this.data.roomId) return;
+      if (this.data.winner) {
+        wx.showToast({ title: '对局已结束', icon: 'none' });
+        return;
+      }
+      const room = this.data.roomInfo;
+      if (!room || room.status !== 'playing') {
+        wx.showToast({ title: '对局未开始', icon: 'none' });
+        return;
+      }
+      const undoCounts = room.undoCounts || {};
+      const myUndoCount = this.data.myColor ? (undoCounts[this.data.myColor] || 0) : 0;
+      if (myUndoCount >= this.data.undoLimit) {
+        wx.showToast({ title: '悔棋次数已用完', icon: 'none' });
+        return;
+      }
+      const moveHistory = Array.isArray(room.moveHistory) ? room.moveHistory : [];
+      if (!moveHistory.length) {
+        wx.showToast({ title: '暂无可悔棋', icon: 'none' });
+        return;
+      }
+      const lastMove = moveHistory[moveHistory.length - 1];
+      if (!lastMove || lastMove.player !== this.data.myColor) {
+        wx.showToast({ title: '只能在自己落子后悔棋', icon: 'none' });
+        return;
+      }
+      if (room.currentPlayer === this.data.myColor) {
+        wx.showToast({ title: '请等待对方落子前悔棋', icon: 'none' });
+        return;
+      }
+      const hasActivePending = this.hasActivePendingUndo(room);
+      if (hasActivePending) {
+        await this.refreshRoomForUndo();
+        if (this.hasActivePendingUndo(this.data.roomInfo)) {
+          wx.showToast({ title: '已有悔棋请求', icon: 'none' });
+          return;
+        }
+      }
+      wx.showModal({
+        title: '悔棋',
+        content: '向对方发起悔棋请求？',
+        success: async (res) => {
+          if (!res.confirm) return;
+          try {
+            wx.showLoading({ title: '等待对方确认...' });
+            const result = await wx.cloud.callFunction({
+              name: 'quickstartFunctions',
+              data: {
+                type: 'requestUndo',
+                roomId: this.data.roomId
+              }
+            });
+            if (result && result.result && result.result.success) {
+              this.setData({ isUndoWaiting: true });
+              this.startUndoPolling();
+            } else {
+              wx.hideLoading();
+              const errMsg = result && result.result
+                ? (result.result.errMsg || '悔棋失败')
+                : '服务器响应异常';
+              wx.showToast({ title: errMsg, icon: 'none' });
+            }
+          } catch (e) {
+            wx.hideLoading();
+            wx.showToast({ title: '网络错误', icon: 'none' });
+          }
+        }
+      });
+      return;
+    }
+
+    const moveHistory = (this.data.moveHistory || []).slice();
+    if (!moveHistory.length) {
+      wx.showToast({ title: '暂无可悔棋', icon: 'none' });
+      return;
+    }
+
+    const lastMove = moveHistory.pop();
+    const board = this.data.board.map(rowItem => [...rowItem]);
+    board[lastMove.row][lastMove.col] = '';
+
+    this.setData({
+      board,
+      currentPlayer: lastMove.player,
+      winner: null,
+      canPlay: true,
+      moveHistory,
+      canUndo: moveHistory.length > 0
+    });
+  },
+
+  async refreshRoomForUndo() {
+    if (!this.data.roomId) return;
+    try {
+      const result = await wx.cloud.callFunction({
+        name: 'quickstartFunctions',
+        data: {
+          type: 'getRoomInfo',
+          roomId: this.data.roomId
+        }
+      });
+      if (result && result.result && result.result.success) {
+        this.applyRoomUpdate(result.result.room);
+      }
+    } catch (e) {
+      // 兜底刷新失败不提示，避免阻断操作
+      console.error('刷新房间信息失败', e);
+    }
+  },
+
   onBoardTap() {
     // 阻止事件冒泡
   },
@@ -650,5 +942,60 @@
     }).catch((e) => {
       console.error('关闭房间失败', e);
     });
+  },
+  getOnlineUndoState(room, myColor) {
+    if (!room || !myColor) {
+      return { canUndo: false, myUndoCount: 0, undoLeft: 0 };
+    }
+    const undoCounts = room.undoCounts || {};
+    const myUndoCount = undoCounts[myColor] || 0;
+    const moveHistory = Array.isArray(room.moveHistory) ? room.moveHistory : [];
+    const lastMove = moveHistory.length ? moveHistory[moveHistory.length - 1] : null;
+    const isMyLastMove = lastMove && lastMove.player === myColor;
+    const undoLeft = Math.max(0, this.data.undoLimit - myUndoCount);
+    const hasPendingUndo = this.hasActivePendingUndo(room);
+    const canUndo =
+      room.status === 'playing' &&
+      room.currentPlayer !== myColor &&
+      !hasPendingUndo &&
+      myUndoCount < this.data.undoLimit &&
+      moveHistory.length > 0 &&
+      isMyLastMove;
+    return { canUndo, myUndoCount, undoLeft };
+  },
+  hasActivePendingUndo(room) {
+    if (!room || !room.pendingUndo || !room.pendingUndo.byOpenid) return false;
+    const pendingMove = room.pendingUndo.move;
+    const moveHistory = Array.isArray(room.moveHistory) ? room.moveHistory : [];
+    const lastMove = moveHistory.length ? moveHistory[moveHistory.length - 1] : null;
+    if (!pendingMove || !lastMove) return true;
+    return (
+      pendingMove.row === lastMove.row &&
+      pendingMove.col === lastMove.col &&
+      pendingMove.player === lastMove.player
+    );
+  },
+  updateUndoLoading(room) {
+    if (!this.data.isUndoWaiting) return;
+    const hasActive = room && this.hasActivePendingUndo(room);
+    const isMine = room && room.pendingUndo && room.pendingUndo.byOpenid === this.data.myOpenid;
+    if (!hasActive || !isMine) {
+      wx.hideLoading();
+      this.setData({ isUndoWaiting: false });
+      this.stopUndoPolling();
+    }
+  },
+  startUndoPolling() {
+    if (this.undoPollTimer || !this.data.roomId) return;
+    this.undoPollTimer = setInterval(() => {
+      if (!this.data.isUndoWaiting || !this.isPageActive) return;
+      this.pollRoomInfo();
+    }, 2000);
+  },
+  stopUndoPolling() {
+    if (this.undoPollTimer) {
+      clearInterval(this.undoPollTimer);
+      this.undoPollTimer = null;
+    }
   }
 });
