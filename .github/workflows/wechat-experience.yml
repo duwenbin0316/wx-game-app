@@ -1,0 +1,52 @@
+name: WeChat Mini Program Experience Upload
+
+on:
+  push:
+    branches:
+      - main
+      - master
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 上传版本号（可选）
+        required: false
+      desc:
+        description: 上传描述（可选）
+        required: false
+
+jobs:
+  upload:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+          cache: npm
+
+      - name: Install miniprogram-ci
+        run: npm install miniprogram-ci@latest
+
+      - name: Prepare WeChat private key
+        env:
+          WX_PRIVATE_KEY: ${{ secrets.WX_PRIVATE_KEY }}
+        run: |
+          if [ -z "$WX_PRIVATE_KEY" ]; then
+            echo "Missing required secret: WX_PRIVATE_KEY"
+            exit 1
+          fi
+          mkdir -p .keys
+          printf "%s" "$WX_PRIVATE_KEY" > .keys/private.key
+          chmod 600 .keys/private.key
+
+      - name: Upload experience version
+        env:
+          WX_APPID: ${{ secrets.WX_APPID }}
+          WX_PRIVATE_KEY_PATH: .keys/private.key
+          WX_VERSION: ${{ github.event.inputs.version || format('ci-{0}', github.run_number) }}
+          WX_DESC: ${{ github.event.inputs.desc || format('GitHub Actions upload from {0}', github.sha) }}
+        run: node scripts/ci-upload.js
