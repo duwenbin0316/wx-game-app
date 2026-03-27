@@ -418,3 +418,72 @@
   background: #4a6e4e;
   color: #f5f0e8;
 }
+
+/* 本地对战模式选择弹窗 */
+.local-mode-btn {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #f5f0e8;
+  border: 1rpx solid #e0d8cc;
+  border-radius: 12rpx;
+  padding: 24rpx 20rpx;
+  margin-bottom: 20rpx;
+}
+
+.local-mode-btn:active {
+  background: #ede8de;
+}
+
+.local-mode-main {
+  display: flex;
+  flex-direction: column;
+  gap: 6rpx;
+}
+
+.local-mode-name {
+  font-size: 30rpx;
+  font-weight: 600;
+  color: #2a2218;
+  letter-spacing: 1rpx;
+}
+
+.local-mode-desc {
+  font-size: 22rpx;
+  color: #9a8f80;
+}
+
+.local-difficulty-row {
+  display: flex;
+  gap: 12rpx;
+}
+
+.diff-btn {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: #f5f0e8;
+  border: 1rpx solid #e0d8cc;
+  border-radius: 12rpx;
+  padding: 22rpx 0;
+  gap: 8rpx;
+  user-select: none;
+}
+
+.diff-btn:active {
+  background: #ede8de;
+}
+
+.diff-name {
+  font-size: 28rpx;
+  font-weight: 600;
+  color: #2a2218;
+  letter-spacing: 1rpx;
+}
+
+.diff-desc {
+  font-size: 20rpx;
+  color: #9a8f80;
+}

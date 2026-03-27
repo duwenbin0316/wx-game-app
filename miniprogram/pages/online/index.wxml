@@ -9,9 +9,42 @@
   <view class="local-btn" bindtap="onLocalGame">
     <view class="local-btn-main">
       <text class="local-btn-title">本地对战</text>
-      <text class="local-btn-sub">双人同屏，传递手机轮流落子</text>
+      <text class="local-btn-sub">双人同屏 / 人机对战</text>
     </view>
     <text class="local-btn-arrow">›</text>
+  </view>
+
+  <!-- 本地对战模式选择弹窗 -->
+  <view class="modal-mask" wx:if="{{showLocalModal}}" bindtap="onCancelLocalModal">
+    <view class="modal-card" catchtap="onModalTap">
+      <view class="modal-title">本地对战</view>
+      <view class="modal-subtitle">选择对战模式</view>
+      <view class="local-mode-btn" bindtap="onStartDual">
+        <view class="local-mode-main">
+          <text class="local-mode-name">双人对战</text>
+          <text class="local-mode-desc">两位玩家轮流落子</text>
+        </view>
+        <text class="local-btn-arrow">›</text>
+      </view>
+      <text class="section-label" style="margin-top: 8rpx;">人机对战</text>
+      <view class="local-difficulty-row">
+        <view class="diff-btn" data-difficulty="easy" bindtap="onStartAi">
+          <text class="diff-name">简单</text>
+          <text class="diff-desc">随机落子</text>
+        </view>
+        <view class="diff-btn" data-difficulty="medium" bindtap="onStartAi">
+          <text class="diff-name">普通</text>
+          <text class="diff-desc">有策略</text>
+        </view>
+        <view class="diff-btn" data-difficulty="hard" bindtap="onStartAi">
+          <text class="diff-name">困难</text>
+          <text class="diff-desc">较强</text>
+        </view>
+      </view>
+      <view class="modal-actions" style="margin-top: 28rpx;">
+        <view class="modal-btn cancel-btn" bindtap="onCancelLocalModal">取消</view>
+      </view>
+    </view>
   </view>
 
   <!-- 联机区域 -->

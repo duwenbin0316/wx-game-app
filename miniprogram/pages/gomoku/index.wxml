@@ -2,10 +2,10 @@
   <view class="game-header">
     <view class="header-top">
       <view class="header-slot header-left">
-        <text class="mode-pill">你是：{{mode === 'online' && myColor ? (myColor === 'black' ? '黑棋' : '白棋') : '黑棋'}}</text>
+        <text class="mode-pill">{{mode === 'online' ? (myColor === 'black' ? '你是：黑棋' : '你是：白棋') : (isAiMode ? '人机对战' : '本地对战')}}</text>
       </view>
       <view class="header-slot header-right">
-        <text class="status-text {{mode === 'online' && !winner ? (canPlay ? 'your-turn' : 'waiting') : (winner ? 'finished' : '')}}">{{mode === 'online' ? (winner ? '对局结束' : (canPlay ? '轮到你了' : '等待对手下棋...')) : '自由对弈'}}</text>
+        <text class="status-text {{winner ? 'finished' : (mode === 'online' ? (canPlay ? 'your-turn' : 'waiting') : (isAiMode ? (currentPlayer === 'black' ? 'your-turn' : 'waiting') : ''))}}">{{mode === 'online' ? (winner ? '对局结束' : (canPlay ? '轮到你了' : '等待对手下棋...')) : (isAiMode ? (winner ? '对局结束' : (currentPlayer === 'black' ? '你的回合' : '电脑思考中...')) : '自由对弈')}}</text>
       </view>
     </view>
 

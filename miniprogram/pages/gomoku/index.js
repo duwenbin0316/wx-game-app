@@ -25,11 +25,13 @@
     undoLimit: 3,
     undoLeft: 0,
     isUndoWaiting: false,
-    hasClosedRoom: false
+    hasClosedRoom: false,
+    isAiMode: false,
+    aiDifficulty: 'medium'
   },
 
   onLoad(options) {
-    const { roomId, mode, roomName, created, invite } = options;
+    const { roomId, mode, roomName, created, invite, ai, difficulty } = options;
     const decodedRoomName = roomName ? decodeURIComponent(roomName) : '';
 
     this.initBoardMeta();
@@ -52,7 +54,12 @@
         this.initOnlineGame();
       });
     } else {
-      this.initLocalGame();
+      this.setData({
+        isAiMode: ai === '1',
+        aiDifficulty: difficulty || 'medium'
+      }, () => {
+        this.initLocalGame();
+      });
     }
   },
 
@@ -105,13 +112,16 @@
   initLocalGame() {
     const boardSize = this.data.boardSize;
     const board = Array(boardSize).fill(null).map(() => Array(boardSize).fill(''));
+    const isAiMode = this.data.isAiMode;
+    const diffLabels = { easy: '简单', medium: '普通', hard: '困难' };
+    const aiLabel = diffLabels[this.data.aiDifficulty] || '普通';
     this.setData({
       board,
       currentPlayer: 'black',
       winner: null,
       canPlay: true,
-      blackName: '玩家1',
-      whiteName: '玩家2',
+      blackName: isAiMode ? '玩家' : '玩家1',
+      whiteName: isAiMode ? `电脑(${aiLabel})` : '玩家2',
       moveHistory: [],
       canUndo: false,
       myUndoCount: 0,
@@ -239,6 +249,14 @@
       wx.showToast({
         title: winnerText,
         icon: winner === this.data.myColor ? 'success' : 'none'
+      });
+      return;
+    }
+
+    if (this.data.isAiMode) {
+      wx.showToast({
+        title: winner === 'black' ? '你赢了！' : '电脑获胜',
+        icon: winner === 'black' ? 'success' : 'none'
       });
       return;
     }
@@ -650,13 +668,13 @@
 
     if (this.data.mode === 'online') {
       if (!this.data.canPlay) {
-        wx.showToast({
-          title: '不是你的回合',
-          icon: 'none'
-        });
+        wx.showToast({ title: '不是你的回合', icon: 'none' });
         return;
       }
     }
+
+    // Block tap during AI's turn
+    if (this.data.isAiMode && this.data.currentPlayer === 'white') return;
 
     const { row, col } = e.currentTarget.dataset;
     const board = this.data.board;
@@ -673,23 +691,98 @@
   makeLocalMove(row, col) {
     const board = this.data.board.map(rowItem => [...rowItem]);
     const moveHistory = (this.data.moveHistory || []).slice();
-    board[row][col] = this.data.currentPlayer;
-    moveHistory.push({ row, col, player: this.data.currentPlayer });
+    const player = this.data.currentPlayer;
+    board[row][col] = player;
+    moveHistory.push({ row, col, player });
 
     this.setData({
       board,
-      currentPlayer: this.data.currentPlayer === 'black' ? 'white' : 'black',
+      currentPlayer: player === 'black' ? 'white' : 'black',
       moveHistory,
       canUndo: moveHistory.length > 0
     });
     this.playPlaceSound();
 
     if (this.checkWinner(board, row, col)) {
-      this.setData({
-        winner: board[row][col]
-      });
+      this.setData({ winner: board[row][col] });
       this.notifyWinner(board[row][col]);
+      return;
     }
+
+    // Trigger AI move after player (black) places
+    if (this.data.isAiMode && player === 'black') {
+      setTimeout(() => {
+        if (!this.data.winner) this.makeAiMove();
+      }, 350);
+    }
+  },
+
+  makeAiMove() {
+    const board = this.data.board.map(r => [...r]);
+    const { boardSize, aiDifficulty, winner } = this.data;
+    if (winner) return;
+
+    const empties = [];
+    for (let r = 0; r < boardSize; r++)
+      for (let c = 0; c < boardSize; c++)
+        if (board[r][c] === '') empties.push({ r, c });
+    if (!empties.length) return;
+
+    if (aiDifficulty === 'easy') {
+      const pick = empties[Math.floor(Math.random() * empties.length)];
+      this.makeLocalMove(pick.r, pick.c);
+      return;
+    }
+
+    // Medium/Hard: heuristic scoring
+    let best = null;
+    let bestScore = -1;
+    const center = (boardSize - 1) / 2;
+
+    for (const { r, c } of empties) {
+      const aiScore = this.scoreCell(board, r, c, 'white', boardSize);
+      if (aiScore >= 100000) { best = { r, c }; break; }
+
+      const blockScore = this.scoreCell(board, r, c, 'black', boardSize);
+      let total = aiScore + blockScore * (aiDifficulty === 'hard' ? 1.3 : 1.1);
+
+      if (aiDifficulty === 'hard') {
+        total += (boardSize - Math.abs(r - center) - Math.abs(c - center)) * 0.2;
+      }
+
+      if (total > bestScore) { bestScore = total; best = { r, c }; }
+    }
+
+    if (best) this.makeLocalMove(best.r, best.c);
+  },
+
+  scoreCell(board, row, col, color, boardSize) {
+    board[row][col] = color;
+    let score = 0;
+    const dirs = [[0, 1], [1, 0], [1, 1], [1, -1]];
+    for (const [dr, dc] of dirs) {
+      let cnt = 1;
+      let open = 0;
+      for (let s = 1; s <= 4; s++) {
+        const r = row + dr * s, c = col + dc * s;
+        if (r < 0 || r >= boardSize || c < 0 || c >= boardSize) break;
+        if (board[r][c] === color) cnt++;
+        else { if (board[r][c] === '') open++; break; }
+      }
+      for (let s = 1; s <= 4; s++) {
+        const r = row - dr * s, c = col - dc * s;
+        if (r < 0 || r >= boardSize || c < 0 || c >= boardSize) break;
+        if (board[r][c] === color) cnt++;
+        else { if (board[r][c] === '') open++; break; }
+      }
+      if (cnt >= 5) { score += 100000; break; }
+      else if (cnt === 4) score += open >= 1 ? 10000 : 500;
+      else if (cnt === 3) score += open === 2 ? 1000 : (open === 1 ? 200 : 0);
+      else if (cnt === 2) score += open === 2 ? 100 : (open === 1 ? 20 : 0);
+      else if (cnt === 1) score += open >= 1 ? 5 : 0;
+    }
+    board[row][col] = '';
+    return score;
   },
 
   async makeOnlineMove(row, col) {
@@ -894,13 +987,21 @@
       return;
     }
 
-    const lastMove = moveHistory.pop();
     const board = this.data.board.map(rowItem => [...rowItem]);
-    board[lastMove.row][lastMove.col] = '';
+
+    if (this.data.isAiMode) {
+      // Undo AI's last move + player's last move together
+      const undoCount = Math.min(2, moveHistory.length);
+      const undone = moveHistory.splice(moveHistory.length - undoCount, undoCount);
+      undone.forEach(m => { board[m.row][m.col] = ''; });
+    } else {
+      const lastMove = moveHistory.pop();
+      board[lastMove.row][lastMove.col] = '';
+    }
 
     this.setData({
       board,
-      currentPlayer: lastMove.player,
+      currentPlayer: 'black',
       winner: null,
       canPlay: true,
       moveHistory,

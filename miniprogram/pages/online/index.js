@@ -4,6 +4,7 @@
     loading: false,
     userInfo: null,
     showRoomNameModal: false,
+    showLocalModal: false,
     roomNameInput: '',
     version: 'dev'
   },
@@ -13,7 +14,22 @@
   },
 
   onLocalGame() {
+    this.setData({ showLocalModal: true });
+  },
+
+  onCancelLocalModal() {
+    this.setData({ showLocalModal: false });
+  },
+
+  onStartDual() {
+    this.setData({ showLocalModal: false });
     wx.navigateTo({ url: '/pages/gomoku/index' });
+  },
+
+  onStartAi(e) {
+    const difficulty = e.currentTarget.dataset.difficulty;
+    this.setData({ showLocalModal: false });
+    wx.navigateTo({ url: `/pages/gomoku/index?ai=1&difficulty=${difficulty}` });
   },
 
   onShow() {
