@@ -1,0 +1,30 @@
+<view class="home-container">
+  <!-- 顶部标题 -->
+  <view class="header">
+    <view class="header-deco">
+      <view class="deco-dot"></view>
+      <view class="deco-line"></view>
+      <view class="deco-dot"></view>
+    </view>
+    <text class="title">游戏大厅</text>
+    <text class="subtitle">GAME HUB</text>
+  </view>
+
+  <!-- 游戏列表 -->
+  <view class="game-list">
+    <text class="section-label">全部游戏</text>
+    <view
+      wx:for="{{games}}"
+      wx:key="id"
+      class="game-card"
+      data-url="{{item.url}}"
+      bindtap="onTapGame"
+    >
+      <view class="game-card-main">
+        <text class="game-name">{{item.name}}</text>
+        <text class="game-desc">{{item.desc}}</text>
+      </view>
+      <text class="game-arrow">›</text>
+    </view>
+  </view>
+</view>

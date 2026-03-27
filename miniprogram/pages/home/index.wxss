@@ -1,0 +1,105 @@
+.home-container {
+  padding: 0 36rpx 80rpx;
+  background: #f5f0e8;
+  min-height: 100vh;
+  box-sizing: border-box;
+}
+
+/* 顶部标题区域 */
+.header {
+  padding: 64rpx 0 48rpx;
+  border-bottom: 1rpx solid #e0d8cc;
+  margin-bottom: 48rpx;
+}
+
+.header-deco {
+  display: flex;
+  align-items: center;
+  gap: 10rpx;
+  margin-bottom: 24rpx;
+}
+
+.deco-dot {
+  width: 10rpx;
+  height: 10rpx;
+  border-radius: 50%;
+  background: #7a9e7e;
+}
+
+.deco-line {
+  flex: 1;
+  height: 1rpx;
+  background: #d5ccbc;
+}
+
+.title {
+  display: block;
+  font-size: 52rpx;
+  font-weight: 700;
+  color: #2a2218;
+  letter-spacing: 4rpx;
+  margin-bottom: 14rpx;
+}
+
+.subtitle {
+  display: block;
+  font-size: 24rpx;
+  color: #9a8f80;
+  letter-spacing: 4rpx;
+  font-weight: 400;
+}
+
+/* 游戏列表 */
+.game-list {
+  width: 100%;
+}
+
+.section-label {
+  display: block;
+  font-size: 22rpx;
+  font-weight: 500;
+  color: #bbb0a0;
+  letter-spacing: 3rpx;
+  margin-bottom: 20rpx;
+}
+
+/* 游戏卡片 */
+.game-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #fffef9;
+  border: 1rpx solid #e8e0d0;
+  border-radius: 16rpx;
+  padding: 32rpx 28rpx;
+  margin-bottom: 20rpx;
+}
+
+.game-card:active {
+  background: #f8f3ea;
+}
+
+.game-card-main {
+  display: flex;
+  flex-direction: column;
+  gap: 10rpx;
+}
+
+.game-name {
+  font-size: 34rpx;
+  font-weight: 700;
+  color: #2a2218;
+  letter-spacing: 2rpx;
+}
+
+.game-desc {
+  font-size: 24rpx;
+  color: #9a8f80;
+  letter-spacing: 1rpx;
+}
+
+.game-arrow {
+  font-size: 48rpx;
+  color: #bbb0a0;
+  line-height: 1;
+}

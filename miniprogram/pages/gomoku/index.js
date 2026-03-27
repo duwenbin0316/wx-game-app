@@ -36,6 +36,7 @@
     this.initAudio();
     this.pendingMove = null;
     this.isUndoModalOpen = false;
+    this.lastWinnerNotice = null;
 
     if (mode === 'online' && roomId) {
       this.setData({
@@ -78,6 +79,14 @@
 
   onShow() {
     this.isPageActive = true;
+    if (this.data.mode === 'online' && this.data.roomId && !this.data.hasClosedRoom) {
+      this.startRoomWatch();
+      this.startRoomPolling();
+      this.pollRoomInfo();
+      if (this.data.isUndoWaiting) {
+        this.startUndoPolling();
+      }
+    }
   },
 
   onHide() {
@@ -109,6 +118,7 @@
       undoLeft: this.data.undoLimit,
       isUndoWaiting: false
     });
+    this.lastWinnerNotice = null;
   },
 
   async initOnlineGame() {
@@ -216,6 +226,27 @@
       console.error('对手音效播放失败', err);
     });
     this.opponentAudioContext = opponentAudioContext;
+  },
+
+  notifyWinner(winner) {
+    if (!winner) return;
+    const noticeKey = `${this.data.mode}:${this.data.roomId || 'local'}:${winner}`;
+    if (this.lastWinnerNotice === noticeKey) return;
+    this.lastWinnerNotice = noticeKey;
+
+    if (this.data.mode === 'online') {
+      const winnerText = winner === this.data.myColor ? '你赢了！' : '对手获胜';
+      wx.showToast({
+        title: winnerText,
+        icon: winner === this.data.myColor ? 'success' : 'none'
+      });
+      return;
+    }
+
+    wx.showToast({
+      title: `${winner === 'black' ? '黑棋' : '白棋'}获胜！`,
+      icon: 'success'
+    });
   },
 
   playPlaceSound() {
@@ -509,6 +540,7 @@
   },
 
   applyRoomUpdate(room) {
+    const prevWinner = this.data.winner;
     const undoState = this.getOnlineUndoState(room, this.data.myColor);
     const pendingMove = this.pendingMove;
     const hasPendingMove = !!(pendingMove && typeof pendingMove.row === 'number');
@@ -606,13 +638,10 @@
       this.playOpponentSound();
     }
 
-    if (room.winner) {
-      const winnerText = room.winner === this.data.myColor ? '你赢了！' : '对手获胜';
-      wx.showToast({
-        title: winnerText,
-        icon: room.winner === this.data.myColor ? 'success' : 'none'
-      });
+    if (!prevWinner && room.winner) {
+      this.notifyWinner(room.winner);
       this.stopRoomWatch();
+      this.stopRoomPolling();
     }
   },
 
@@ -659,10 +688,7 @@
       this.setData({
         winner: board[row][col]
       });
-      wx.showToast({
-        title: `${board[row][col] === 'black' ? '黑棋' : '白棋'}获胜！`,
-        icon: 'success'
-      });
+      this.notifyWinner(board[row][col]);
     }
   },
 
@@ -702,12 +728,8 @@
           status: result.result.status
         });
 
-        if (result.result.winner) {
-          const winnerText = result.result.winner === this.data.myColor ? '你赢了！' : '对手获胜';
-          wx.showToast({
-            title: winnerText,
-            icon: result.result.winner === this.data.myColor ? 'success' : 'none'
-          });
+        if (!prevWinner && result.result.winner) {
+          this.notifyWinner(result.result.winner);
         }
       } else {
         this.pendingMove = null;
@@ -884,6 +906,7 @@
       moveHistory,
       canUndo: moveHistory.length > 0
     });
+    this.lastWinnerNotice = null;
   },
 
   async refreshRoomForUndo() {
