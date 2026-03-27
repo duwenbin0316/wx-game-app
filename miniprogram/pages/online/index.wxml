@@ -48,14 +48,12 @@
   </view>
 
   <!-- 联机区域 -->
-  <text class="section-label">联机对战</text>
-  <view class="actions">
-    <view class="create-btn action-btn" bindtap="onCreateRoom">
-      <text class="btn-text">+ 创建房间</text>
+  <view class="local-btn" bindtap="onCreateRoom">
+    <view class="local-btn-main">
+      <text class="local-btn-title">联机对战</text>
+      <text class="local-btn-sub">创建房间，邀请好友加入</text>
     </view>
-    <view class="clear-btn action-btn" bindtap="onClearAllRooms">
-      <text class="btn-text">清空房间</text>
-    </view>
+    <text class="local-btn-arrow">›</text>
   </view>
 
   <!-- 创建房间弹窗 -->
@@ -85,7 +83,10 @@
 
   <!-- 房间列表 -->
   <view class="room-list" wx:else>
-    <text class="section-title">可用房间</text>
+    <view class="section-title-row">
+      <text class="section-title">可用房间</text>
+      <text class="clear-text" bindtap="onClearAllRooms">清空</text>
+    </view>
 
     <!-- 空状态 -->
     <view wx:if="{{rooms.length === 0}}" class="empty-state">

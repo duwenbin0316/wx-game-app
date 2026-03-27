@@ -108,46 +108,17 @@
   margin-bottom: 16rpx;
 }
 
-/* 操作按钮区域 */
-.actions {
-  display: flex;
-  gap: 12rpx;
-}
-
-.action-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 16rpx 24rpx;
-  border-radius: 12rpx;
-  user-select: none;
-}
-
-.action-btn:active {
-  opacity: 0.7;
-}
-
-.create-btn {
-  flex: 1;
-  background: #4a6e4e;
-  color: #f5f0e8;
-}
-
-.clear-btn {
-  background: transparent;
-  color: #9a8f80;
-  border: 1rpx solid #d5ccbc;
-}
-
-.btn-text {
-  font-size: 28rpx;
-  font-weight: 600;
-  letter-spacing: 2rpx;
-}
 
 /* 房间列表区域 */
 .room-list {
   width: 100%;
+}
+
+.section-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20rpx;
 }
 
 .section-title {
@@ -155,8 +126,12 @@
   font-weight: 500;
   color: #bbb0a0;
   letter-spacing: 3rpx;
-  margin-bottom: 20rpx;
-  display: block;
+}
+
+.clear-text {
+  font-size: 22rpx;
+  color: #bbb0a0;
+  letter-spacing: 1rpx;
 }
 
 /* 房间卡片 */
