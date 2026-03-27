@@ -48,6 +48,17 @@
     }
   },
 
+  async ensureUserInfo() {
+    if (this.data.userInfo) return true;
+    try {
+      const res = await wx.getUserProfile({ desc: '用于游戏昵称和头像显示' });
+      this.setData({ userInfo: res.userInfo });
+      return true;
+    } catch (e) {
+      return false;
+    }
+  },
+
   async loadRoomList() {
     this.setData({ loading: true });
 
@@ -133,16 +144,7 @@
     }
     this.setData({ showRoomNameModal: false });
 
-    if (!this.data.userInfo) {
-      try {
-        const userInfo = await wx.getUserProfile({
-          desc: '用于游戏昵称和头像显示'
-        });
-        this.setData({ userInfo: userInfo.userInfo });
-      } catch (e) {
-        return;
-      }
-    }
+    if (!await this.ensureUserInfo()) return;
 
     try {
       wx.showLoading({ title: '创建房间中...' });
@@ -209,16 +211,7 @@
   },
 
   async onJoinRoom(e) {
-    if (!this.data.userInfo) {
-      try {
-        const userInfo = await wx.getUserProfile({
-          desc: '用于游戏昵称和头像显示'
-        });
-        this.setData({ userInfo: userInfo.userInfo });
-      } catch (e) {
-        return;
-      }
-    }
+    if (!await this.ensureUserInfo()) return;
 
     const roomId = e.currentTarget.dataset.roomId;
     const roomName = e.currentTarget.dataset.roomName || '';
@@ -273,7 +266,6 @@
             wx.showLoading({ title: '处理中...' });
 
             let repairedCount = 0;
-            let repairOk = true;
             try {
               const repairResult = await wx.cloud.callFunction({
                 name: 'quickstartFunctions',
@@ -283,12 +275,9 @@
               });
               if (repairResult && repairResult.result && repairResult.result.success) {
                 repairedCount = repairResult.result.repairedCount || 0;
-              } else {
-                repairOk = false;
               }
             } catch (repairError) {
               console.error('修复房间失败', repairError);
-              repairOk = false;
             }
 
             const result = await wx.cloud.callFunction({

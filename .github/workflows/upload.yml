@@ -1,0 +1,33 @@
+name: Upload to WeChat
+
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  upload:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Install miniprogram-ci
+        run: npm install -g miniprogram-ci@2.1.31
+
+      - name: Write private key
+        run: echo "${{ secrets.WECHAT_PRIVATE_KEY }}" > private.wxe5b06e8c6ba926fc.key
+
+      - name: Upload miniprogram
+        run: |
+          miniprogram-ci upload \
+            --pp . \
+            --pkp ./private.wxe5b06e8c6ba926fc.key \
+            --appid wxe5b06e8c6ba926fc \
+            --uv 1.0.1 \
+            -r 1 \
+            --enable-es6 true

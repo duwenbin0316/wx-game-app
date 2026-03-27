@@ -13,14 +13,14 @@
       <view class="player-card {{currentPlayer === 'black' ? 'active' : ''}} {{myColor === 'black' ? 'my-player' : ''}}">
         <view class="chess-piece black"></view>
         <view class="player-label">
-          {{mode === 'online' ? blackName : blackName}}
+          {{blackName}}
         </view>
       </view>
       <view class="vs">VS</view>
       <view class="player-card {{currentPlayer === 'white' ? 'active' : ''}} {{myColor === 'white' ? 'my-player' : ''}}">
         <view class="chess-piece white"></view>
         <view class="player-label">
-          {{mode === 'online' ? whiteName : whiteName}}
+          {{whiteName}}
         </view>
       </view>
     </view>
