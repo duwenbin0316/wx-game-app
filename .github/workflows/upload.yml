@@ -5,6 +5,9 @@ on:
     branches:
       - master
 
+env:
+  APP_VERSION: 1.0.3
+
 jobs:
   upload:
     runs-on: ubuntu-latest
@@ -19,6 +22,9 @@ jobs:
       - name: Install miniprogram-ci
         run: npm install -g miniprogram-ci@2.1.31
 
+      - name: Inject version into code
+        run: sed -i "s/version: 'dev'/version: '$APP_VERSION'/" miniprogram/pages/online/index.js
+
       - name: Write private key
         run: echo "${{ secrets.WECHAT_PRIVATE_KEY }}" > private.wxe5b06e8c6ba926fc.key
 
@@ -28,6 +34,6 @@ jobs:
             --pp . \
             --pkp ./private.wxe5b06e8c6ba926fc.key \
             --appid wxe5b06e8c6ba926fc \
-            --uv 1.0.2 \
+            --uv $APP_VERSION \
             -r 1 \
             --enable-es6 true

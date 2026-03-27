@@ -5,12 +5,10 @@
     userInfo: null,
     showRoomNameModal: false,
     roomNameInput: '',
-    version: ''
+    version: 'dev'
   },
 
   onLoad() {
-    const { version } = wx.getAccountInfoSync().miniProgram;
-    this.setData({ version: version || 'dev' });
     this.loadRoomList();
   },
 
