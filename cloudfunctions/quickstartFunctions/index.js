@@ -360,8 +360,9 @@ const joinRoom = async (event) => {
 
     if (normalizedRoom.creatorOpenid === wxContext.OPENID) {
       return {
-        success: false,
-        errMsg: 'Cannot join your own room'
+        success: true,
+        room: normalizedRoom,
+        isRejoin: true
       };
     }
 
