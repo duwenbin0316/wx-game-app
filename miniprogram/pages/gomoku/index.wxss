@@ -4,6 +4,7 @@
   min-height: 100vh;
   box-sizing: border-box;
   width: 100%;
+  align-items: stretch;
 }
 
 /* 顶部信息栏 */
