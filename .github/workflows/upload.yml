@@ -4,37 +4,14 @@ on:
   push:
     branches:
       - master
+    paths:
+      - 'miniprogram/**'
+      - '.github/workflows/upload.yml'
 
 env:
   APP_VERSION: 1.0.6
-  TCB_ENV_ID: cloud1-8gt2mwuq5b21c8ab
 
 jobs:
-  deploy-cloud:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-
-      - name: Cache cloudbase cli
-        id: cache-tcb
-        uses: actions/cache@v4
-        with:
-          path: /usr/local/lib/node_modules
-          key: npm-global-cloudbase-cli-v1
-
-      - name: Install cloudbase cli
-        if: steps.cache-tcb.outputs.cache-hit != 'true'
-        run: npm install -g @cloudbase/cli
-
-      - name: Deploy cloud function
-        run: |
-          tcb login --apiKeyId ${{ secrets.TENCENTCLOUD_SECRET_ID }} --apiKey ${{ secrets.TENCENTCLOUD_SECRET_KEY }}
-          tcb fn deploy quickstartFunctions -e $TCB_ENV_ID --force
-
   upload-miniprogram:
     runs-on: ubuntu-latest
     steps:
