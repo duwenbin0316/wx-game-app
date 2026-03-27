@@ -1,43 +1,68 @@
 /* 整体容器 */
 .online-container {
-  padding: 0 32rpx 60rpx;
-  background: #f5f5f5;
+  padding: 0 36rpx 80rpx;
+  background: #f5f0e8;
   min-height: 100vh;
   box-sizing: border-box;
 }
 
 /* 顶部标题区域 */
 .header {
-  padding: 48rpx 0 32rpx;
+  padding: 64rpx 0 40rpx;
+  border-bottom: 1rpx solid #e0d8cc;
+  margin-bottom: 40rpx;
+}
+
+.header-deco {
+  display: flex;
+  align-items: center;
+  gap: 10rpx;
+  margin-bottom: 24rpx;
+}
+
+.deco-dot {
+  width: 10rpx;
+  height: 10rpx;
+  border-radius: 50%;
+  background: #7a9e7e;
+}
+
+.deco-line {
+  flex: 1;
+  height: 1rpx;
+  background: #d5ccbc;
 }
 
 .title {
   display: block;
-  font-size: 48rpx;
+  font-size: 52rpx;
   font-weight: 700;
-  color: #111;
-  margin-bottom: 10rpx;
+  color: #2a2218;
+  letter-spacing: 4rpx;
+  margin-bottom: 14rpx;
 }
 
 .subtitle {
   display: block;
-  font-size: 26rpx;
-  color: #999;
+  font-size: 24rpx;
+  color: #9a8f80;
+  letter-spacing: 2rpx;
   font-weight: 400;
 }
 
 .version {
   display: block;
-  font-size: 22rpx;
-  color: #bbb;
-  margin-top: 8rpx;
+  font-size: 20rpx;
+  color: #bbb0a0;
+  margin-top: 10rpx;
+  letter-spacing: 1rpx;
 }
 
 /* 操作按钮区域 */
 .actions {
   display: flex;
   gap: 16rpx;
-  margin-bottom: 40rpx;
+  margin-bottom: 48rpx;
 }
 
 .action-btn {
@@ -45,35 +70,30 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 26rpx 0;
-  border-radius: 16rpx;
+  padding: 28rpx 0;
+  border-radius: 12rpx;
   user-select: none;
 }
 
 .action-btn:active {
-  opacity: 0.75;
+  opacity: 0.7;
 }
 
 .create-btn {
-  background: #4f46e5;
-  color: #fff;
+  background: #4a6e4e;
+  color: #f5f0e8;
 }
 
 .clear-btn {
-  background: #fff;
-  color: #666;
-  border: 1rpx solid #e5e5e5;
-}
-
-.btn-icon {
-  font-size: 32rpx;
-  margin-right: 10rpx;
-  line-height: 1;
+  background: transparent;
+  color: #9a8f80;
+  border: 1rpx solid #d5ccbc;
 }
 
 .btn-text {
   font-size: 28rpx;
   font-weight: 600;
+  letter-spacing: 2rpx;
 }
 
 /* 房间列表区域 */
@@ -82,10 +102,11 @@
 }
 
 .section-title {
-  font-size: 28rpx;
-  font-weight: 600;
-  color: #999;
-  margin-bottom: 16rpx;
+  font-size: 22rpx;
+  font-weight: 500;
+  color: #bbb0a0;
+  letter-spacing: 3rpx;
+  margin-bottom: 20rpx;
   display: block;
 }
 
@@ -94,15 +115,16 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 28rpx 24rpx;
+  padding: 32rpx 28rpx;
   border-radius: 16rpx;
   margin-bottom: 16rpx;
-  background: #fff;
+  background: #fffef9;
+  border: 1rpx solid #e8e0d0;
   box-sizing: border-box;
 }
 
 .room-item:active {
-  background: #f9f9f9;
+  background: #f8f3ea;
 }
 
 .room-item:last-child {
@@ -119,54 +141,56 @@
 .room-name {
   font-size: 30rpx;
   font-weight: 600;
-  color: #111;
+  color: #2a2218;
   display: flex;
   align-items: center;
-  gap: 12rpx;
-  margin-bottom: 12rpx;
+  gap: 14rpx;
+  margin-bottom: 14rpx;
+  letter-spacing: 1rpx;
 }
 
 .room-status {
-  font-size: 22rpx;
+  font-size: 20rpx;
   font-weight: 500;
-  color: #22c55e;
-  background: #f0fdf4;
-  padding: 4rpx 14rpx;
+  color: #7a9e7e;
+  background: #eef4ee;
+  padding: 4rpx 16rpx;
   border-radius: 20rpx;
   white-space: nowrap;
+  letter-spacing: 1rpx;
 }
 
 .room-details {
   display: flex;
   align-items: center;
-  gap: 16rpx;
+  gap: 20rpx;
 }
 
 .creator-info {
   display: flex;
   align-items: center;
   gap: 10rpx;
-  font-size: 24rpx;
-  color: #999;
+  font-size: 22rpx;
+  color: #9a8f80;
 }
 
 .creator-avatar {
   width: 36rpx;
   height: 36rpx;
   border-radius: 50%;
-  background: #e5e5e5;
+  background: #d5ccbc;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #666;
+  color: #6a5f50;
   font-size: 18rpx;
   font-weight: 600;
   flex-shrink: 0;
 }
 
 .time {
-  font-size: 24rpx;
-  color: #bbb;
+  font-size: 22rpx;
+  color: #bbb0a0;
 }
 
 /* 加入按钮 */
@@ -175,64 +199,68 @@
 }
 
 .join-btn {
-  background: #4f46e5;
-  color: #fff;
-  border-radius: 12rpx;
-  padding: 16rpx 28rpx;
+  background: #4a6e4e;
+  color: #f5f0e8;
+  border-radius: 10rpx;
+  padding: 16rpx 30rpx;
   font-size: 26rpx;
   font-weight: 600;
+  letter-spacing: 2rpx;
   user-select: none;
 }
 
 .join-btn:active {
-  opacity: 0.75;
+  opacity: 0.7;
 }
 
 /* 空状态 */
 .empty-state {
   text-align: center;
-  padding: 120rpx 40rpx;
+  padding: 100rpx 40rpx;
 }
 
 .empty-icon {
-  font-size: 100rpx;
+  font-size: 80rpx;
   display: block;
-  margin-bottom: 24rpx;
-  opacity: 0.4;
+  margin-bottom: 28rpx;
+  opacity: 0.35;
 }
 
 .empty-text {
-  font-size: 32rpx;
-  color: #333;
+  font-size: 30rpx;
+  color: #6a5f50;
   display: block;
   font-weight: 600;
   margin-bottom: 12rpx;
+  letter-spacing: 2rpx;
 }
 
 .empty-hint {
-  font-size: 26rpx;
-  color: #999;
+  font-size: 24rpx;
+  color: #bbb0a0;
   display: block;
-  line-height: 1.7;
+  line-height: 1.9;
+  letter-spacing: 1rpx;
 }
 
 .empty-action {
-  margin-top: 40rpx;
+  margin-top: 48rpx;
 }
 
 .empty-action-btn {
   display: inline-block;
-  background: #4f46e5;
-  color: #fff;
+  background: #4a6e4e;
+  color: #f5f0e8;
   border-radius: 50rpx;
-  padding: 22rpx 56rpx;
+  padding: 22rpx 60rpx;
   font-size: 28rpx;
   font-weight: 600;
+  letter-spacing: 2rpx;
   user-select: none;
 }
 
 .empty-action-btn:active {
-  opacity: 0.75;
+  opacity: 0.7;
 }
 
 /* 加载状态 */
@@ -246,13 +274,14 @@
 }
 
 .loading-icon {
-  font-size: 64rpx;
-  opacity: 0.4;
+  font-size: 60rpx;
+  opacity: 0.3;
 }
 
 .loading-text {
-  color: #999;
-  font-size: 26rpx;
+  color: #bbb0a0;
+  font-size: 24rpx;
+  letter-spacing: 2rpx;
 }
 
 /* 创建房间弹窗 */
@@ -262,7 +291,7 @@
   top: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.4);
+  background: rgba(42, 34, 24, 0.45);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -274,65 +303,69 @@
 .modal-card {
   width: 100%;
   max-width: 640rpx;
-  background: #fff;
+  background: #fffef9;
   border-radius: 24rpx;
-  padding: 40rpx 32rpx 32rpx;
+  padding: 44rpx 36rpx 36rpx;
   box-sizing: border-box;
+  border: 1rpx solid #e8e0d0;
 }
 
 .modal-title {
   font-size: 34rpx;
   font-weight: 700;
-  color: #111;
+  color: #2a2218;
   margin-bottom: 8rpx;
+  letter-spacing: 2rpx;
 }
 
 .modal-subtitle {
-  font-size: 26rpx;
-  color: #999;
-  margin-bottom: 28rpx;
+  font-size: 24rpx;
+  color: #9a8f80;
+  margin-bottom: 32rpx;
+  letter-spacing: 1rpx;
 }
 
 .modal-input {
   width: 100%;
   height: 80rpx;
-  border-radius: 12rpx;
-  border: 1rpx solid #e5e5e5;
+  border-radius: 10rpx;
+  border: 1rpx solid #d5ccbc;
   padding: 0 20rpx;
   box-sizing: border-box;
   font-size: 28rpx;
-  color: #111;
-  background: #fafafa;
+  color: #2a2218;
+  background: #f5f0e8;
 }
 
 .modal-actions {
   display: flex;
   gap: 16rpx;
-  margin-top: 28rpx;
+  margin-top: 32rpx;
 }
 
 .modal-btn {
   flex: 1;
   height: 80rpx;
-  border-radius: 12rpx;
+  border-radius: 10rpx;
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 28rpx;
   font-weight: 600;
+  letter-spacing: 1rpx;
   user-select: none;
 }
 
 .modal-btn:active {
-  opacity: 0.75;
+  opacity: 0.7;
 }
 
 .cancel-btn {
-  background: #f5f5f5;
-  color: #666;
+  background: #ede8de;
+  color: #6a5f50;
 }
 
 .confirm-btn {
-  background: #4f46e5;
-  color: #fff;
+  background: #4a6e4e;
+  color: #f5f0e8;
 }
