@@ -4,10 +4,13 @@
     loading: false,
     userInfo: null,
     showRoomNameModal: false,
-    roomNameInput: ''
+    roomNameInput: '',
+    version: ''
   },
 
   onLoad() {
+    const { version } = wx.getAccountInfoSync().miniProgram;
+    this.setData({ version: version || 'dev' });
     this.loadRoomList();
   },
 

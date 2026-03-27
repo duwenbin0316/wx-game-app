@@ -33,6 +33,13 @@
   margin-top: 0;
 }
 
+.version {
+  display: block;
+  font-size: 24rpx;
+  color: #94a3b8;
+  margin-top: 12rpx;
+}
+
 /* 操作按钮区域 */
 .actions {
   display: flex;

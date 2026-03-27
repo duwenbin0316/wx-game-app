@@ -14,7 +14,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: '18'
+          node-version: '22'
 
       - name: Install miniprogram-ci
         run: npm install -g miniprogram-ci@2.1.31
@@ -28,6 +28,6 @@ jobs:
             --pp . \
             --pkp ./private.wxe5b06e8c6ba926fc.key \
             --appid wxe5b06e8c6ba926fc \
-            --uv 1.0.1 \
+            --uv 1.0.2 \
             -r 1 \
             --enable-es6 true

@@ -3,6 +3,7 @@
   <view class="header">
     <text class="title">联机对战</text>
     <text class="subtitle">创建房间与好友一起下五子棋</text>
+    <text class="version">v{{version}}</text>
   </view>
 
   <!-- 操作按钮 -->
