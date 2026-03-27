@@ -9,7 +9,7 @@ on:
       - '.github/workflows/upload.yml'
 
 env:
-  APP_VERSION: 1.1.0
+  APP_VERSION: 1.1.1
 
 jobs:
   upload-miniprogram:

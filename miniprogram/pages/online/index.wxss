@@ -99,19 +99,13 @@
   line-height: 1;
 }
 
-/* 联机区域标题行 */
-.section-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 20rpx;
-}
-
 .section-label {
+  display: block;
   font-size: 22rpx;
   font-weight: 500;
   color: #bbb0a0;
   letter-spacing: 3rpx;
+  margin-bottom: 16rpx;
 }
 
 /* 操作按钮区域 */
@@ -134,6 +128,7 @@
 }
 
 .create-btn {
+  flex: 1;
   background: #4a6e4e;
   color: #f5f0e8;
 }

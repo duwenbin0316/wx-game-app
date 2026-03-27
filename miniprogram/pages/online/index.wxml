@@ -15,15 +15,13 @@
   </view>
 
   <!-- 联机区域 -->
-  <view class="section-header">
-    <text class="section-label">联机对战</text>
-    <view class="section-actions">
-      <view class="create-btn action-btn" bindtap="onCreateRoom">
-        <text class="btn-text">+ 创建房间</text>
-      </view>
-      <view class="clear-btn action-btn" bindtap="onClearAllRooms">
-        <text class="btn-text">清空</text>
-      </view>
+  <text class="section-label">联机对战</text>
+  <view class="actions">
+    <view class="create-btn action-btn" bindtap="onCreateRoom">
+      <text class="btn-text">+ 创建房间</text>
+    </view>
+    <view class="clear-btn action-btn" bindtap="onClearAllRooms">
+      <text class="btn-text">清空房间</text>
     </view>
   </view>
 
