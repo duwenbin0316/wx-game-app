@@ -12,6 +12,10 @@
     this.loadRoomList();
   },
 
+  onLocalGame() {
+    wx.navigateTo({ url: '/pages/gomoku/index' });
+  },
+
   onShow() {
     // 不再自动关闭待关闭的房间，改为保留房间
     this.loadRoomList();

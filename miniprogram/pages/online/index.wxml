@@ -1,18 +1,29 @@
 ﻿<view class="online-container">
   <!-- 顶部标题 -->
   <view class="header">
-    <text class="title">联机对战</text>
-    <text class="subtitle">创建房间与好友一起下五子棋</text>
+    <text class="title">五子棋</text>
     <text class="version">v{{version}}</text>
   </view>
 
-  <!-- 操作按钮 -->
-  <view class="actions">
-    <view class="create-btn action-btn" bindtap="onCreateRoom">
-      <text class="btn-text">+ 创建房间</text>
+  <!-- 单机入口 -->
+  <view class="local-btn" bindtap="onLocalGame">
+    <view class="local-btn-main">
+      <text class="local-btn-title">本地对战</text>
+      <text class="local-btn-sub">双人同屏，传递手机轮流落子</text>
     </view>
-    <view class="clear-btn action-btn" bindtap="onClearAllRooms">
-      <text class="btn-text">清空房间</text>
+    <text class="local-btn-arrow">›</text>
+  </view>
+
+  <!-- 联机区域 -->
+  <view class="section-header">
+    <text class="section-label">联机对战</text>
+    <view class="section-actions">
+      <view class="create-btn action-btn" bindtap="onCreateRoom">
+        <text class="btn-text">+ 创建房间</text>
+      </view>
+      <view class="clear-btn action-btn" bindtap="onClearAllRooms">
+        <text class="btn-text">清空</text>
+      </view>
     </view>
   </view>
 
