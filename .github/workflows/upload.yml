@@ -23,7 +23,8 @@ jobs:
         run: npm install -g miniprogram-ci@2.1.31
 
       - name: Inject version into code
-        run: sed -i "s/version: 'dev'/version: '$APP_VERSION'/" miniprogram/pages/online/index.js
+        run: |
+          sed -i "s/version: 'dev'/version: '$APP_VERSION'/" miniprogram/pages/online/index.js
 
       - name: Write private key
         run: echo "${{ secrets.WECHAT_PRIVATE_KEY }}" > private.wxe5b06e8c6ba926fc.key
