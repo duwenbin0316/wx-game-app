@@ -9,11 +9,9 @@
   <!-- 操作按钮 -->
   <view class="actions">
     <view class="create-btn action-btn" bindtap="onCreateRoom">
-      <text class="btn-icon">+</text>
-      <text class="btn-text">创建房间</text>
+      <text class="btn-text">+ 创建房间</text>
     </view>
     <view class="clear-btn action-btn" bindtap="onClearAllRooms">
-      <text class="btn-icon">🗑</text>
       <text class="btn-text">清空房间</text>
     </view>
   </view>
