@@ -136,6 +136,15 @@ Page({
     this._startGame();
   },
 
+  onShareAppMessage() {
+    const score = this.data.score || 0;
+    const best  = this.data.bestScore || 0;
+    return {
+      title: `我在像素跑酷中得了 ${score} 分！最高 ${best} 分，来挑战我～`,
+      path: '/pages/runner/index'
+    };
+  },
+
   // ─── 游戏控制 ──────────────────────────────────────────
 
   _startGame() {

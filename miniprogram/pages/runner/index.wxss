@@ -129,11 +129,19 @@
   line-height: 1;
 }
 
-.retry-btn {
+.action-row {
+  display: flex;
+  align-items: center;
+  gap: 20rpx;
   margin-top: 40rpx;
+}
+
+.retry-btn {
+  flex: 1;
   background: #E8873A;
   border-radius: 10rpx;
-  padding: 20rpx 72rpx;
+  padding: 20rpx 0;
+  text-align: center;
   user-select: none;
 }
 
@@ -147,4 +155,26 @@
   color: #1A1A2E;
   letter-spacing: 4rpx;
   font-family: monospace;
+}
+
+.runner-share-btn {
+  flex: 1;
+  padding: 20rpx 0;
+  background: transparent;
+  border: 2rpx solid #4A6FA5;
+  border-radius: 10rpx;
+  font-size: 30rpx;
+  font-weight: 700;
+  color: #4A6FA5;
+  letter-spacing: 4rpx;
+  font-family: monospace;
+  line-height: 1.4;
+}
+
+.runner-share-btn::after {
+  border: none;
+}
+
+.runner-share-btn:active {
+  opacity: 0.75;
 }

@@ -10,6 +10,9 @@
     <text class="subtitle">GAME HUB</text>
   </view>
 
+  <!-- 分享按钮 -->
+  <button class="share-btn" open-type="share">分享给朋友</button>
+
   <!-- 游戏列表 -->
   <view class="game-list">
     <text class="section-label">全部游戏</text>

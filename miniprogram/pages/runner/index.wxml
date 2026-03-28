@@ -26,8 +26,11 @@
         <text class="best-label">BEST</text>
         <text class="best-value">{{bestScore}}</text>
       </view>
-      <view class="retry-btn" catchtap="onRetry">
-        <text class="retry-text">再来一次</text>
+      <view class="action-row">
+        <view class="retry-btn" catchtap="onRetry">
+          <text class="retry-text">再来一次</text>
+        </view>
+        <button class="runner-share-btn" open-type="share" catchtap="">分享</button>
       </view>
     </view>
   </view>

@@ -19,5 +19,12 @@ Page({
   onTapGame(e) {
     const url = e.currentTarget.dataset.url;
     wx.navigateTo({ url });
+  },
+
+  onShareAppMessage() {
+    return {
+      title: '五子棋 & 像素跑酷，来一起玩！',
+      path: '/pages/home/index'
+    };
   }
 });
