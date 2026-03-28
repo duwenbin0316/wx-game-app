@@ -457,24 +457,24 @@ Page({
 
     // GAME OVER
     ctx.fillStyle = '#FF6B6B';
-    ctx.font = 'bold 28px monospace';
-    ctx.fillText('GAME  OVER', cw / 2, 52);
+    ctx.font = 'bold 26px monospace';
+    ctx.fillText('GAME  OVER', cw / 2, 42);
 
     // SCORE
     ctx.fillStyle = '#6A6A9A';
-    ctx.font = '13px monospace';
-    ctx.fillText('S C O R E', cw / 2, 82);
+    ctx.font = '12px monospace';
+    ctx.fillText('S C O R E', cw / 2, 66);
     ctx.fillStyle = '#E8873A';
-    ctx.font = 'bold 52px monospace';
-    ctx.fillText(String(score), cw / 2, 138);
+    ctx.font = 'bold 46px monospace';
+    ctx.fillText(String(score), cw / 2, 116);
 
     // BEST
     ctx.fillStyle = '#6A6A9A';
-    ctx.font = '13px monospace';
-    ctx.fillText('B E S T', cw / 2, 168);
+    ctx.font = '12px monospace';
+    ctx.fillText('B E S T', cw / 2, 142);
     ctx.fillStyle = '#F5C842';
-    ctx.font = 'bold 30px monospace';
-    ctx.fillText(String(best), cw / 2, 204);
+    ctx.font = 'bold 28px monospace';
+    ctx.fillText(String(best), cw / 2, 174);
 
     wx.canvasToTempFilePath({
       canvas: offscreen,
