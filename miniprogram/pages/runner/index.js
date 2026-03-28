@@ -10,24 +10,27 @@ const GROUND_R   = 0.78;  // 地面在屏幕高度的比例
 const PW = 40;
 const PH = 40;
 
-// ─── 玩家像素图案（实心方块小人，参考 Claude 色系）────
-// 3列 × 5行，PS=8px，绘制偏移 (POX=4) 居中于 40px 宽度
-const PS  = 8;
-const POX = 4;
+// ─── 玩家像素图案（像素机器人小人，参考图还原）──────
+// 5列 × 5行，PS=7px，绘制偏移 (POX=2) 居中于 40px 宽度
+// 外形：窄顶头 → 宽头 → 身体 → 分叉腿
+const PS  = 7;
+const POX = 2;
 const POY = 0;
 
-// 身体：3×4 实心矩形
 const PL_BODY = [
-  [0,0],[0,1],[0,2],
-  [1,0],[1,1],[1,2],
-  [2,0],[2,1],[2,2],
-  [3,0],[3,1],[3,2],
+  [0,1],[0,2],[0,3],                         // 头顶（3宽，略窄）
+  [1,0],[1,1],[1,2],[1,3],[1,4],             // 头部（5宽）
+  [2,0],[2,1],[2,2],[2,3],[2,4],             // 上身
+  [3,0],[3,1],[3,2],[3,3],[3,4],             // 下身
 ];
-// 右侧高光（深色背景下增加立体感）
-const PL_HL = [[0,2],[1,2]];
-// 腿 A：外八 / 腿 B：内收（交替形成跑步感）
-const PL_LEGS_A = [[4,0],[4,2]];
-const PL_LEGS_B = [[4,0],[4,1],[4,2]];
+// 眼睛（深色小方块，嵌入头部 row 1）
+const PL_EYES = [[1,1],[1,3]];
+// 高光（左上角亮一点）
+const PL_HL = [[0,1],[0,2],[1,0],[1,1]];
+// 腿 A：两腿外八分开
+const PL_LEGS_A = [[4,0],[4,1],[4,3],[4,4]];
+// 腿 B：两腿内收并拢
+const PL_LEGS_B = [[4,1],[4,2],[4,3]];
 
 // ─── 月亮像素（C 形，右上角装饰）──────────────────────
 const MB = 15;  // 月亮像素块大小（更大更醒目）
@@ -306,16 +309,20 @@ Page({
     const by = p.y + POY;
     const legSet = Math.floor(this._frame / 8) % 2 === 0 ? PL_LEGS_A : PL_LEGS_B;
 
-    // 实心方块身体
+    // 主体（橙色）
     ctx.fillStyle = '#E8873A';
     PL_BODY.forEach(([r, c]) => ctx.fillRect(bx + c*PS, by + r*PS, PS, PS));
 
-    // 右侧高光
+    // 高光（左上角亮橙）
     ctx.fillStyle = '#F5A855';
     PL_HL.forEach(([r, c]) => ctx.fillRect(bx + c*PS, by + r*PS, PS, PS));
 
-    // 跑步腿动画
-    ctx.fillStyle = '#D4702A';
+    // 眼睛（深色小方块）
+    ctx.fillStyle = '#1A1A2E';
+    PL_EYES.forEach(([r, c]) => ctx.fillRect(bx + c*PS + 1, by + r*PS + 1, PS - 2, PS - 2));
+
+    // 跑步腿动画（深橙色）
+    ctx.fillStyle = '#C86820';
     legSet.forEach(([r, c]) => ctx.fillRect(bx + c*PS, by + r*PS, PS, PS));
   },
 
