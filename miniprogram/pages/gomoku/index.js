@@ -695,11 +695,14 @@
     board[row][col] = player;
     moveHistory.push({ row, col, player });
 
+    const canUndo = this.data.isAiMode
+      ? player === 'black'  // AI模式：只有你刚落子（AI未响应）时可悔棋
+      : moveHistory.length > 0;
     this.setData({
       board,
       currentPlayer: player === 'black' ? 'white' : 'black',
       moveHistory,
-      canUndo: moveHistory.length > 0
+      canUndo
     });
     this.playPlaceSound();
 
@@ -994,14 +997,17 @@
     const lastMove = moveHistory.pop();
     board[lastMove.row][lastMove.col] = '';
 
+    const lastInHistory = moveHistory[moveHistory.length - 1];
+    const canUndo = this.data.isAiMode
+      ? !!(lastInHistory && lastInHistory.player === 'black')
+      : moveHistory.length > 0;
     this.setData({
       board,
-      // AI mode: always restore to player's turn regardless of whose stone was undone
       currentPlayer: this.data.isAiMode ? 'black' : lastMove.player,
       winner: null,
       canPlay: true,
       moveHistory,
-      canUndo: moveHistory.length > 0
+      canUndo
     });
     this.lastWinnerNotice = null;
   },
