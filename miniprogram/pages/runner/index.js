@@ -423,11 +423,11 @@ Page({
     ctx.fillStyle = 'rgba(10,10,30,0.72)';
     ctx.fillRect(0, 0, W, H);
 
-    // 卡片背景
-    const cw = Math.round(W * 0.78);
+    // 卡片背景（靠近顶部，微信分享从顶部裁剪，确保完整显示）
+    const cw = Math.round(W * 0.86);
     const ch = 190;
     const cx = (W - cw) / 2;
-    const cy = (H - ch) / 2;
+    const cy = 24;
     ctx.fillStyle = 'rgba(28,28,58,0.96)';
     ctx.fillRect(cx, cy, cw, ch);
     ctx.strokeStyle = '#FF6B6B';
