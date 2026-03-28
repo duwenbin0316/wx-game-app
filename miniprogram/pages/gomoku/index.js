@@ -711,9 +711,12 @@
 
     // Trigger AI move after player (black) places
     if (this.data.isAiMode && player === 'black') {
+      const thinkRange = { easy: [400, 900], medium: [800, 1800], hard: [1200, 2800] };
+      const [min, max] = thinkRange[this.data.aiDifficulty] || [800, 1800];
+      const delay = min + Math.random() * (max - min);
       setTimeout(() => {
-        if (!this.data.winner) this.makeAiMove();
-      }, 350);
+        if (!this.data.winner && this.data.currentPlayer === 'white') this.makeAiMove();
+      }, delay);
     }
   },
 
@@ -988,20 +991,13 @@
     }
 
     const board = this.data.board.map(rowItem => [...rowItem]);
-
-    if (this.data.isAiMode) {
-      // Undo AI's last move + player's last move together
-      const undoCount = Math.min(2, moveHistory.length);
-      const undone = moveHistory.splice(moveHistory.length - undoCount, undoCount);
-      undone.forEach(m => { board[m.row][m.col] = ''; });
-    } else {
-      const lastMove = moveHistory.pop();
-      board[lastMove.row][lastMove.col] = '';
-    }
+    const lastMove = moveHistory.pop();
+    board[lastMove.row][lastMove.col] = '';
 
     this.setData({
       board,
-      currentPlayer: 'black',
+      // AI mode: always restore to player's turn regardless of whose stone was undone
+      currentPlayer: this.data.isAiMode ? 'black' : lastMove.player,
       winner: null,
       canPlay: true,
       moveHistory,
