@@ -435,9 +435,9 @@ Page({
     const score = this._scoreVal;
     const best  = this.bestScore;
 
-    // 离屏 canvas：只画分享卡，不碰主游戏 canvas
-    const cw = Math.round(W * 0.86);
-    const ch = 190;
+    // 离屏 canvas：正方形，避免微信缩略图裁切
+    const cw = 240;
+    const ch = 240;
     const offscreen = wx.createOffscreenCanvas({
       type: '2d',
       width:  Math.round(cw * dpr),
@@ -447,34 +447,34 @@ Page({
     ctx.scale(dpr, dpr);
 
     // 卡片背景 + 边框
-    ctx.fillStyle = 'rgba(28,28,58,0.96)';
+    ctx.fillStyle = '#1A1A2E';
     ctx.fillRect(0, 0, cw, ch);
     ctx.strokeStyle = '#FF6B6B';
-    ctx.lineWidth = 2;
-    ctx.strokeRect(1, 1, cw - 2, ch - 2);
+    ctx.lineWidth = 3;
+    ctx.strokeRect(2, 2, cw - 4, ch - 4);
 
     ctx.textAlign = 'center';
 
     // GAME OVER
     ctx.fillStyle = '#FF6B6B';
-    ctx.font = 'bold 26px monospace';
-    ctx.fillText('GAME  OVER', cw / 2, 44);
+    ctx.font = 'bold 28px monospace';
+    ctx.fillText('GAME  OVER', cw / 2, 52);
 
     // SCORE
     ctx.fillStyle = '#6A6A9A';
-    ctx.font = '11px monospace';
-    ctx.fillText('S C O R E', cw / 2, 70);
+    ctx.font = '13px monospace';
+    ctx.fillText('S C O R E', cw / 2, 82);
     ctx.fillStyle = '#E8873A';
-    ctx.font = 'bold 46px monospace';
-    ctx.fillText(String(score), cw / 2, 116);
+    ctx.font = 'bold 52px monospace';
+    ctx.fillText(String(score), cw / 2, 138);
 
     // BEST
     ctx.fillStyle = '#6A6A9A';
-    ctx.font = '11px monospace';
-    ctx.fillText('B E S T', cw / 2, 142);
+    ctx.font = '13px monospace';
+    ctx.fillText('B E S T', cw / 2, 168);
     ctx.fillStyle = '#F5C842';
-    ctx.font = 'bold 28px monospace';
-    ctx.fillText(String(best), cw / 2, 174);
+    ctx.font = 'bold 30px monospace';
+    ctx.fillText(String(best), cw / 2, 204);
 
     wx.canvasToTempFilePath({
       canvas: offscreen,
