@@ -11,25 +11,28 @@ const PS = 5;
 const PW = 8 * PS;  // 40px
 const PH = 8 * PS;  // 40px
 
-// ─── 玩家像素图案 ────────────────────────────────────────
-// 菱形轮廓：每行 [起始列, 结束列]
-const BODY_ROWS = [
-  [2, 5], // row 0
-  [1, 6], // row 1
-  [0, 7], // row 2
-  [0, 7], // row 3
-  [0, 7], // row 4
-  [0, 7], // row 5
-  [1, 6], // row 6
-  [2, 5], // row 7
+// ─── 玩家像素图案（Claude 螃蟹像素风）──────────────────
+// 9列 × 7行，CS=4px，绘制偏移 (ox=2, oy=8) 居中于 40x40 框
+const CS  = 4;   // 每个像素块大小
+const COX = 2;   // x 偏移
+const COY = 8;   // y 偏移
+
+// 主体（橙色）
+const CRAB_BODY = [
+  [0,1],[0,7],                                               // 眼柄
+  [1,0],[1,1],[1,2],[1,6],[1,7],[1,8],                       // 螯（左右大钳）
+  [2,1],[2,2],[2,3],[2,4],[2,5],[2,6],[2,7],                 // 上壳
+  [3,0],[3,1],[3,2],[3,3],[3,4],[3,5],[3,6],[3,7],[3,8],     // 宽体
+  [4,0],[4,1],[4,2],[4,3],[4,4],[4,5],[4,6],[4,7],[4,8],     // 宽体下
+  [5,1],[5,3],[5,5],[5,7],                                   // 腿关节
+  [6,1],[6,3],[6,5],[6,7],                                   // 腿
 ];
-// 高光像素（亮橙，左上角）
-const BODY_HIGHLIGHT = [[0,2],[0,3],[1,1],[1,2],[2,0],[2,1],[3,0]];
-// >> 符号（深色）
-const BODY_CHEVRON = [
-  [2,2],[3,3],[4,2],  // 第一个 >
-  [2,4],[3,5],[4,4],  // 第二个 >
-];
+// 高光（亮橙）
+const CRAB_HL = [[0,1],[0,7],[2,2],[2,3],[3,1],[3,2]];
+// 螯尖（黄色）
+const CRAB_CLAW = [[1,0],[1,8]];
+// 眼睛（深色圆点）
+const CRAB_EYES = [[1,2],[1,6]];
 
 // ─── Bug 像素图案（6列×5行，底部带脚）──────────────────
 const BUG_PIXELS = [
@@ -269,25 +272,20 @@ Page({
 
   _drawPlayer() {
     const { _ctx: ctx, _player: p } = this;
-    const { x, y } = p;
+    const bx = p.x + COX;
+    const by = p.y + COY;
 
-    // 主体（橙色）
     ctx.fillStyle = '#E8873A';
-    BODY_ROWS.forEach(([s, e], r) => {
-      ctx.fillRect(x + s * PS, y + r * PS, (e - s + 1) * PS, PS);
-    });
+    CRAB_BODY.forEach(([r, c]) => ctx.fillRect(bx + c*CS, by + r*CS, CS, CS));
 
-    // 高光（亮橙）
     ctx.fillStyle = '#F5A855';
-    BODY_HIGHLIGHT.forEach(([r, c]) => {
-      ctx.fillRect(x + c * PS, y + r * PS, PS, PS);
-    });
+    CRAB_HL.forEach(([r, c]) => ctx.fillRect(bx + c*CS, by + r*CS, CS, CS));
 
-    // >> 符号（深色）
+    ctx.fillStyle = '#F5C842';
+    CRAB_CLAW.forEach(([r, c]) => ctx.fillRect(bx + c*CS, by + r*CS, CS, CS));
+
     ctx.fillStyle = '#1A1A2E';
-    BODY_CHEVRON.forEach(([r, c]) => {
-      ctx.fillRect(x + c * PS, y + r * PS, PS, PS);
-    });
+    CRAB_EYES.forEach(([r, c]) => ctx.fillRect(bx + c*CS, by + r*CS, CS, CS));
   },
 
   _drawObstacle(ob) {
