@@ -355,18 +355,18 @@ Page({
     for (const r of (this._oreRocks || [])) {
       ctx.fillRect(r.x, r.y, r.w, r.h);
     }
-    // 蓝色矿脉（与地面线同色系）
-    ctx.fillStyle = 'rgba(74,111,165,0.75)';
+    // 蓝矿簇
+    ctx.fillStyle = 'rgba(74,111,165,0.50)';
     for (const o of (this._oreBlue || [])) {
       ctx.fillRect(o.x, o.y, o.w, o.h);
     }
-    // 紫色矿脉
-    ctx.fillStyle = 'rgba(130,80,200,0.65)';
+    // 紫矿簇
+    ctx.fillStyle = 'rgba(130,80,200,0.40)';
     for (const o of (this._orePurple || [])) {
       ctx.fillRect(o.x, o.y, o.w, o.h);
     }
-    // 暖橙矿点（呼应玩家颜色）
-    ctx.fillStyle = 'rgba(200,120,50,0.50)';
+    // 暖橙矿点
+    ctx.fillStyle = 'rgba(200,120,50,0.38)';
     for (const o of (this._oreWarm || [])) {
       ctx.fillRect(o.x, o.y, o.w, o.h);
     }
@@ -589,33 +589,22 @@ Page({
       h: 1 + Math.floor(Math.random() * 2)
     }));
 
-    // 地下岩块（较大深色矩形）
-    this._oreRocks = Array.from({ length: 18 }, () => ({
+    // 地下岩块：少量大块，营造层次而不凌乱
+    this._oreRocks = Array.from({ length: 6 }, () => ({
       x: Math.random() * W,
-      y: gY + 8 + Math.random() * (ug - 12),
-      w: 4 + Math.floor(Math.random() * 10),
-      h: 3 + Math.floor(Math.random() * 6)
+      y: gY + 10 + Math.random() * (ug - 16),
+      w: 8 + Math.floor(Math.random() * 14),
+      h: 4 + Math.floor(Math.random() * 6)
     }));
-    // 蓝矿脉（小像素点簇）
-    this._oreBlue = Array.from({ length: 14 }, () => ({
+    // 蓝矿簇：3个小簇，每簇2-3个相邻像素
+    this._oreBlue = this._makeOreClusters(3, W, gY, ug);
+    // 紫矿簇：2个小簇
+    this._orePurple = this._makeOreClusters(2, W, gY, ug);
+    // 暖橙：仅2个点
+    this._oreWarm = Array.from({ length: 2 }, () => ({
       x: Math.random() * W,
-      y: gY + 10 + Math.random() * (ug - 14),
-      w: 2 + Math.floor(Math.random() * 4),
-      h: 2 + Math.floor(Math.random() * 3)
-    }));
-    // 紫矿脉
-    this._orePurple = Array.from({ length: 10 }, () => ({
-      x: Math.random() * W,
-      y: gY + 12 + Math.random() * (ug - 16),
-      w: 2 + Math.floor(Math.random() * 3),
-      h: 2 + Math.floor(Math.random() * 3)
-    }));
-    // 暖橙矿点（稀少）
-    this._oreWarm = Array.from({ length: 6 }, () => ({
-      x: Math.random() * W,
-      y: gY + 10 + Math.random() * (ug - 14),
-      w: 2,
-      h: 2
+      y: gY + 12 + Math.random() * (ug - 18),
+      w: 3, h: 3
     }));
     // 远景建筑像素轮廓（地面线上方的低矮剪影）
     this._buildings = [];
@@ -626,5 +615,24 @@ Page({
       this._buildings.push({ x: bx, w: bw, h: bh });
       bx += bw + 4 + Math.floor(Math.random() * 12);
     }
+  },
+
+  // 生成 n 个紧凑矿簇，每簇由 2-4 个相邻小块组成
+  _makeOreClusters(n, W, gY, ug) {
+    const result = [];
+    for (let i = 0; i < n; i++) {
+      const cx = Math.random() * W;
+      const cy = gY + 12 + Math.random() * (ug - 20);
+      const count = 2 + Math.floor(Math.random() * 3);
+      for (let j = 0; j < count; j++) {
+        result.push({
+          x: cx + (Math.random() - 0.5) * 10,
+          y: cy + (Math.random() - 0.5) * 8,
+          w: 2 + Math.floor(Math.random() * 3),
+          h: 2 + Math.floor(Math.random() * 3)
+        });
+      }
+    }
+    return result;
   }
 });
