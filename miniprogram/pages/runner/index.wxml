@@ -1,4 +1,4 @@
-<view class="runner-container" bindtap="onTap">
+<view class="runner-container" bindtouchstart="onTap">
   <canvas id="game-canvas" type="2d" class="game-canvas"></canvas>
 
   <!-- 开始画面 -->
@@ -27,10 +27,10 @@
         <text class="best-value">{{bestScore}}</text>
       </view>
       <view class="action-row">
-        <view class="retry-btn" catchtap="onRetry">
+        <view class="retry-btn" catchtouchstart="onRetry">
           <text class="retry-text">再来一次</text>
         </view>
-        <button class="runner-share-btn" open-type="share" catchtap="">分享</button>
+        <button class="runner-share-btn" open-type="share" catchtouchstart="">分享</button>
       </view>
     </view>
   </view>
