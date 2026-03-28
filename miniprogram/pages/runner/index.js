@@ -93,6 +93,7 @@ Page({
         this._initStars();
         this._initClouds();
         this._initGroundDeco();
+        this._initFlora();
         this._drawBg();
       });
   },
@@ -253,6 +254,18 @@ Page({
       }
     }
 
+    // 移动花草
+    for (const f of (this._flora || [])) {
+      f.x -= this._speed * 0.85;
+      if (f.x < -12) {
+        f.x = this._W + 10 + Math.random() * 60;
+        f.type = Math.random() < 0.5 ? 'grass' : 'flower';
+        f.color = f.type === 'flower'
+          ? (Math.random() < 0.5 ? '#E87090' : '#E8D060')
+          : '#3A7A4A';
+      }
+    }
+
     // 移动远景建筑轮廓（极慢视差）
     for (const b of (this._buildings || [])) {
       b.x -= this._speed * 0.08;
@@ -370,6 +383,9 @@ Page({
     for (const o of (this._oreWarm || [])) {
       ctx.fillRect(o.x, o.y, o.w, o.h);
     }
+
+    // 花草（地面线上方）
+    this._drawFlora();
 
     // 地面线
     ctx.fillStyle = '#4A6FA5';
@@ -614,6 +630,53 @@ Page({
       const bh = 12 + Math.floor(Math.random() * 28);
       this._buildings.push({ x: bx, w: bw, h: bh });
       bx += bw + 4 + Math.floor(Math.random() * 12);
+    }
+  },
+
+  _initFlora() {
+    const W = this._W;
+    const gY = this._groundY;
+    this._flora = Array.from({ length: 14 }, (_, i) => {
+      const type = Math.random() < 0.5 ? 'grass' : 'flower';
+      return {
+        x: (W / 14) * i + Math.random() * 30,
+        type,
+        color: type === 'flower'
+          ? (Math.random() < 0.5 ? '#E87090' : '#E8D060')
+          : '#3A7A4A',
+        gY
+      };
+    });
+  },
+
+  _drawFlora() {
+    const ctx = this._ctx;
+    for (const f of (this._flora || [])) {
+      const bx = Math.round(f.x);
+      const by = f.gY;  // 地面线 y
+      if (f.type === 'grass') {
+        // 草丛：3根草茎，高度2-4px，深绿
+        ctx.fillStyle = '#3A7A4A';
+        ctx.fillRect(bx,     by - 6, 2, 6);
+        ctx.fillRect(bx + 3, by - 4, 2, 4);
+        ctx.fillRect(bx + 6, by - 7, 2, 7);
+        // 草尖亮一点
+        ctx.fillStyle = '#5AAA6A';
+        ctx.fillRect(bx,     by - 7, 2, 2);
+        ctx.fillRect(bx + 3, by - 5, 2, 2);
+        ctx.fillRect(bx + 6, by - 8, 2, 2);
+      } else {
+        // 小花：茎 + 花头
+        ctx.fillStyle = '#3A7A4A';
+        ctx.fillRect(bx + 2, by - 6, 2, 6);  // 茎
+        ctx.fillStyle = f.color;
+        ctx.fillRect(bx,     by - 8, 2, 2);  // 左瓣
+        ctx.fillRect(bx + 4, by - 8, 2, 2);  // 右瓣
+        ctx.fillRect(bx + 2, by - 10, 2, 2); // 上瓣
+        ctx.fillRect(bx + 2, by - 7,  2, 2); // 下瓣
+        ctx.fillStyle = '#FFF8D0';            // 花心
+        ctx.fillRect(bx + 2, by - 8,  2, 2);
+      }
     }
   },
 
