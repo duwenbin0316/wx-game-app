@@ -7,15 +7,15 @@ const SPEED_MAX  = 16;
 const GROUND_R   = 0.68;  // 地面在屏幕高度的比例
 
 // 玩家碰撞框尺寸
-const PW = 40;
-const PH = 40;
+const PW = 32;
+const PH = 32;
 
 // ─── 玩家像素图案（像素机器人小人，精确还原参考图）──
 // 5列 × 7行，PS=6px，绘制偏移 (POX=5) 居中于 40px 宽度
 // 外形：耳朵 → 平顶头（含眼睛）→ 身体 → 四条腿（两对）
-const PS  = 6;
-const POX = 5;
-const POY = 10;  // 视觉高度30px < PH=40，下移10px使脚贴地
+const PS  = 5;
+const POX = 4;
+const POY = 7;   // 视觉高度25px < PH=32，下移7px使脚贴地
 
 const PL_BODY = [
   [0,0],[0,1],[0,2],[0,3],[0,4],             // 头顶（全宽，不收窄）
@@ -220,16 +220,16 @@ Page({
       const r = Math.random();
       if (r < 0.22) {
         // 飞行 Bug：悬浮在空中，玩家需要选择跳过或低头躲
-        const h = 22, w = 28;
+        const h = 16, w = 22;
         this._obstacles.push({
           x: this._W + 10,
-          y: this._groundY - PH - 36,
+          y: this._groundY - PH - 28,
           w, h, tall: false, flying: true
         });
       } else {
         const tall = r < 0.55;
-        const h = tall ? 50 : 26;
-        const w = tall ? 28 : 36;
+        const h = tall ? 38 : 20;
+        const w = tall ? 22 : 28;
         this._obstacles.push({
           x: this._W + 10,
           y: this._groundY - h,
@@ -473,8 +473,8 @@ Page({
 
   _drawObstacle(ob) {
     const { _ctx: ctx } = this;
-    const S    = 4;
-    const sprH = 5 * S;  // 精灵高度 20px
+    const S    = 3;
+    const sprH = 5 * S;  // 精灵高度 15px
     const bx   = ob.x + Math.floor((ob.w - 6 * S) / 2);
 
     if (ob.flying) {
