@@ -341,9 +341,35 @@ Page({
       }
     }
 
-    // 地面底色
-    ctx.fillStyle = '#20203A';
-    ctx.fillRect(0, gY, W, H - gY);
+    // ── 地下区域 ──────────────────────────────────────
+    // 土层：从地面往下分三段，略有色差
+    ctx.fillStyle = '#1D1D34';
+    ctx.fillRect(0, gY, W, 18);
+    ctx.fillStyle = '#1B1B2E';
+    ctx.fillRect(0, gY + 18, W, 22);
+    ctx.fillStyle = '#191828';
+    ctx.fillRect(0, gY + 40, W, H - gY - 40);
+
+    // 岩块
+    ctx.fillStyle = '#252438';
+    for (const r of (this._oreRocks || [])) {
+      ctx.fillRect(r.x, r.y, r.w, r.h);
+    }
+    // 蓝色矿脉（与地面线同色系）
+    ctx.fillStyle = 'rgba(74,111,165,0.75)';
+    for (const o of (this._oreBlue || [])) {
+      ctx.fillRect(o.x, o.y, o.w, o.h);
+    }
+    // 紫色矿脉
+    ctx.fillStyle = 'rgba(130,80,200,0.65)';
+    for (const o of (this._orePurple || [])) {
+      ctx.fillRect(o.x, o.y, o.w, o.h);
+    }
+    // 暖橙矿点（呼应玩家颜色）
+    ctx.fillStyle = 'rgba(200,120,50,0.50)';
+    for (const o of (this._oreWarm || [])) {
+      ctx.fillRect(o.x, o.y, o.w, o.h);
+    }
 
     // 地面线
     ctx.fillStyle = '#4A6FA5';
@@ -353,7 +379,7 @@ Page({
     ctx.fillStyle = '#2A2A4A';
     ctx.fillRect(0, gY + 2, W, 3);
 
-    // 地面碎石
+    // 地面碎石（地表）
     ctx.fillStyle = '#2E2E52';
     for (const d of (this._groundDeco || [])) {
       ctx.fillRect(d.x, d.y, d.w, d.h);
@@ -550,14 +576,46 @@ Page({
   },
 
   _initGroundDeco() {
-    const W = this._W;
+    const W  = this._W;
     const gY = this._groundY;
+    const H  = this._H;
+    const ug = H - gY;  // 地下区域高度
+
     // 地面碎石：随机分布在地面上
     this._groundDeco = Array.from({ length: 28 }, () => ({
       x: Math.random() * W * 1.5,
       y: gY + 4 + Math.random() * 10,
       w: 1 + Math.floor(Math.random() * 3),
       h: 1 + Math.floor(Math.random() * 2)
+    }));
+
+    // 地下岩块（较大深色矩形）
+    this._oreRocks = Array.from({ length: 18 }, () => ({
+      x: Math.random() * W,
+      y: gY + 8 + Math.random() * (ug - 12),
+      w: 4 + Math.floor(Math.random() * 10),
+      h: 3 + Math.floor(Math.random() * 6)
+    }));
+    // 蓝矿脉（小像素点簇）
+    this._oreBlue = Array.from({ length: 14 }, () => ({
+      x: Math.random() * W,
+      y: gY + 10 + Math.random() * (ug - 14),
+      w: 2 + Math.floor(Math.random() * 4),
+      h: 2 + Math.floor(Math.random() * 3)
+    }));
+    // 紫矿脉
+    this._orePurple = Array.from({ length: 10 }, () => ({
+      x: Math.random() * W,
+      y: gY + 12 + Math.random() * (ug - 16),
+      w: 2 + Math.floor(Math.random() * 3),
+      h: 2 + Math.floor(Math.random() * 3)
+    }));
+    // 暖橙矿点（稀少）
+    this._oreWarm = Array.from({ length: 6 }, () => ({
+      x: Math.random() * W,
+      y: gY + 10 + Math.random() * (ug - 14),
+      w: 2,
+      h: 2
     }));
     // 远景建筑像素轮廓（地面线上方的低矮剪影）
     this._buildings = [];
