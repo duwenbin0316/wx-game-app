@@ -1,0 +1,150 @@
+.runner-container {
+  position: relative;
+  width: 100vw;
+  height: 100vh;
+  background: #1A1A2E;
+  overflow: hidden;
+}
+
+.game-canvas {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+/* 覆盖层 */
+.overlay {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(10, 10, 30, 0.75);
+  z-index: 10;
+}
+
+.overlay-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 64rpx 56rpx 52rpx;
+  background: rgba(30, 30, 60, 0.95);
+  border: 2rpx solid #4A6FA5;
+  border-radius: 20rpx;
+  min-width: 520rpx;
+  box-shadow: 0 0 40rpx rgba(74, 111, 165, 0.4);
+}
+
+.overlay-logo {
+  font-size: 64rpx;
+  font-weight: 900;
+  color: #E8873A;
+  font-family: monospace;
+  letter-spacing: -4rpx;
+  margin-bottom: 16rpx;
+  line-height: 1;
+}
+
+.overlay-title {
+  font-size: 44rpx;
+  font-weight: 700;
+  color: #FFFFFF;
+  letter-spacing: 8rpx;
+  font-family: monospace;
+  margin-bottom: 12rpx;
+}
+
+.overlay-sub {
+  font-size: 20rpx;
+  color: #A78BFA;
+  letter-spacing: 3rpx;
+  font-family: monospace;
+  margin-bottom: 48rpx;
+}
+
+.hint-row {
+  background: #E8873A;
+  border-radius: 8rpx;
+  padding: 16rpx 48rpx;
+  margin-bottom: 20rpx;
+}
+
+.hint-text {
+  font-size: 28rpx;
+  color: #1A1A2E;
+  font-weight: 700;
+  letter-spacing: 2rpx;
+  font-family: monospace;
+}
+
+.hint-small {
+  font-size: 20rpx;
+  color: #6A6A9A;
+  letter-spacing: 1rpx;
+  font-family: monospace;
+}
+
+/* 结束画面 */
+.over-card {
+  border-color: #FF6B6B;
+  box-shadow: 0 0 40rpx rgba(255, 107, 107, 0.3);
+}
+
+.over-title {
+  font-size: 56rpx;
+  font-weight: 700;
+  color: #FF6B6B;
+  letter-spacing: 10rpx;
+  font-family: monospace;
+  margin-bottom: 40rpx;
+}
+
+.score-block, .best-block {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 24rpx;
+}
+
+.score-label, .best-label {
+  font-size: 20rpx;
+  color: #6A6A9A;
+  letter-spacing: 6rpx;
+  font-family: monospace;
+  margin-bottom: 4rpx;
+}
+
+.score-value {
+  font-size: 72rpx;
+  font-weight: 700;
+  color: #E8873A;
+  font-family: monospace;
+  line-height: 1;
+}
+
+.best-value {
+  font-size: 44rpx;
+  color: #F5C842;
+  font-family: monospace;
+  line-height: 1;
+}
+
+.retry-btn {
+  margin-top: 40rpx;
+  background: #E8873A;
+  border-radius: 10rpx;
+  padding: 20rpx 72rpx;
+  user-select: none;
+}
+
+.retry-btn:active {
+  opacity: 0.75;
+}
+
+.retry-text {
+  font-size: 30rpx;
+  font-weight: 700;
+  color: #1A1A2E;
+  letter-spacing: 4rpx;
+  font-family: monospace;
+}

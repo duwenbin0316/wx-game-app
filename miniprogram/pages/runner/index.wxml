@@ -1,0 +1,34 @@
+<view class="runner-container" bindtap="onTap">
+  <canvas id="game-canvas" type="2d" class="game-canvas"></canvas>
+
+  <!-- 开始画面 -->
+  <view class="overlay" wx:if="{{gameState === 'idle'}}">
+    <view class="overlay-card">
+      <text class="overlay-logo">&gt;&gt;</text>
+      <text class="overlay-title">PIXEL RUNNER</text>
+      <text class="overlay-sub">躲避 BUG · AVOID BUGS</text>
+      <view class="hint-row">
+        <text class="hint-text">点击屏幕开始</text>
+      </view>
+      <text class="hint-small">空中再点 → 二段跳</text>
+    </view>
+  </view>
+
+  <!-- 结束画面 -->
+  <view class="overlay" wx:if="{{gameState === 'over'}}">
+    <view class="overlay-card over-card">
+      <text class="over-title">GAME OVER</text>
+      <view class="score-block">
+        <text class="score-label">SCORE</text>
+        <text class="score-value">{{score}}</text>
+      </view>
+      <view class="best-block">
+        <text class="best-label">BEST</text>
+        <text class="best-value">{{bestScore}}</text>
+      </view>
+      <view class="retry-btn" catchtap="onRetry">
+        <text class="retry-text">再来一次</text>
+      </view>
+    </view>
+  </view>
+</view>
