@@ -393,23 +393,23 @@ Page({
     const cy = 58;
     const R  = 32;
 
-    // 外层光晕（两圈半透明）
-    ctx.fillStyle = 'rgba(232, 200, 80, 0.07)';
+    // 外层光晕（冷蓝调，极淡）
+    ctx.fillStyle = 'rgba(160, 190, 240, 0.05)';
     ctx.beginPath(); ctx.arc(cx, cy, R + 20, 0, Math.PI * 2); ctx.fill();
-    ctx.fillStyle = 'rgba(232, 200, 80, 0.10)';
+    ctx.fillStyle = 'rgba(160, 190, 240, 0.08)';
     ctx.beginPath(); ctx.arc(cx, cy, R + 10, 0, Math.PI * 2); ctx.fill();
 
-    // 月牙：先画整圆，再用背景色圆遮住右侧形成弯月
+    // 月牙：冷银蓝白，与背景蓝系协调
     ctx.save();
     ctx.beginPath(); ctx.arc(cx, cy, R, 0, Math.PI * 2); ctx.clip();
-    ctx.fillStyle = '#E8C84A';
+    ctx.fillStyle = '#B8CCE8';
     ctx.beginPath(); ctx.arc(cx, cy, R, 0, Math.PI * 2); ctx.fill();
     ctx.fillStyle = '#1A1A2E';
     ctx.beginPath(); ctx.arc(cx + R * 0.52, cy - R * 0.08, R * 0.80, 0, Math.PI * 2); ctx.fill();
     ctx.restore();
 
-    // 月牙左上高光小圆
-    ctx.fillStyle = 'rgba(255, 248, 180, 0.55)';
+    // 月牙左上高光小圆（冷白）
+    ctx.fillStyle = 'rgba(220, 235, 255, 0.50)';
     ctx.beginPath(); ctx.arc(cx - R * 0.28, cy - R * 0.32, R * 0.16, 0, Math.PI * 2); ctx.fill();
   },
 
