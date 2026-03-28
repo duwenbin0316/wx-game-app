@@ -86,9 +86,10 @@
   font-family: monospace;
 }
 
-/* 结束画面覆盖层：卡片居中 */
+/* 结束画面覆盖层：卡片居中，完全不透明遮住 canvas 分享卡 */
 .over-overlay {
   align-items: center;
+  background: rgba(10, 10, 30, 1);
 }
 
 /* 结束画面 */
