@@ -86,10 +86,9 @@
   font-family: monospace;
 }
 
-/* 结束画面覆盖层：卡片偏上，截图时内容更完整 */
+/* 结束画面覆盖层：卡片居中 */
 .over-overlay {
-  align-items: flex-start;
-  padding-top: 8vh;
+  align-items: center;
 }
 
 /* 结束画面 */

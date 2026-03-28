@@ -138,10 +138,12 @@ Page({
   onShareAppMessage() {
     const score = this.data.score || 0;
     const best  = this.data.bestScore || 0;
-    return {
-      title: `我在像素跑酷中得了 ${score} 分！最高 ${best} 分，来挑战我～`,
+    const result = {
+      title: `我在 Claude 快跑中得了 ${score} 分！最高 ${best} 分，来挑战我～`,
       path: '/pages/runner/index'
     };
+    if (this._shareImagePath) result.imageUrl = this._shareImagePath;
+    return result;
   },
 
   // ─── 游戏控制 ──────────────────────────────────────────
@@ -398,11 +400,62 @@ Page({
       wx.setStorageSync('runner_best', this.bestScore);
     }
 
+    // 在 canvas 上画成绩卡后截图，用作分享缩略图
+    this._drawShareCard();
+    wx.canvasToTempFilePath({
+      canvas: this._canvas,
+      success: res => { this._shareImagePath = res.tempFilePath; }
+    });
+
     this.setData({
       gameState:  'over',
       score:      this._scoreVal,
       bestScore:  this.bestScore
     });
+  },
+
+  _drawShareCard() {
+    const { _ctx: ctx, _W: W, _H: H } = this;
+    const score = this._scoreVal;
+    const best  = this.bestScore;
+
+    // 半透明遮罩
+    ctx.fillStyle = 'rgba(10,10,30,0.72)';
+    ctx.fillRect(0, 0, W, H);
+
+    // 卡片背景
+    const cw = Math.round(W * 0.78);
+    const ch = 190;
+    const cx = (W - cw) / 2;
+    const cy = (H - ch) / 2;
+    ctx.fillStyle = 'rgba(28,28,58,0.96)';
+    ctx.fillRect(cx, cy, cw, ch);
+    ctx.strokeStyle = '#FF6B6B';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(cx, cy, cw, ch);
+
+    ctx.textAlign = 'center';
+
+    // GAME OVER
+    ctx.fillStyle = '#FF6B6B';
+    ctx.font = 'bold 26px monospace';
+    ctx.fillText('GAME  OVER', W / 2, cy + 44);
+
+    // SCORE
+    ctx.fillStyle = '#6A6A9A';
+    ctx.font = '11px monospace';
+    ctx.fillText('S C O R E', W / 2, cy + 70);
+    ctx.fillStyle = '#E8873A';
+    ctx.font = 'bold 46px monospace';
+    ctx.fillText(String(score), W / 2, cy + 116);
+
+    // BEST
+    ctx.fillStyle = '#6A6A9A';
+    ctx.font = '11px monospace';
+    ctx.fillText('B E S T', W / 2, cy + 142);
+    ctx.fillStyle = '#F5C842';
+    ctx.font = 'bold 28px monospace';
+    ctx.fillText(String(best), W / 2, cy + 174);
   },
 
   // ─── 工具 ──────────────────────────────────────────────
