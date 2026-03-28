@@ -4,7 +4,7 @@
   <!-- 开始画面 -->
   <view class="overlay" wx:if="{{gameState === 'idle'}}">
     <view class="overlay-card">
-      <text class="overlay-logo">&gt;&gt;</text>
+      <text class="overlay-logo">>></text>
       <text class="overlay-title">PIXEL RUNNER</text>
       <text class="overlay-sub">躲避 BUG · AVOID BUGS</text>
       <view class="hint-row">
