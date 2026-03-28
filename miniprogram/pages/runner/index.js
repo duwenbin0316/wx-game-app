@@ -4,7 +4,7 @@ const JUMP_V1    = -15;   // 一段跳初速度
 const JUMP_V2    = -12;   // 二段跳初速度
 const SPEED_INIT = 4;
 const SPEED_MAX  = 11;
-const GROUND_R   = 0.78;  // 地面在屏幕高度的比例
+const GROUND_R   = 0.68;  // 地面在屏幕高度的比例
 
 // 玩家碰撞框尺寸
 const PW = 40;
