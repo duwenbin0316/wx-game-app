@@ -288,6 +288,18 @@
   box-shadow: 0 3rpx 8rpx rgba(0, 0, 0, 0.15);
 }
 
+.chess.last::after {
+  content: '';
+  position: absolute;
+  width: 10rpx;
+  height: 10rpx;
+  border-radius: 50%;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(210, 50, 50, 0.85);
+}
+
 /* 底部操作按钮 */
 .game-controls {
   display: flex;

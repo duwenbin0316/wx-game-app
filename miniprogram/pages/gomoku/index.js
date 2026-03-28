@@ -27,7 +27,8 @@
     isUndoWaiting: false,
     hasClosedRoom: false,
     isAiMode: false,
-    aiDifficulty: 'medium'
+    aiDifficulty: 'medium',
+    lastMoveKey: ''
   },
 
   onLoad(options) {
@@ -632,6 +633,9 @@
         changes.forEach(({ r, c }) => {
           updates[`board[${r}][${c}]`] = nextBoard[r][c];
         });
+        if (changes.length === 1) {
+          updates.lastMoveKey = `${changes[0].r}-${changes[0].c}`;
+        }
       } else {
         hasBoardChange = changes.length > 0;
         updates.board = nextBoard;
@@ -702,7 +706,8 @@
       board,
       currentPlayer: player === 'black' ? 'white' : 'black',
       moveHistory,
-      canUndo
+      canUndo,
+      lastMoveKey: `${row}-${col}`
     });
     this.playPlaceSound();
 
@@ -1001,13 +1006,15 @@
     const canUndo = this.data.isAiMode
       ? !!(lastInHistory && lastInHistory.player === 'black')
       : moveHistory.length > 0;
+    const prevMove = moveHistory[moveHistory.length - 1];
     this.setData({
       board,
       currentPlayer: this.data.isAiMode ? 'black' : lastMove.player,
       winner: null,
       canPlay: true,
       moveHistory,
-      canUndo
+      canUndo,
+      lastMoveKey: prevMove ? `${prevMove.row}-${prevMove.col}` : ''
     });
     this.lastWinnerNotice = null;
   },
