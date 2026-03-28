@@ -757,20 +757,24 @@ Page({
     if (this._bgmTimer) { clearTimeout(this._bgmTimer); this._bgmTimer = null; }
   },
 
-  // 跳跃音效：上升两音
+  // 跳跃音效：仿超级马里奥，方波频率指数上扫
   _sfxJump(isDouble) {
     if (!this._ac) return;
-    const now = this._ac.currentTime;
-    if (isDouble) {
-      // 二段跳：更高音阶
-      this._note(440, now,        0.04, 0.22);
-      this._note(587, now + 0.04, 0.05, 0.18);
-      this._note(698, now + 0.08, 0.07, 0.14);
-    } else {
-      // 一段跳：轻快上升
-      this._note(330, now,        0.04, 0.22);
-      this._note(440, now + 0.04, 0.07, 0.16);
-    }
+    const ac  = this._ac;
+    const osc = ac.createOscillator();
+    const g   = ac.createGain();
+    osc.connect(g); g.connect(ac.destination);
+    osc.type = 'square';
+    const now = ac.currentTime;
+    // 一段跳：160→640Hz（两个八度），约 0.1s；二段跳起始稍高
+    const f0 = isDouble ? 240 : 160;
+    const f1 = isDouble ? 960 : 640;
+    osc.frequency.setValueAtTime(f0, now);
+    osc.frequency.exponentialRampToValueAtTime(f1, now + 0.1);
+    g.gain.setValueAtTime(0.28, now);
+    g.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
+    osc.start(now);
+    osc.stop(now + 0.12);
   },
 
   // 死亡音效：下降四音
