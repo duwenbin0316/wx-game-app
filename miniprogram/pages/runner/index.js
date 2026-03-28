@@ -400,12 +400,8 @@ Page({
       wx.setStorageSync('runner_best', this.bestScore);
     }
 
-    // 在 canvas 上画成绩卡后截图，用作分享缩略图
-    this._drawShareCard();
-    wx.canvasToTempFilePath({
-      canvas: this._canvas,
-      success: res => { this._shareImagePath = res.tempFilePath; }
-    });
+    // 用离屏 canvas 画分享卡截图，不污染主游戏画面
+    this._captureShareImage();
 
     this.setData({
       gameState:  'over',
@@ -414,48 +410,57 @@ Page({
     });
   },
 
-  _drawShareCard() {
-    const { _ctx: ctx, _W: W, _H: H } = this;
+  _captureShareImage() {
+    const dpr   = this._dpr;
+    const W     = this._W;
     const score = this._scoreVal;
     const best  = this.bestScore;
 
-    // 半透明遮罩
-    ctx.fillStyle = 'rgba(10,10,30,0.72)';
-    ctx.fillRect(0, 0, W, H);
-
-    // 卡片背景（靠近顶部，微信分享从顶部裁剪，确保完整显示）
+    // 离屏 canvas：只画分享卡，不碰主游戏 canvas
     const cw = Math.round(W * 0.86);
     const ch = 190;
-    const cx = (W - cw) / 2;
-    const cy = 24;
+    const offscreen = wx.createOffscreenCanvas({
+      type: '2d',
+      width:  Math.round(cw * dpr),
+      height: Math.round(ch * dpr)
+    });
+    const ctx = offscreen.getContext('2d');
+    ctx.scale(dpr, dpr);
+
+    // 卡片背景 + 边框
     ctx.fillStyle = 'rgba(28,28,58,0.96)';
-    ctx.fillRect(cx, cy, cw, ch);
+    ctx.fillRect(0, 0, cw, ch);
     ctx.strokeStyle = '#FF6B6B';
     ctx.lineWidth = 2;
-    ctx.strokeRect(cx, cy, cw, ch);
+    ctx.strokeRect(1, 1, cw - 2, ch - 2);
 
     ctx.textAlign = 'center';
 
     // GAME OVER
     ctx.fillStyle = '#FF6B6B';
     ctx.font = 'bold 26px monospace';
-    ctx.fillText('GAME  OVER', W / 2, cy + 44);
+    ctx.fillText('GAME  OVER', cw / 2, 44);
 
     // SCORE
     ctx.fillStyle = '#6A6A9A';
     ctx.font = '11px monospace';
-    ctx.fillText('S C O R E', W / 2, cy + 70);
+    ctx.fillText('S C O R E', cw / 2, 70);
     ctx.fillStyle = '#E8873A';
     ctx.font = 'bold 46px monospace';
-    ctx.fillText(String(score), W / 2, cy + 116);
+    ctx.fillText(String(score), cw / 2, 116);
 
     // BEST
     ctx.fillStyle = '#6A6A9A';
     ctx.font = '11px monospace';
-    ctx.fillText('B E S T', W / 2, cy + 142);
+    ctx.fillText('B E S T', cw / 2, 142);
     ctx.fillStyle = '#F5C842';
     ctx.font = 'bold 28px monospace';
-    ctx.fillText(String(best), W / 2, cy + 174);
+    ctx.fillText(String(best), cw / 2, 174);
+
+    wx.canvasToTempFilePath({
+      canvas: offscreen,
+      success: res => { this._shareImagePath = res.tempFilePath; }
+    });
   },
 
   // ─── 工具 ──────────────────────────────────────────────
