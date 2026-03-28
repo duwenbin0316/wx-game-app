@@ -60,4 +60,17 @@
     </view>
     <view class="restart-btn" bindtap="onRestart">重新开始</view>
   </view>
+
+  <!-- 结果覆盖层 -->
+  <view class="result-mask" wx:if="{{showResult}}">
+    <view class="result-card">
+      <view class="result-icon">{{resultIsWin ? '🏆' : '🎯'}}</view>
+      <text class="result-title">{{resultTitle}}</text>
+      <text class="result-sub">{{resultSub}}</text>
+      <view class="result-actions">
+        <view class="result-btn result-restart" bindtap="onResultRestart">再来一局</view>
+        <view class="result-btn result-leave" bindtap="onResultLeave">返回大厅</view>
+      </view>
+    </view>
+  </view>
 </view>

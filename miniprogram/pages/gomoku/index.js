@@ -28,7 +28,11 @@
     hasClosedRoom: false,
     isAiMode: false,
     aiDifficulty: 'medium',
-    lastMoveKey: ''
+    lastMoveKey: '',
+    showResult: false,
+    resultTitle: '',
+    resultSub: '',
+    resultIsWin: false
   },
 
   onLoad(options) {
@@ -127,7 +131,9 @@
       canUndo: false,
       myUndoCount: 0,
       undoLeft: this.data.undoLimit,
-      isUndoWaiting: false
+      isUndoWaiting: false,
+      showResult: false,
+      lastMoveKey: ''
     });
     this.lastWinnerNotice = null;
   },
@@ -245,27 +251,45 @@
     if (this.lastWinnerNotice === noticeKey) return;
     this.lastWinnerNotice = noticeKey;
 
+    const moveCount = this.data.mode === 'online'
+      ? (this.data.roomInfo && this.data.roomInfo.moveHistory ? this.data.roomInfo.moveHistory.length : 0)
+      : (this.data.moveHistory || []).length;
+    const sub = moveCount ? `共落子 ${moveCount} 步` : '';
+
+    let title, isWin;
     if (this.data.mode === 'online') {
-      const winnerText = winner === this.data.myColor ? '你赢了！' : '对手获胜';
-      wx.showToast({
-        title: winnerText,
-        icon: winner === this.data.myColor ? 'success' : 'none'
+      isWin = winner === this.data.myColor;
+      title = isWin ? '你赢了！' : '对手获胜';
+    } else if (this.data.isAiMode) {
+      isWin = winner === 'black';
+      title = isWin ? '你赢了！' : '电脑获胜';
+    } else {
+      isWin = true;
+      title = `${winner === 'black' ? this.data.blackName : this.data.whiteName} 获胜`;
+    }
+
+    this.setData({ showResult: true, resultTitle: title, resultSub: sub, resultIsWin: isWin });
+  },
+
+  onResultRestart() {
+    this.setData({ showResult: false });
+    if (this.data.mode === 'online') {
+      wx.showModal({
+        title: '提示',
+        content: '联机模式请创建新房间',
+        showCancel: false
       });
       return;
     }
+    this.initLocalGame();
+  },
 
-    if (this.data.isAiMode) {
-      wx.showToast({
-        title: winner === 'black' ? '你赢了！' : '电脑获胜',
-        icon: winner === 'black' ? 'success' : 'none'
-      });
-      return;
+  onResultLeave() {
+    this.setData({ showResult: false });
+    if (this.data.mode === 'online') {
+      this.closeRoom();
     }
-
-    wx.showToast({
-      title: `${winner === 'black' ? '黑棋' : '白棋'}获胜！`,
-      icon: 'success'
-    });
+    wx.navigateBack();
   },
 
   playPlaceSound() {
