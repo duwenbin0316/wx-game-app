@@ -28,9 +28,9 @@ const PL_EYES = [[1,1],[1,3]];
 // 高光（左上区域）
 const PL_HL = [[0,0],[0,1],[1,0]];
 // 四条腿（两对）：左对 cols 0-1，右对 cols 3-4，中间 col 2 留空
-// 动画：左对上/右对下 ↔ 左对下/右对上（交替迈步）
-const PL_LEGS_A = [[4,0],[4,1],[5,3],[5,4]];   // 左腿抬，右腿踩
-const PL_LEGS_B = [[5,0],[5,1],[4,3],[4,4]];   // 左腿踩，右腿抬
+// 动画：row 4 始终显示四腿底部，row 5 交替延伸左/右对
+const PL_LEGS_A = [[4,0],[4,1],[4,3],[4,4],[5,0],[5,1]];  // 左腿多踩一格
+const PL_LEGS_B = [[4,0],[4,1],[4,3],[4,4],[5,3],[5,4]];  // 右腿多踩一格
 
 // ─── 月亮像素（C 形，右上角装饰）──────────────────────
 const MB = 15;  // 月亮像素块大小（更大更醒目）
@@ -322,11 +322,9 @@ Page({
     ctx.fillStyle = '#E8873A';
     PL_BODY.forEach(([r, c]) => ctx.fillRect(bx + c*PS, by + r*PS, PS, PS));
 
-    // 侧耳：在头部左右各凸出 1 格（row 0-1，col -1 和 col 5）
-    ctx.fillRect(bx - PS, by,        PS, PS);   // 左耳上
-    ctx.fillRect(bx - PS, by + PS,   PS, PS);   // 左耳下
-    ctx.fillRect(bx + 5*PS, by,      PS, PS);   // 右耳上
-    ctx.fillRect(bx + 5*PS, by + PS, PS, PS);   // 右耳下
+    // 侧耳：头部中间左右各凸出 1 格（row 1，不在顶部）
+    ctx.fillRect(bx - PS,     by + PS, PS, PS);   // 左耳
+    ctx.fillRect(bx + 5 * PS, by + PS, PS, PS);   // 右耳
 
     // 高光（左上角亮橙）
     ctx.fillStyle = '#F5A855';
