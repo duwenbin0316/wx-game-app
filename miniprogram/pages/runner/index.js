@@ -693,6 +693,9 @@ Page({
   _initAudio() {
     try {
       this._ac = wx.createWebAudioContext();
+      // BGM 主增益：设为 0 即可静音所有已调度音符
+      this._bgmGain = this._ac.createGain();
+      this._bgmGain.connect(this._ac.destination);
     } catch(e) {
       this._ac = null;
     }
@@ -700,14 +703,14 @@ Page({
     this._bgmTimer   = null;
   },
 
-  // 调度单个音符
-  _note(freq, startTime, dur, vol = 0.18, type = 'square') {
+  // 调度单个音符（SFX 直连 destination，BGM 走 _bgmGain）
+  _note(freq, startTime, dur, vol = 0.18, type = 'square', useBgmGain = false) {
     if (!this._ac || freq === 0) return;
     const ac  = this._ac;
     const osc = ac.createOscillator();
     const g   = ac.createGain();
     osc.connect(g);
-    g.connect(ac.destination);
+    g.connect(useBgmGain ? this._bgmGain : ac.destination);
     osc.type = type;
     osc.frequency.value = freq;
     g.gain.setValueAtTime(vol, startTime);
@@ -721,25 +724,16 @@ Page({
     if (!this._ac || !this._bgmPlaying) return;
     const ac  = this._ac;
     const now = ac.currentTime + 0.05;
-    const S   = 60 / 138 * 0.5;  // 一个八分音符时长（138 BPM）
+    const S   = 60 / 138 * 0.5;
 
-    // 主旋律
-    const mel = [
-      523,659,784,659, 523,659,784,880,
-      784,659,523,440, 523,587,659,0
-    ];
-    // 低音和弦
-    const bas = [
-      262,0,262,0, 294,0,294,0,
-      262,0,262,0, 330,0,330,0
-    ];
-    // 打击（短脉冲，做 8-bit 鼓感）
+    const mel = [523,659,784,659, 523,659,784,880, 784,659,523,440, 523,587,659,0];
+    const bas = [262,0,262,0, 294,0,294,0, 262,0,262,0, 330,0,330,0];
     const drm = [1,0,0,0, 1,0,1,0, 1,0,0,0, 1,0,1,0];
 
-    mel.forEach((f, i) => this._note(f, now + i*S, S*0.78, 0.14));
-    bas.forEach((f, i) => this._note(f, now + i*S, S*0.65, 0.09, 'sawtooth'));
+    mel.forEach((f, i) => this._note(f, now + i*S, S*0.78, 0.14, 'square',   true));
+    bas.forEach((f, i) => this._note(f, now + i*S, S*0.65, 0.09, 'sawtooth', true));
     drm.forEach((v, i) => {
-      if (v) this._note(220, now + i*S, 0.03, 0.06, 'sawtooth');
+      if (v) this._note(220, now + i*S, 0.03, 0.06, 'sawtooth', true);
     });
 
     const loopMs = mel.length * S * 1000;
@@ -748,6 +742,7 @@ Page({
 
   _startBGM() {
     if (!this._ac || this._bgmPlaying) return;
+    this._bgmGain.gain.setValueAtTime(1, this._ac.currentTime);
     this._bgmPlaying = true;
     this._scheduleBGM();
   },
@@ -755,6 +750,8 @@ Page({
   _stopBGM() {
     this._bgmPlaying = false;
     if (this._bgmTimer) { clearTimeout(this._bgmTimer); this._bgmTimer = null; }
+    // 立即静音已调度但未播完的音符
+    if (this._bgmGain) this._bgmGain.gain.setValueAtTime(0, this._ac.currentTime);
   },
 
   // 跳跃音效：仿超级马里奥，方波频率指数上扫
