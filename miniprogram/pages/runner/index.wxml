@@ -5,8 +5,8 @@
   <view class="overlay" wx:if="{{gameState === 'idle'}}">
     <view class="overlay-card">
       <text class="overlay-logo">>></text>
-      <text class="overlay-title">PIXEL RUNNER</text>
-      <text class="overlay-sub">躲避 BUG · AVOID BUGS</text>
+      <text class="overlay-title">Claude 快跑</text>
+      <text class="overlay-sub">躲避 BUG · DON'T GET CAUGHT</text>
       <view class="hint-row">
         <text class="hint-text">点击屏幕开始</text>
       </view>

@@ -9,8 +9,8 @@ Page({
       },
       {
         id: 'runner',
-        name: '像素跑酷',
-        desc: 'Claude 躲避 Bug，坚持最久',
+        name: 'Claude 快跑',
+        desc: '躲避 Bug，坚持跑得最远！',
         url: '/pages/runner/index'
       }
     ]
