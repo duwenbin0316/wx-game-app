@@ -10,29 +10,27 @@ const GROUND_R   = 0.78;  // 地面在屏幕高度的比例
 const PW = 40;
 const PH = 40;
 
-// ─── 玩家像素图案（Claude C-Logo 像素风）───────────────
-// 6列 × 8行，CS=5px，绘制偏移 (COX=5) 居中于 40px 宽度
-const CS  = 5;
-const COX = 5;
-const COY = 0;
+// ─── 玩家像素图案（实心方块小人，参考 Claude 色系）────
+// 3列 × 5行，PS=8px，绘制偏移 (POX=4) 居中于 40px 宽度
+const PS  = 8;
+const POX = 4;
+const POY = 0;
 
-// C 形主体（rows 0-5）
-const C_BODY = [
-  [0,1],[0,2],[0,3],[0,4],
-  [1,0],[1,1],[1,2],[1,3],[1,4],[1,5],
-  [2,0],[2,1],
-  [3,0],[3,1],
-  [4,0],[4,1],[4,2],[4,3],[4,4],[4,5],
-  [5,1],[5,2],[5,3],[5,4],
+// 身体：3×4 实心矩形
+const PL_BODY = [
+  [0,0],[0,1],[0,2],
+  [1,0],[1,1],[1,2],
+  [2,0],[2,1],[2,2],
+  [3,0],[3,1],[3,2],
 ];
-// 高光（亮橙，左上角）
-const C_HL = [[0,1],[0,2],[1,0],[1,1],[2,0]];
-// 腿 A / B（跑动动画交替）
-const C_LEGS_A = [[6,1],[6,4]];
-const C_LEGS_B = [[6,2],[6,3]];
+// 右侧高光（深色背景下增加立体感）
+const PL_HL = [[0,2],[1,2]];
+// 腿 A：外八 / 腿 B：内收（交替形成跑步感）
+const PL_LEGS_A = [[4,0],[4,2]];
+const PL_LEGS_B = [[4,0],[4,1],[4,2]];
 
 // ─── 月亮像素（C 形，右上角装饰）──────────────────────
-const MB = 7;  // 月亮像素块大小
+const MB = 15;  // 月亮像素块大小（更大更醒目）
 const MOON_C = [
   [0,1],[0,2],[0,3],[0,4],
   [1,0],[1,1],[1,2],[1,3],[1,4],[1,5],
@@ -269,11 +267,11 @@ Page({
     // 玩家
     this._drawPlayer();
 
-    // 分数
+    // 分数（左侧，避免与右上角月亮重叠）
     ctx.fillStyle = 'rgba(255,255,255,0.5)';
     ctx.font = 'bold 15px monospace';
-    ctx.textAlign = 'right';
-    ctx.fillText(String(this._scoreVal).padStart(5, '0'), W - 16, 32);
+    ctx.textAlign = 'left';
+    ctx.fillText(String(this._scoreVal).padStart(5, '0'), 16, 32);
   },
 
   _drawBg() {
@@ -304,27 +302,28 @@ Page({
 
   _drawPlayer() {
     const { _ctx: ctx, _player: p } = this;
-    const bx = p.x + COX;
-    const by = p.y + COY;
-    const legSet = Math.floor(this._frame / 8) % 2 === 0 ? C_LEGS_A : C_LEGS_B;
+    const bx = p.x + POX;
+    const by = p.y + POY;
+    const legSet = Math.floor(this._frame / 8) % 2 === 0 ? PL_LEGS_A : PL_LEGS_B;
 
-    // C 形主体
+    // 实心方块身体
     ctx.fillStyle = '#E8873A';
-    C_BODY.forEach(([r, c]) => ctx.fillRect(bx + c*CS, by + r*CS, CS, CS));
+    PL_BODY.forEach(([r, c]) => ctx.fillRect(bx + c*PS, by + r*PS, PS, PS));
 
-    // 高光
+    // 右侧高光
     ctx.fillStyle = '#F5A855';
-    C_HL.forEach(([r, c]) => ctx.fillRect(bx + c*CS, by + r*CS, CS, CS));
+    PL_HL.forEach(([r, c]) => ctx.fillRect(bx + c*PS, by + r*PS, PS, PS));
 
     // 跑步腿动画
     ctx.fillStyle = '#D4702A';
-    legSet.forEach(([r, c]) => ctx.fillRect(bx + c*CS, by + r*CS, CS, CS));
+    legSet.forEach(([r, c]) => ctx.fillRect(bx + c*PS, by + r*PS, PS, PS));
   },
 
   _drawMoon() {
     const { _ctx: ctx, _W: W } = this;
-    const mx = W - (6 * MB + 22);
-    const my = 16;
+    // 月亮右侧稍微出屏，保留 4 列可见（col 0-3），col 4-5 裁切掉
+    const mx = W - 4 * MB;
+    const my = 14;
 
     ctx.fillStyle = '#C8A96E';
     MOON_C.forEach(([r, c]) => ctx.fillRect(mx + c*MB, my + r*MB, MB, MB));
@@ -399,9 +398,9 @@ Page({
   _initClouds() {
     const gY = this._groundY;
     this._clouds = [
-      { x: this._W * 0.25, y: gY * 0.18, sz: 5 },
-      { x: this._W * 0.6,  y: gY * 0.30, sz: 4 },
-      { x: this._W * 0.9,  y: gY * 0.12, sz: 5 },
+      { x: this._W * 0.15, y: gY * 0.20, sz: 8 },
+      { x: this._W * 0.55, y: gY * 0.12, sz: 7 },
+      { x: this._W * 0.85, y: gY * 0.32, sz: 8 },
     ];
   }
 });
