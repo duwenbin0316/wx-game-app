@@ -138,10 +138,12 @@ Page({
   onShareAppMessage() {
     const score = this.data.score || 0;
     const best  = this.data.bestScore || 0;
-    return {
+    const result = {
       title: `我在像素跑酷中得了 ${score} 分！最高 ${best} 分，来挑战我～`,
       path: '/pages/runner/index'
     };
+    if (this._shareImagePath) result.imageUrl = this._shareImagePath;
+    return result;
   },
 
   // ─── 游戏控制 ──────────────────────────────────────────
@@ -397,6 +399,12 @@ Page({
       this.bestScore = this._scoreVal;
       wx.setStorageSync('runner_best', this.bestScore);
     }
+
+    // 捕获最后一帧画面，用于分享卡片缩略图
+    wx.canvasToTempFilePath({
+      canvas: this._canvas,
+      success: res => { this._shareImagePath = res.tempFilePath; }
+    });
 
     this.setData({
       gameState:  'over',
