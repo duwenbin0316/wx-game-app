@@ -15,7 +15,7 @@ const PH = 40;
 // 外形：耳朵 → 平顶头（含眼睛）→ 身体 → 四条腿（两对）
 const PS  = 6;
 const POX = 5;
-const POY = 0;
+const POY = 10;  // 视觉高度30px < PH=40，下移10px使脚贴地
 
 const PL_BODY = [
   [0,0],[0,1],[0,2],[0,3],[0,4],             // 头顶（全宽，不收窄）
