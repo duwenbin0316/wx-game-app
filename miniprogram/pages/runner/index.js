@@ -32,17 +32,7 @@ const PL_HL = [[0,0],[0,1],[1,0]];
 const PL_LEGS_A = [[4,0],[4,1]];   // 左脚
 const PL_LEGS_B = [[4,3],[4,4]];   // 右脚
 
-// ─── 月亮像素（C 形，右上角装饰）──────────────────────
-const MB = 15;  // 月亮像素块大小（更大更醒目）
-const MOON_C = [
-  [0,1],[0,2],[0,3],[0,4],
-  [1,0],[1,1],[1,2],[1,3],[1,4],[1,5],
-  [2,0],[2,1],
-  [3,0],[3,1],
-  [4,0],[4,1],[4,2],[4,3],[4,4],[4,5],
-  [5,1],[5,2],[5,3],[5,4],
-];
-const MOON_HL = [[0,1],[0,2],[1,0],[1,1],[2,0]];
+// 月亮改用弧线绘制，不再用像素块常量
 
 // ─── 云朵像素（3行×5列，像素块风格）────────────────────
 const CLOUD_PIXELS = [
@@ -354,15 +344,28 @@ Page({
 
   _drawMoon() {
     const { _ctx: ctx, _W: W } = this;
-    // 月亮右侧稍微出屏，保留 4 列可见（col 0-3），col 4-5 裁切掉
-    const mx = W - 4 * MB;
-    const my = 14;
+    const cx = W - 48;
+    const cy = 58;
+    const R  = 32;
 
-    ctx.fillStyle = '#C8A96E';
-    MOON_C.forEach(([r, c]) => ctx.fillRect(mx + c*MB, my + r*MB, MB, MB));
+    // 外层光晕（两圈半透明）
+    ctx.fillStyle = 'rgba(232, 200, 80, 0.07)';
+    ctx.beginPath(); ctx.arc(cx, cy, R + 20, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = 'rgba(232, 200, 80, 0.10)';
+    ctx.beginPath(); ctx.arc(cx, cy, R + 10, 0, Math.PI * 2); ctx.fill();
 
-    ctx.fillStyle = '#E8D5A0';
-    MOON_HL.forEach(([r, c]) => ctx.fillRect(mx + c*MB, my + r*MB, MB, MB));
+    // 月牙：先画整圆，再用背景色圆遮住右侧形成弯月
+    ctx.save();
+    ctx.beginPath(); ctx.arc(cx, cy, R, 0, Math.PI * 2); ctx.clip();
+    ctx.fillStyle = '#E8C84A';
+    ctx.beginPath(); ctx.arc(cx, cy, R, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#1A1A2E';
+    ctx.beginPath(); ctx.arc(cx + R * 0.52, cy - R * 0.08, R * 0.80, 0, Math.PI * 2); ctx.fill();
+    ctx.restore();
+
+    // 月牙左上高光小圆
+    ctx.fillStyle = 'rgba(255, 248, 180, 0.55)';
+    ctx.beginPath(); ctx.arc(cx - R * 0.28, cy - R * 0.32, R * 0.16, 0, Math.PI * 2); ctx.fill();
   },
 
   _drawClouds() {
