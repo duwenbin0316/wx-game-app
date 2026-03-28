@@ -256,6 +256,11 @@
       : (this.data.moveHistory || []).length;
     const sub = moveCount ? `共落子 ${moveCount} 步` : '';
 
+    if (winner === 'draw') {
+      this.setData({ showResult: true, resultTitle: '平局', resultSub: sub, resultIsWin: false });
+      return;
+    }
+
     let title, isWin;
     if (this.data.mode === 'online') {
       isWin = winner === this.data.myColor;
@@ -483,8 +488,7 @@
               this.fallbackFetchRoom();
               return;
             }
-            wx.showToast({ title: '房间已关闭', icon: 'none' });
-            this.stopRoomWatch();
+            this._handleRoomClosed();
             return;
           }
           this.applyRoomUpdate(docs[0]);
@@ -540,12 +544,7 @@
       }
       const errMsg = result && result.result && result.result.errMsg ? String(result.result.errMsg) : '';
       if (errMsg.includes('Room not found')) {
-        if (!this.hasRoomClosedToast) {
-          this.hasRoomClosedToast = true;
-          wx.showToast({ title: '房间已关闭', icon: 'none' });
-        }
-        this.stopRoomWatch();
-        this.stopRoomPolling();
+        this._handleRoomClosed();
       }
     } catch (e) {
       // 轮询失败时不提示，避免频繁 toast
@@ -574,7 +573,7 @@
       } else {
         const errMsg = result && result.result && result.result.errMsg ? String(result.result.errMsg) : '';
         if (errMsg.includes('Room not found')) {
-          wx.showToast({ title: '房间已关闭', icon: 'none' });
+          this._handleRoomClosed();
         }
       }
     } catch (e) {
@@ -738,6 +737,14 @@
     if (this.checkWinner(board, row, col)) {
       this.setData({ winner: board[row][col] });
       this.notifyWinner(board[row][col]);
+      return;
+    }
+
+    // 平局检测：棋盘落满且无人获胜
+    const isFull = board.every(r => r.every(cell => cell !== ''));
+    if (isFull) {
+      this.setData({ winner: 'draw' });
+      this.notifyWinner('draw');
       return;
     }
 
@@ -1077,6 +1084,21 @@
           this.closeRoom();
           wx.navigateBack();
         }
+      }
+    });
+  },
+
+  _handleRoomClosed() {
+    if (this.data.hasClosedRoom) return;
+    this.setData({ hasClosedRoom: true });
+    this.stopRoomWatch();
+    this.stopRoomPolling();
+    wx.showModal({
+      title: '房间已关闭',
+      content: '对方已离开，房间已关闭',
+      showCancel: false,
+      success: () => {
+        wx.navigateBack();
       }
     });
   },
