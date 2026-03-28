@@ -19,9 +19,8 @@
   position: fixed;
   top: 0; left: 0; right: 0; bottom: 0;
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: center;
-  padding-top: 18vh;
   background: rgba(10, 10, 30, 0.75);
   z-index: 10;
 }
@@ -85,6 +84,12 @@
   color: #6A6A9A;
   letter-spacing: 1rpx;
   font-family: monospace;
+}
+
+/* 结束画面覆盖层：卡片偏上，截图时内容更完整 */
+.over-overlay {
+  align-items: flex-start;
+  padding-top: 16vh;
 }
 
 /* 结束画面 */

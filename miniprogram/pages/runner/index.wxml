@@ -15,7 +15,7 @@
   </view>
 
   <!-- 结束画面 -->
-  <view class="overlay" wx:if="{{gameState === 'over'}}">
+  <view class="overlay over-overlay" wx:if="{{gameState === 'over'}}">
     <view class="overlay-card over-card">
       <text class="over-title">GAME OVER</text>
       <view class="score-block">
