@@ -92,6 +92,7 @@ Page({
 
         this._initStars();
         this._initClouds();
+        this._initGroundDeco();
         this._drawBg();
       });
   },
@@ -241,6 +242,23 @@ Page({
       }
     }
 
+    // 移动地面碎石
+    for (const d of (this._groundDeco || [])) {
+      d.x -= this._speed * 0.7;
+      if (d.x < -4) {
+        d.x = this._W + Math.random() * 80;
+        d.y = this._groundY + 4 + Math.random() * 10;
+        d.w = 1 + Math.floor(Math.random() * 3);
+        d.h = 1 + Math.floor(Math.random() * 2);
+      }
+    }
+
+    // 移动远景建筑轮廓（极慢视差）
+    for (const b of (this._buildings || [])) {
+      b.x -= this._speed * 0.08;
+      if (b.x + b.w < 0) b.x = this._W + Math.random() * 40;
+    }
+
     // 移动障碍
     this._obstacles = this._obstacles.filter(ob => {
       ob.x -= this._speed;
@@ -307,12 +325,39 @@ Page({
     // 云朵
     this._drawClouds();
 
-    // 地面
-    ctx.fillStyle = '#252540';
+    // 远景建筑轮廓（地面线上方，极暗色，视差层）
+    ctx.fillStyle = '#1F1F38';
+    for (const b of (this._buildings || [])) {
+      ctx.fillRect(b.x, gY - b.h, b.w, b.h);
+      // 楼顶小窗格
+      if (b.h > 20) {
+        ctx.fillStyle = '#252548';
+        for (let wy = gY - b.h + 4; wy < gY - 4; wy += 8) {
+          for (let wx = b.x + 3; wx < b.x + b.w - 3; wx += 7) {
+            ctx.fillRect(wx, wy, 3, 4);
+          }
+        }
+        ctx.fillStyle = '#1F1F38';
+      }
+    }
+
+    // 地面底色
+    ctx.fillStyle = '#20203A';
     ctx.fillRect(0, gY, W, H - gY);
 
+    // 地面线
     ctx.fillStyle = '#4A6FA5';
     ctx.fillRect(0, gY, W, 2);
+
+    // 地面线下方高亮细条（增加厚重感）
+    ctx.fillStyle = '#2A2A4A';
+    ctx.fillRect(0, gY + 2, W, 3);
+
+    // 地面碎石
+    ctx.fillStyle = '#2E2E52';
+    for (const d of (this._groundDeco || [])) {
+      ctx.fillRect(d.x, d.y, d.w, d.h);
+    }
   },
 
   _drawPlayer() {
@@ -502,5 +547,26 @@ Page({
       { x: this._W * 0.55, y: gY * 0.12, sz: 7 },
       { x: this._W * 0.85, y: gY * 0.32, sz: 8 },
     ];
+  },
+
+  _initGroundDeco() {
+    const W = this._W;
+    const gY = this._groundY;
+    // 地面碎石：随机分布在地面上
+    this._groundDeco = Array.from({ length: 28 }, () => ({
+      x: Math.random() * W * 1.5,
+      y: gY + 4 + Math.random() * 10,
+      w: 1 + Math.floor(Math.random() * 3),
+      h: 1 + Math.floor(Math.random() * 2)
+    }));
+    // 远景建筑像素轮廓（地面线上方的低矮剪影）
+    this._buildings = [];
+    let bx = 0;
+    while (bx < W * 1.8) {
+      const bw = 18 + Math.floor(Math.random() * 30);
+      const bh = 12 + Math.floor(Math.random() * 28);
+      this._buildings.push({ x: bx, w: bw, h: bh });
+      bx += bw + 4 + Math.floor(Math.random() * 12);
+    }
   }
 });
