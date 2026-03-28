@@ -2,8 +2,8 @@
 const GRAVITY    = 0.65;
 const JUMP_V1    = -15;   // 一段跳初速度
 const JUMP_V2    = -12;   // 二段跳初速度
-const SPEED_INIT = 4;
-const SPEED_MAX  = 11;
+const SPEED_INIT = 5;
+const SPEED_MAX  = 16;
 const GROUND_R   = 0.68;  // 地面在屏幕高度的比例
 
 // 玩家碰撞框尺寸
@@ -198,7 +198,7 @@ Page({
 
   _update() {
     this._frame++;
-    this._speed     = Math.min(SPEED_MAX, SPEED_INIT + this._frame * 0.0028);
+    this._speed     = Math.min(SPEED_MAX, SPEED_INIT + this._frame * 0.005);
     this._bgOffset  = (this._bgOffset + this._speed) % 80;
     this._scoreVal  = Math.floor(this._frame / 8);
 
@@ -219,16 +219,27 @@ Page({
     // 生成障碍
     this._nextObstIn--;
     if (this._nextObstIn <= 0) {
-      const tall = Math.random() < 0.3;
-      const h = tall ? 46 : 26;
-      const w = tall ? 30 : 36;
-      this._obstacles.push({
-        x: this._W + 10,
-        y: this._groundY - h,
-        w, h, tall
-      });
-      const gap = Math.max(48, 85 - this._frame * 0.016);
-      this._nextObstIn = gap + Math.random() * 45;
+      const r = Math.random();
+      if (r < 0.22) {
+        // 飞行 Bug：悬浮在空中，玩家需要选择跳过或低头躲
+        const h = 22, w = 28;
+        this._obstacles.push({
+          x: this._W + 10,
+          y: this._groundY - PH - 36,
+          w, h, tall: false, flying: true
+        });
+      } else {
+        const tall = r < 0.55;
+        const h = tall ? 50 : 26;
+        const w = tall ? 28 : 36;
+        this._obstacles.push({
+          x: this._W + 10,
+          y: this._groundY - h,
+          w, h, tall, flying: false
+        });
+      }
+      const gap = Math.max(38, 80 - this._frame * 0.018);
+      this._nextObstIn = gap + Math.random() * 40;
     }
 
     // 移动云朵（速度比地面慢，营造视差效果）
@@ -369,7 +380,15 @@ Page({
     const S = 4;
     const bx = ob.x + Math.floor((ob.w - 6 * S) / 2);
 
-    if (ob.tall) {
+    if (ob.flying) {
+      // 飞行 Bug：蓝色，带小翅膀（在Bug上方画两个像素翅膀）
+      const by = ob.y;
+      // 翅膀
+      ctx.fillStyle = '#60C0FF';
+      ctx.fillRect(bx,           by,     S * 2, S);
+      ctx.fillRect(bx + S * 4,   by,     S * 2, S);
+      this._drawBugSprite(ctx, bx, by + S, S, '#4A9EFF', '#B3D9FF');
+    } else if (ob.tall) {
       // 高障碍：上面紫色Bug + 下面红色Bug
       this._drawBugSprite(ctx, bx, ob.y,          S, '#A855F7', '#D4AAFF');
       this._drawBugSprite(ctx, bx, ob.y + 5 * S,  S, '#FF6B6B', '#FFB3B3');
