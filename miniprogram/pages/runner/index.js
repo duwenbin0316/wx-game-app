@@ -473,23 +473,25 @@ Page({
 
   _drawObstacle(ob) {
     const { _ctx: ctx } = this;
-    const S = 4;
-    const bx = ob.x + Math.floor((ob.w - 6 * S) / 2);
+    const S    = 4;
+    const sprH = 5 * S;  // 精灵高度 20px
+    const bx   = ob.x + Math.floor((ob.w - 6 * S) / 2);
 
     if (ob.flying) {
-      // 飞行 Bug：蓝色，带小翅膀（在Bug上方画两个像素翅膀）
       const by = ob.y;
-      // 翅膀
       ctx.fillStyle = '#60C0FF';
-      ctx.fillRect(bx,           by,     S * 2, S);
-      ctx.fillRect(bx + S * 4,   by,     S * 2, S);
+      ctx.fillRect(bx,         by,     S * 2, S);
+      ctx.fillRect(bx + S * 4, by,     S * 2, S);
       this._drawBugSprite(ctx, bx, by + S, S, '#4A9EFF', '#B3D9FF');
     } else if (ob.tall) {
-      // 高障碍：上面紫色Bug + 下面红色Bug
-      this._drawBugSprite(ctx, bx, ob.y,          S, '#A855F7', '#D4AAFF');
-      this._drawBugSprite(ctx, bx, ob.y + 5 * S,  S, '#FF6B6B', '#FFB3B3');
+      // 两只叠放，脚底对齐 ob.y + ob.h（即地面）
+      const by2 = ob.y + ob.h - sprH;
+      const by1 = by2 - sprH;
+      this._drawBugSprite(ctx, bx, by1, S, '#A855F7', '#D4AAFF');
+      this._drawBugSprite(ctx, bx, by2, S, '#FF6B6B', '#FFB3B3');
     } else {
-      this._drawBugSprite(ctx, bx, ob.y + 2, S, '#FF6B6B', '#FFB3B3');
+      // 脚底对齐地面
+      this._drawBugSprite(ctx, bx, ob.y + ob.h - sprH, S, '#FF6B6B', '#FFB3B3');
     }
   },
 
