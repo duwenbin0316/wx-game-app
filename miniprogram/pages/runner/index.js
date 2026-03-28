@@ -6,33 +6,49 @@ const SPEED_INIT = 4;
 const SPEED_MAX  = 11;
 const GROUND_R   = 0.78;  // 地面在屏幕高度的比例
 
-// 玩家像素尺寸 (8×8 grid, S=5)
-const PS = 5;
-const PW = 8 * PS;  // 40px
-const PH = 8 * PS;  // 40px
+// 玩家碰撞框尺寸
+const PW = 40;
+const PH = 40;
 
-// ─── 玩家像素图案（Claude 螃蟹像素风）──────────────────
-// 9列 × 7行，CS=4px，绘制偏移 (ox=2, oy=8) 居中于 40x40 框
-const CS  = 4;   // 每个像素块大小
-const COX = 2;   // x 偏移
-const COY = 8;   // y 偏移
+// ─── 玩家像素图案（Claude C-Logo 像素风）───────────────
+// 6列 × 8行，CS=5px，绘制偏移 (COX=5) 居中于 40px 宽度
+const CS  = 5;
+const COX = 5;
+const COY = 0;
 
-// 主体（橙色）
-const CRAB_BODY = [
-  [0,1],[0,7],                                               // 眼柄
-  [1,0],[1,1],[1,2],[1,6],[1,7],[1,8],                       // 螯（左右大钳）
-  [2,1],[2,2],[2,3],[2,4],[2,5],[2,6],[2,7],                 // 上壳
-  [3,0],[3,1],[3,2],[3,3],[3,4],[3,5],[3,6],[3,7],[3,8],     // 宽体
-  [4,0],[4,1],[4,2],[4,3],[4,4],[4,5],[4,6],[4,7],[4,8],     // 宽体下
-  [5,1],[5,3],[5,5],[5,7],                                   // 腿关节
-  [6,1],[6,3],[6,5],[6,7],                                   // 腿
+// C 形主体（rows 0-5）
+const C_BODY = [
+  [0,1],[0,2],[0,3],[0,4],
+  [1,0],[1,1],[1,2],[1,3],[1,4],[1,5],
+  [2,0],[2,1],
+  [3,0],[3,1],
+  [4,0],[4,1],[4,2],[4,3],[4,4],[4,5],
+  [5,1],[5,2],[5,3],[5,4],
 ];
-// 高光（亮橙）
-const CRAB_HL = [[0,1],[0,7],[2,2],[2,3],[3,1],[3,2]];
-// 螯尖（黄色）
-const CRAB_CLAW = [[1,0],[1,8]];
-// 眼睛（深色圆点）
-const CRAB_EYES = [[1,2],[1,6]];
+// 高光（亮橙，左上角）
+const C_HL = [[0,1],[0,2],[1,0],[1,1],[2,0]];
+// 腿 A / B（跑动动画交替）
+const C_LEGS_A = [[6,1],[6,4]];
+const C_LEGS_B = [[6,2],[6,3]];
+
+// ─── 月亮像素（C 形，右上角装饰）──────────────────────
+const MB = 7;  // 月亮像素块大小
+const MOON_C = [
+  [0,1],[0,2],[0,3],[0,4],
+  [1,0],[1,1],[1,2],[1,3],[1,4],[1,5],
+  [2,0],[2,1],
+  [3,0],[3,1],
+  [4,0],[4,1],[4,2],[4,3],[4,4],[4,5],
+  [5,1],[5,2],[5,3],[5,4],
+];
+const MOON_HL = [[0,1],[0,2],[1,0],[1,1],[2,0]];
+
+// ─── 云朵像素（3行×5列，像素块风格）────────────────────
+const CLOUD_PIXELS = [
+  [0,1],[0,2],[0,3],
+  [1,0],[1,1],[1,2],[1,3],[1,4],
+  [2,0],[2,1],[2,2],[2,3],[2,4],
+];
 
 // ─── Bug 像素图案（6列×5行，底部带脚）──────────────────
 const BUG_PIXELS = [
@@ -84,6 +100,7 @@ Page({
         this._groundY = Math.round(h * GROUND_R);
 
         this._initStars();
+        this._initClouds();
         this._drawBg();
       });
   },
@@ -202,6 +219,15 @@ Page({
       this._nextObstIn = gap + Math.random() * 45;
     }
 
+    // 移动云朵（速度比地面慢，营造视差效果）
+    for (const cl of (this._clouds || [])) {
+      cl.x -= this._speed * 0.15;
+      if (cl.x + cl.sz * 5 < 0) {
+        cl.x = this._W + Math.random() * 60;
+        cl.y = this._groundY * (0.1 + Math.random() * 0.35);
+      }
+    }
+
     // 移动障碍
     this._obstacles = this._obstacles.filter(ob => {
       ob.x -= this._speed;
@@ -262,6 +288,12 @@ Page({
       ctx.fillRect(s.x, s.y, s.sz, s.sz);
     }
 
+    // 月亮（C 形，右上角）
+    this._drawMoon();
+
+    // 云朵
+    this._drawClouds();
+
     // 地面
     ctx.fillStyle = '#252540';
     ctx.fillRect(0, gY, W, H - gY);
@@ -274,18 +306,41 @@ Page({
     const { _ctx: ctx, _player: p } = this;
     const bx = p.x + COX;
     const by = p.y + COY;
+    const legSet = Math.floor(this._frame / 8) % 2 === 0 ? C_LEGS_A : C_LEGS_B;
 
+    // C 形主体
     ctx.fillStyle = '#E8873A';
-    CRAB_BODY.forEach(([r, c]) => ctx.fillRect(bx + c*CS, by + r*CS, CS, CS));
+    C_BODY.forEach(([r, c]) => ctx.fillRect(bx + c*CS, by + r*CS, CS, CS));
 
+    // 高光
     ctx.fillStyle = '#F5A855';
-    CRAB_HL.forEach(([r, c]) => ctx.fillRect(bx + c*CS, by + r*CS, CS, CS));
+    C_HL.forEach(([r, c]) => ctx.fillRect(bx + c*CS, by + r*CS, CS, CS));
 
-    ctx.fillStyle = '#F5C842';
-    CRAB_CLAW.forEach(([r, c]) => ctx.fillRect(bx + c*CS, by + r*CS, CS, CS));
+    // 跑步腿动画
+    ctx.fillStyle = '#D4702A';
+    legSet.forEach(([r, c]) => ctx.fillRect(bx + c*CS, by + r*CS, CS, CS));
+  },
 
-    ctx.fillStyle = '#1A1A2E';
-    CRAB_EYES.forEach(([r, c]) => ctx.fillRect(bx + c*CS, by + r*CS, CS, CS));
+  _drawMoon() {
+    const { _ctx: ctx, _W: W } = this;
+    const mx = W - (6 * MB + 22);
+    const my = 16;
+
+    ctx.fillStyle = '#C8A96E';
+    MOON_C.forEach(([r, c]) => ctx.fillRect(mx + c*MB, my + r*MB, MB, MB));
+
+    ctx.fillStyle = '#E8D5A0';
+    MOON_HL.forEach(([r, c]) => ctx.fillRect(mx + c*MB, my + r*MB, MB, MB));
+  },
+
+  _drawClouds() {
+    const { _ctx: ctx } = this;
+    ctx.fillStyle = '#2C2C50';
+    for (const cl of (this._clouds || [])) {
+      CLOUD_PIXELS.forEach(([r, c]) => {
+        ctx.fillRect(cl.x + c * cl.sz, cl.y + r * cl.sz, cl.sz, cl.sz);
+      });
+    }
   },
 
   _drawObstacle(ob) {
@@ -339,5 +394,14 @@ Page({
       y:  Math.random() * this._groundY * 0.88,
       sz: Math.random() < 0.2 ? 2 : 1
     }));
+  },
+
+  _initClouds() {
+    const gY = this._groundY;
+    this._clouds = [
+      { x: this._W * 0.25, y: gY * 0.18, sz: 5 },
+      { x: this._W * 0.6,  y: gY * 0.30, sz: 4 },
+      { x: this._W * 0.9,  y: gY * 0.12, sz: 5 },
+    ];
   }
 });
