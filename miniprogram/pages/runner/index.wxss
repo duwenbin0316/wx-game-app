@@ -6,6 +6,7 @@
   bottom: 0;
   background: #1A1A2E;
   overflow: hidden;
+  touch-action: manipulation;
 }
 
 .game-canvas {
