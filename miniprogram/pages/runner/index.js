@@ -94,16 +94,19 @@ Page({
         this._initClouds();
         this._initGroundDeco();
         this._initFlora();
+        this._initAudio();
         this._drawBg();
       });
   },
 
   onUnload() {
     this._stopLoop();
+    this._stopBGM();
   },
 
   onHide() {
     this._stopLoop();
+    this._stopBGM();
   },
 
   onShow() {
@@ -160,6 +163,7 @@ Page({
     this._scoreVal    = 0;
 
     this.setData({ gameState: 'playing', score: 0 });
+    this._startBGM();
     this._loop();
   },
 
@@ -173,8 +177,10 @@ Page({
   _jump() {
     const p = this._player;
     if (!p || p.jumps >= 2) return;
-    p.vy = p.jumps === 0 ? JUMP_V1 : JUMP_V2;
+    const isDouble = p.jumps === 1;
+    p.vy = isDouble ? JUMP_V2 : JUMP_V1;
     p.jumps++;
+    this._sfxJump(isDouble);
   },
 
   // ─── 主循环 ────────────────────────────────────────────
@@ -503,6 +509,8 @@ Page({
   _gameOver() {
     this._dead = true;
     this._stopLoop();
+    this._stopBGM();
+    this._sfxGameOver();
 
     if (this._scoreVal > this.bestScore) {
       this.bestScore = this._scoreVal;
@@ -678,6 +686,100 @@ Page({
         ctx.fillRect(bx + 2, by - 8,  2, 2);
       }
     }
+  },
+
+  // ─── 音频系统 ──────────────────────────────────────────
+
+  _initAudio() {
+    try {
+      this._ac = wx.createWebAudioContext();
+    } catch(e) {
+      this._ac = null;
+    }
+    this._bgmPlaying = false;
+    this._bgmTimer   = null;
+  },
+
+  // 调度单个音符
+  _note(freq, startTime, dur, vol = 0.18, type = 'square') {
+    if (!this._ac || freq === 0) return;
+    const ac  = this._ac;
+    const osc = ac.createOscillator();
+    const g   = ac.createGain();
+    osc.connect(g);
+    g.connect(ac.destination);
+    osc.type = type;
+    osc.frequency.value = freq;
+    g.gain.setValueAtTime(vol, startTime);
+    g.gain.exponentialRampToValueAtTime(0.001, startTime + dur * 0.88);
+    osc.start(startTime);
+    osc.stop(startTime + dur);
+  },
+
+  // BGM：8-bit 风格小循环（16拍，C大调五声音阶）
+  _scheduleBGM() {
+    if (!this._ac || !this._bgmPlaying) return;
+    const ac  = this._ac;
+    const now = ac.currentTime + 0.05;
+    const S   = 60 / 138 * 0.5;  // 一个八分音符时长（138 BPM）
+
+    // 主旋律
+    const mel = [
+      523,659,784,659, 523,659,784,880,
+      784,659,523,440, 523,587,659,0
+    ];
+    // 低音和弦
+    const bas = [
+      262,0,262,0, 294,0,294,0,
+      262,0,262,0, 330,0,330,0
+    ];
+    // 打击（短脉冲，做 8-bit 鼓感）
+    const drm = [1,0,0,0, 1,0,1,0, 1,0,0,0, 1,0,1,0];
+
+    mel.forEach((f, i) => this._note(f, now + i*S, S*0.78, 0.14));
+    bas.forEach((f, i) => this._note(f, now + i*S, S*0.65, 0.09, 'sawtooth'));
+    drm.forEach((v, i) => {
+      if (v) this._note(220, now + i*S, 0.03, 0.06, 'sawtooth');
+    });
+
+    const loopMs = mel.length * S * 1000;
+    this._bgmTimer = setTimeout(() => this._scheduleBGM(), loopMs - 80);
+  },
+
+  _startBGM() {
+    if (!this._ac || this._bgmPlaying) return;
+    this._bgmPlaying = true;
+    this._scheduleBGM();
+  },
+
+  _stopBGM() {
+    this._bgmPlaying = false;
+    if (this._bgmTimer) { clearTimeout(this._bgmTimer); this._bgmTimer = null; }
+  },
+
+  // 跳跃音效：上升两音
+  _sfxJump(isDouble) {
+    if (!this._ac) return;
+    const now = this._ac.currentTime;
+    if (isDouble) {
+      // 二段跳：更高音阶
+      this._note(440, now,        0.04, 0.22);
+      this._note(587, now + 0.04, 0.05, 0.18);
+      this._note(698, now + 0.08, 0.07, 0.14);
+    } else {
+      // 一段跳：轻快上升
+      this._note(330, now,        0.04, 0.22);
+      this._note(440, now + 0.04, 0.07, 0.16);
+    }
+  },
+
+  // 死亡音效：下降四音
+  _sfxGameOver() {
+    if (!this._ac) return;
+    const now = this._ac.currentTime;
+    [392, 330, 294, 220].forEach((f, i) => {
+      this._note(f, now + i * 0.14, 0.16, 0.22);
+    });
   },
 
   // 生成 n 个紧凑矿簇，每簇由 2-4 个相邻小块组成
