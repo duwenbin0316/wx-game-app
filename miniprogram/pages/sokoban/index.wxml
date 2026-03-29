@@ -1,0 +1,30 @@
+<view class="sokoban-container" bindtouchstart="onTouchStart" bindtouchend="onTouchEnd">
+  <canvas id="sokoban-canvas" type="2d" class="sokoban-canvas"></canvas>
+
+  <!-- 方向控制键 + 撤销 -->
+  <view class="controls" wx:if="{{gameState === 'playing'}}">
+    <view class="dpad">
+      <view class="dpad-up"   catchtouchstart="onUp">▲</view>
+      <view class="dpad-row">
+        <view class="dpad-left"  catchtouchstart="onLeft">◀</view>
+        <view class="dpad-center"></view>
+        <view class="dpad-right" catchtouchstart="onRight">▶</view>
+      </view>
+      <view class="dpad-down"  catchtouchstart="onDown">▼</view>
+    </view>
+    <view class="undo-btn" catchtouchstart="onUndo">↩ 撤销</view>
+  </view>
+
+  <!-- 通关 overlay -->
+  <view class="overlay" wx:if="{{gameState === 'win'}}">
+    <view class="win-card">
+      <text class="win-emoji">★</text>
+      <text class="win-title">{{isAllDone ? '全部完成！' : '通关！'}}</text>
+      <text class="win-sub">第 {{levelIndex + 1}} 关 · 用了 {{steps}} 步</text>
+      <view class="win-btns">
+        <view class="win-btn retry-btn" catchtouchstart="onRestart">重玩</view>
+        <view class="win-btn next-btn" catchtouchstart="onNext" wx:if="{{!isAllDone}}">下一关 ›</view>
+      </view>
+    </view>
+  </view>
+</view>

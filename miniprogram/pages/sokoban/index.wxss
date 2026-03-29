@@ -1,0 +1,155 @@
+.sokoban-container {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: #1A1A2E;
+  display: flex;
+  flex-direction: column;
+  touch-action: manipulation;
+}
+
+.sokoban-canvas {
+  width: 100%;
+  flex: 1;
+  display: block;
+}
+
+/* ── 方向键 ── */
+.controls {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16rpx 48rpx 40rpx;
+  background: rgba(10, 10, 30, 0.6);
+}
+
+.dpad {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4rpx;
+}
+
+.dpad-row {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 4rpx;
+}
+
+.dpad-up, .dpad-down, .dpad-left, .dpad-right {
+  width: 88rpx;
+  height: 88rpx;
+  background: rgba(74, 111, 165, 0.35);
+  border: 2rpx solid #4A6FA5;
+  border-radius: 12rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 36rpx;
+  color: #A0BFDF;
+  user-select: none;
+}
+
+.dpad-up:active, .dpad-down:active,
+.dpad-left:active, .dpad-right:active {
+  background: rgba(74, 111, 165, 0.65);
+}
+
+.dpad-center {
+  width: 88rpx;
+  height: 88rpx;
+}
+
+/* 撤销按钮 */
+.undo-btn {
+  padding: 20rpx 36rpx;
+  background: rgba(74, 111, 165, 0.25);
+  border: 2rpx solid #4A6FA5;
+  border-radius: 12rpx;
+  color: #A0BFDF;
+  font-size: 28rpx;
+  font-family: monospace;
+  letter-spacing: 2rpx;
+  user-select: none;
+}
+
+.undo-btn:active {
+  background: rgba(74, 111, 165, 0.55);
+}
+
+/* ── 通关 overlay ── */
+.overlay {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(10, 10, 30, 0.78);
+  z-index: 10;
+}
+
+.win-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 60rpx 56rpx 52rpx;
+  background: rgba(30, 30, 60, 0.97);
+  border: 2rpx solid #F5C842;
+  border-radius: 20rpx;
+  min-width: 520rpx;
+  box-shadow: 0 0 48rpx rgba(245, 200, 66, 0.3);
+}
+
+.win-emoji {
+  font-size: 72rpx;
+  color: #F5C842;
+  margin-bottom: 12rpx;
+}
+
+.win-title {
+  font-size: 52rpx;
+  font-weight: 700;
+  color: #FFFFFF;
+  letter-spacing: 6rpx;
+  font-family: monospace;
+  margin-bottom: 16rpx;
+}
+
+.win-sub {
+  font-size: 24rpx;
+  color: #6A6A9A;
+  letter-spacing: 2rpx;
+  font-family: monospace;
+  margin-bottom: 48rpx;
+}
+
+.win-btns {
+  display: flex;
+  gap: 24rpx;
+}
+
+.win-btn {
+  padding: 20rpx 44rpx;
+  border-radius: 10rpx;
+  font-size: 30rpx;
+  font-weight: 700;
+  font-family: monospace;
+  letter-spacing: 3rpx;
+  user-select: none;
+}
+
+.retry-btn {
+  background: transparent;
+  border: 2rpx solid #4A6FA5;
+  color: #4A6FA5;
+}
+
+.retry-btn:active { opacity: 0.7; }
+
+.next-btn {
+  background: #F5C842;
+  color: #1A1A2E;
+}
+
+.next-btn:active { opacity: 0.8; }

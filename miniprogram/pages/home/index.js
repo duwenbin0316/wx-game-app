@@ -12,6 +12,12 @@ Page({
         name: 'Claude 快跑',
         desc: '躲避 Bug，坚持跑得最远！',
         url: '/pages/runner/index'
+      },
+      {
+        id: 'sokoban',
+        name: '像素推箱子',
+        desc: '把箱子推到目标位置，共 8 关',
+        url: '/pages/sokoban/index'
       }
     ]
   },
