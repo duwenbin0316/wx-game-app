@@ -10,27 +10,26 @@ const GROUND_R   = 0.68;  // 地面在屏幕高度的比例
 const PW = 32;
 const PH = 32;
 
-// ─── 玩家像素图案（像素机器人小人）─────────────────────
-// 5列 × 5行，PS=5px，绘制偏移 (POX=4) 居中于 PW=32
-// 外形：平顶头（含眼睛/高光/侧耳）→ 上身 → 下身 → 两对腿
-const PS  = 5;
+// ─── 玩家像素图案（宽扁像素怪兽，6列×6行）────────────────
+// 身体：6列×4行；侧耳：row1 左右各凸1格；腿：col1/col4 各2格
+// PS=4, POX=4 → 左耳 p.x+0, 右耳右边 p.x+32 = PW，完全贴合
+const PS  = 4;
 const POX = 4;
-const POY = 7;   // 视觉高度25px < PH=32，下移7px使脚贴地
+const POY = 8;   // 视觉高度24px(body16+腿8)，下移8px使脚贴地
 
 const PL_BODY = [
-  [0,0],[0,1],[0,2],[0,3],[0,4],             // 头顶（全宽，不收窄）
-  [1,0],[1,1],[1,2],[1,3],[1,4],             // 头部（含眼睛位置）
-  [2,0],[2,1],[2,2],[2,3],[2,4],             // 上身
-  [3,0],[3,1],[3,2],[3,3],[3,4],             // 下身
+  [0,0],[0,1],[0,2],[0,3],[0,4],[0,5],  // body row 0
+  [1,0],[1,1],[1,2],[1,3],[1,4],[1,5],  // body row 1（眼睛行）
+  [2,0],[2,1],[2,2],[2,3],[2,4],[2,5],  // body row 2
+  [3,0],[3,1],[3,2],[3,3],[3,4],[3,5],  // body row 3
 ];
-// 眼睛（深色小方块嵌入头部 row 1）
-const PL_EYES = [[1,1],[1,3]];
-// 高光（左上区域）
+// 眼睛：row1 col1 和 col4（左右对称，中间留空）
+const PL_EYES = [[1,1],[1,4]];
+// 高光（左上角）
 const PL_HL = [[0,0],[0,1],[1,0]];
-// 四条腿（两对）：左对 cols 0-1，右对 cols 3-4，中间 col 2 留空
-// 动画：左脚 ↔ 右脚交替（简洁跑步感）
-const PL_LEGS_A = [[4,0],[4,1]];   // 左脚
-const PL_LEGS_B = [[4,3],[4,4]];   // 右脚
+// 腿：col1（左腿）、col4（右腿），动画交替一条腿多伸一格
+const PL_LEG_L = [4, 1];   // 左腿 x col
+const PL_LEG_R = [4, 4];   // 右腿 x col
 
 // ─── 云朵像素（3行×5列，像素块风格）────────────────────
 const CLOUD_PIXELS = [
@@ -404,15 +403,15 @@ Page({
     const { _ctx: ctx, _player: p } = this;
     const bx = p.x + POX;
     const by = p.y + POY;
-    const legSet = Math.floor(this._frame / 8) % 2 === 0 ? PL_LEGS_A : PL_LEGS_B;
+    const step = Math.floor(this._frame / 8) % 2; // 0 or 1，交替步伐
 
     // 主体（橙色）
     ctx.fillStyle = '#E8873A';
     PL_BODY.forEach(([r, c]) => ctx.fillRect(bx + c*PS, by + r*PS, PS, PS));
 
-    // 侧耳：头部中间左右各凸出 1 格（row 1，不在顶部）
-    ctx.fillRect(bx - PS,     by + PS, PS, PS);   // 左耳
-    ctx.fillRect(bx + 5 * PS, by + PS, PS, PS);   // 右耳
+    // 侧耳：body row1 左右各凸 1 格
+    ctx.fillRect(bx - PS,     by + 1*PS, PS, PS);   // 左耳
+    ctx.fillRect(bx + 6 * PS, by + 1*PS, PS, PS);   // 右耳
 
     // 高光（左上角亮橙）
     ctx.fillStyle = '#F5A855';
@@ -422,9 +421,14 @@ Page({
     ctx.fillStyle = '#1A1A2E';
     PL_EYES.forEach(([r, c]) => ctx.fillRect(bx + c*PS + 1, by + r*PS + 1, PS - 2, PS - 2));
 
-    // 跑步腿动画（深橙色）
+    // 腿动画：两腿交替，一条完整(rows4-5)，另一条半步(row4)
     ctx.fillStyle = '#C86820';
-    legSet.forEach(([r, c]) => ctx.fillRect(bx + c*PS, by + r*PS, PS, PS));
+    // 左腿
+    ctx.fillRect(bx + 1*PS, by + 4*PS, PS, PS);
+    if (step === 0) ctx.fillRect(bx + 1*PS, by + 5*PS, PS, PS);
+    // 右腿
+    ctx.fillRect(bx + 4*PS, by + 4*PS, PS, PS);
+    if (step === 1) ctx.fillRect(bx + 4*PS, by + 5*PS, PS, PS);
   },
 
   _drawMoon() {
