@@ -16,7 +16,7 @@ const PH = 32;
 const PSW = 5;   // 像素块宽
 const PSH = 5;   // 像素块高（正方块，整体不再太扁）
 const POX = 3;   // body 左边距（25px居于PW=32）
-const POY = 2;   // 视觉高度30px(body20+腿10)，下移2px使脚贴地
+const POY = 7;   // 视觉高度25px(body20+腿5)，下移7px使脚贴地
 
 const PL_BODY = [
   [0,0],[0,1],[0,2],[0,3],[0,4],  // body row 0
@@ -422,14 +422,12 @@ Page({
     ctx.fillStyle = '#1A1A2E';
     PL_EYES.forEach(([r, c]) => ctx.fillRect(bx + c*PSW + 1, by + r*PSH + 1, PSW - 2, PSH - 2));
 
-    // 腿动画：两腿交替，一条完整(rows4-5)，另一条半步(row4)
+    // 腿（各1行，交替上下偏移1px模拟跑步）
     ctx.fillStyle = '#C86820';
-    // 左腿（col1）
-    ctx.fillRect(bx + PL_LEG_L*PSW, by + 4*PSH, PSW, PSH);
-    if (step === 0) ctx.fillRect(bx + PL_LEG_L*PSW, by + 5*PSH, PSW, PSH);
-    // 右腿（col3）
-    ctx.fillRect(bx + PL_LEG_R*PSW, by + 4*PSH, PSW, PSH);
-    if (step === 1) ctx.fillRect(bx + PL_LEG_R*PSW, by + 5*PSH, PSW, PSH);
+    const lOff = step === 0 ? 0 : 1;
+    const rOff = step === 0 ? 1 : 0;
+    ctx.fillRect(bx + PL_LEG_L*PSW, by + 4*PSH + lOff, PSW, PSH);
+    ctx.fillRect(bx + PL_LEG_R*PSW, by + 4*PSH + rOff, PSW, PSH);
   },
 
   _drawMoon() {
