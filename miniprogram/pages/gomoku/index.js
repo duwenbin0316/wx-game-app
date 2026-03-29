@@ -216,7 +216,7 @@
   initBoardMeta() {
     const boardSize = this.data.boardSize;
     const gridSize = boardSize - 1;
-    const lineGrid = Array(gridSize).fill(0);
+    const lineGrid = Array.from({ length: gridSize }, (_, i) => ({ row: i, col: i }));
     const points = [];
     for (let r = 0; r < boardSize; r++) {
       for (let c = 0; c < boardSize; c++) {
