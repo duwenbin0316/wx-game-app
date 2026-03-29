@@ -28,9 +28,8 @@ const PL_BODY = [
 const PL_EYES = [[1,1],[1,3]];
 // 高光（左上角）
 const PL_HL = [[0,0],[0,1],[1,0]];
-// 腿：col1（左腿）、col3（右腿），中间 col2 留空
-const PL_LEG_L = 1;
-const PL_LEG_R = 3;
+// 四条腿：左侧一对(col0,col1)，右侧一对(col3,col4)，中间col2留空
+const PL_LEGS = [0, 1, 3, 4];
 
 // ─── 云朵像素（3行×5列，像素块风格）────────────────────
 const CLOUD_PIXELS = [
@@ -422,12 +421,12 @@ Page({
     ctx.fillStyle = '#1A1A2E';
     PL_EYES.forEach(([r, c]) => ctx.fillRect(bx + c*PSW + 1, by + r*PSH + 1, PSW - 2, PSH - 2));
 
-    // 腿（各1行，交替上下偏移1px模拟跑步）
+    // 四条腿（col0,1 左对；col3,4 右对），前后腿交替 1px 跑步动画
     ctx.fillStyle = '#C86820';
-    const lOff = step === 0 ? 0 : 1;
-    const rOff = step === 0 ? 1 : 0;
-    ctx.fillRect(bx + PL_LEG_L*PSW, by + 4*PSH + lOff, PSW, PSH);
-    ctx.fillRect(bx + PL_LEG_R*PSW, by + 4*PSH + rOff, PSW, PSH);
+    PL_LEGS.forEach((c, i) => {
+      const off = (i % 2 === step) ? 1 : 0;  // 前腿(0,2)/后腿(1,3)交替
+      ctx.fillRect(bx + c*PSW, by + 4*PSH + off, PSW, PSH);
+    });
   },
 
   _drawMoon() {
