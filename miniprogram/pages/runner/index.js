@@ -757,7 +757,11 @@ Page({
   },
 
   _startBGM() {
-    if (!this._ac || this._bgmPlaying) return;
+    if (!this._ac) return;
+    this._stopBGM();
+    // 每次开始创建新节点，旧音符连着已断开的旧节点，不会复活
+    this._bgmGain = this._ac.createGain();
+    this._bgmGain.connect(this._ac.destination);
     this._bgmGain.gain.setValueAtTime(1, this._ac.currentTime);
     this._bgmPlaying = true;
     this._scheduleBGM();
@@ -766,8 +770,11 @@ Page({
   _stopBGM() {
     this._bgmPlaying = false;
     if (this._bgmTimer) { clearTimeout(this._bgmTimer); this._bgmTimer = null; }
-    // 立即静音已调度但未播完的音符
-    if (this._bgmGain) this._bgmGain.gain.setValueAtTime(0, this._ac.currentTime);
+    // 断开旧增益节点，隔断所有已调度音符
+    if (this._bgmGain) {
+      try { this._bgmGain.disconnect(); } catch(e) {}
+      this._bgmGain = null;
+    }
   },
 
   // 跳跃音效：仿超级马里奥，方波频率指数上扫
