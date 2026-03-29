@@ -137,11 +137,11 @@
 
 /* ── 棋盘 ── */
 .game-board {
-  background: #0E1628;
-  border: 2rpx solid #3A5080;
+  background: #253550;
+  border: 3rpx solid #4A7AB0;
   border-radius: 0;
-  padding: 24rpx;
-  box-shadow: 4rpx 4rpx 0 #0E0E22;
+  padding: 20rpx;
+  box-shadow: 6rpx 6rpx 0 #0A0A1A;
   margin-bottom: 20rpx;
   display: flex;
   justify-content: center;
