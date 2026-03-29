@@ -159,16 +159,19 @@
 .lines-layer {
   position: absolute;
   top: 0; left: 0; right: 0; bottom: 0;
-  display: flex;
-  flex-direction: column;
   z-index: 1;
+  /* 15×15 grid = 14 intervals; 100/14 ≈ 7.14286% per cell */
+  background-image:
+    linear-gradient(rgba(90,140,210,0.85) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(90,140,210,0.85) 1px, transparent 1px);
+  background-size: 7.14286% 7.14286%;
 }
 
 .star-points {
   position: absolute;
   left: 0; top: 0; right: 0; bottom: 0;
   pointer-events: none;
-  z-index: 1;
+  z-index: 2;
 }
 
 .star-point {
@@ -185,45 +188,6 @@
 .star-point-3 { left: 50%;      top: 50%; }
 .star-point-4 { left: 21.4286%; top: 78.5714%; }
 .star-point-5 { left: 78.5714%; top: 78.5714%; }
-
-.board-row {
-  display: flex;
-  flex: 1;
-}
-
-.board-cell {
-  flex: 1;
-  position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: transparent;
-  box-sizing: border-box;
-}
-
-.board-cell::before {
-  content: '';
-  position: absolute;
-  top: 0; left: 0; right: 0;
-  height: 1rpx;
-  background: rgba(90, 140, 210, 0.85);
-}
-
-.board-cell::after {
-  content: '';
-  position: absolute;
-  left: 0; top: 0; bottom: 0;
-  width: 1rpx;
-  background: rgba(90, 140, 210, 0.85);
-}
-
-.board-row:last-child .board-cell {
-  border-bottom: 1rpx solid rgba(90, 140, 210, 0.85);
-}
-
-.board-row .board-cell:last-child {
-  border-right: 1rpx solid rgba(90, 140, 210, 0.85);
-}
 
 .points-layer {
   position: absolute;

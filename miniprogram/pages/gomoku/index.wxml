@@ -35,11 +35,7 @@
         <view class="star-point star-point-4"></view>
         <view class="star-point star-point-5"></view>
       </view>
-      <view class="lines-layer">
-        <view wx:for="{{lineGrid}}" wx:key="row" class="board-row">
-          <view wx:for="{{lineGrid}}" wx:key="col" class="board-cell"></view>
-        </view>
-      </view>
+      <view class="lines-layer"></view>
       <view class="points-layer" wx:if="{{board.length}}">
         <view wx:for="{{points}}" wx:key="id"
               class="intersection r-{{item.r}} c-{{item.c}}"
