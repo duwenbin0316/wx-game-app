@@ -10,26 +10,27 @@ const GROUND_R   = 0.68;  // 地面在屏幕高度的比例
 const PW = 32;
 const PH = 32;
 
-// ─── 玩家像素图案（宽扁像素怪兽，6列×6行）────────────────
-// 像素块偏扁：PSW=5宽, PSH=4高；身体6列×4行；臂：rows1-2居中凸出
-const PSW = 5;   // 像素块宽（偏扁）
-const PSH = 4;   // 像素块高
-const POX = 1;   // body 左边距（视觉宽30px居于PW=32内）
-const POY = 8;   // 视觉高度24px(body16+腿8)，下移8px使脚贴地
+// ─── 玩家像素图案（5列×4行，像素正方）────────────────────
+// PSW=PSH=5（正方像素块）；身体5列×4行 = 25×20px（比例1.25:1，贴近参考图）
+// 臂：rows1-2 居中凸出；腿：col1/col3 中间留1格
+const PSW = 5;   // 像素块宽
+const PSH = 5;   // 像素块高（正方块，整体不再太扁）
+const POX = 3;   // body 左边距（25px居于PW=32）
+const POY = 2;   // 视觉高度30px(body20+腿10)，下移2px使脚贴地
 
 const PL_BODY = [
-  [0,0],[0,1],[0,2],[0,3],[0,4],[0,5],  // body row 0
-  [1,0],[1,1],[1,2],[1,3],[1,4],[1,5],  // body row 1（眼睛行）
-  [2,0],[2,1],[2,2],[2,3],[2,4],[2,5],  // body row 2
-  [3,0],[3,1],[3,2],[3,3],[3,4],[3,5],  // body row 3
+  [0,0],[0,1],[0,2],[0,3],[0,4],  // body row 0
+  [1,0],[1,1],[1,2],[1,3],[1,4],  // body row 1（眼睛行）
+  [2,0],[2,1],[2,2],[2,3],[2,4],  // body row 2
+  [3,0],[3,1],[3,2],[3,3],[3,4],  // body row 3
 ];
-// 眼睛：row1 col1 和 col4（左右对称，中间留空）
-const PL_EYES = [[1,1],[1,4]];
+// 眼睛：row1 col1 和 col3（5列中对称）
+const PL_EYES = [[1,1],[1,3]];
 // 高光（左上角）
 const PL_HL = [[0,0],[0,1],[1,0]];
-// 腿：col1（左腿）、col4（右腿），动画交替一条腿多伸一格
-const PL_LEG_L = [4, 1];   // 左腿 x col
-const PL_LEG_R = [4, 4];   // 右腿 x col
+// 腿：col1（左腿）、col3（右腿），中间 col2 留空
+const PL_LEG_L = 1;
+const PL_LEG_R = 3;
 
 // ─── 云朵像素（3行×5列，像素块风格）────────────────────
 const CLOUD_PIXELS = [
@@ -411,7 +412,7 @@ Page({
 
     // 侧臂：rows 1-2（垂直居中于4行身体），左右各凸 1 格，2行高
     ctx.fillRect(bx - PSW,     by + 1*PSH, PSW, 2*PSH);   // 左臂
-    ctx.fillRect(bx + 6 * PSW, by + 1*PSH, PSW, 2*PSH);   // 右臂
+    ctx.fillRect(bx + 5 * PSW, by + 1*PSH, PSW, 2*PSH);   // 右臂（5列）
 
     // 高光（左上角亮橙）
     ctx.fillStyle = '#F5A855';
@@ -423,12 +424,12 @@ Page({
 
     // 腿动画：两腿交替，一条完整(rows4-5)，另一条半步(row4)
     ctx.fillStyle = '#C86820';
-    // 左腿
-    ctx.fillRect(bx + 1*PSW, by + 4*PSH, PSW, PSH);
-    if (step === 0) ctx.fillRect(bx + 1*PSW, by + 5*PSH, PSW, PSH);
-    // 右腿
-    ctx.fillRect(bx + 4*PSW, by + 4*PSH, PSW, PSH);
-    if (step === 1) ctx.fillRect(bx + 4*PSW, by + 5*PSH, PSW, PSH);
+    // 左腿（col1）
+    ctx.fillRect(bx + PL_LEG_L*PSW, by + 4*PSH, PSW, PSH);
+    if (step === 0) ctx.fillRect(bx + PL_LEG_L*PSW, by + 5*PSH, PSW, PSH);
+    // 右腿（col3）
+    ctx.fillRect(bx + PL_LEG_R*PSW, by + 4*PSH, PSW, PSH);
+    if (step === 1) ctx.fillRect(bx + PL_LEG_R*PSW, by + 5*PSH, PSW, PSH);
   },
 
   _drawMoon() {
