@@ -137,8 +137,8 @@
 
 /* ── 棋盘 ── */
 .game-board {
-  background: #1C2240;
-  border: 2rpx solid #2E3A5C;
+  background: #0E1628;
+  border: 2rpx solid #3A5080;
   border-radius: 0;
   padding: 24rpx;
   box-shadow: 4rpx 4rpx 0 #0E0E22;
@@ -168,10 +168,10 @@
 
 .star-point {
   position: absolute;
-  width: 10rpx;
-  height: 10rpx;
+  width: 12rpx;
+  height: 12rpx;
   border-radius: 50%;
-  background: #4A6FA5;
+  background: #6AA0E0;
   transform: translate(-50%, -50%);
 }
 
@@ -199,7 +199,7 @@
   position: absolute;
   top: 0; left: 0; right: 0;
   height: 1rpx;
-  background: rgba(74, 111, 165, 0.45);
+  background: rgba(90, 140, 210, 0.85);
 }
 
 .board-cell::after {
@@ -207,15 +207,15 @@
   position: absolute;
   left: 0; top: 0; bottom: 0;
   width: 1rpx;
-  background: rgba(74, 111, 165, 0.45);
+  background: rgba(90, 140, 210, 0.85);
 }
 
 .board-row:last-child .board-cell {
-  border-bottom: 1rpx solid rgba(74, 111, 165, 0.45);
+  border-bottom: 1rpx solid rgba(90, 140, 210, 0.85);
 }
 
 .board-row .board-cell:last-child {
-  border-right: 1rpx solid rgba(74, 111, 165, 0.45);
+  border-right: 1rpx solid rgba(90, 140, 210, 0.85);
 }
 
 .points-layer {
