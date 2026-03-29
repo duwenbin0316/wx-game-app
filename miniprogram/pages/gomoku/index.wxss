@@ -151,11 +151,16 @@
 .board-grid {
   position: relative;
   width: 100%;
+  /* container 左右各 20rpx + board 左右各 20rpx = 共减 80rpx */
+  height: calc(100vw - 80rpx);
   box-sizing: border-box;
 }
 
 .lines-layer {
-  position: relative;
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  display: flex;
+  flex-direction: column;
   z-index: 1;
 }
 
@@ -181,11 +186,13 @@
 .star-point-4 { left: 21.4286%; top: 78.5714%; }
 .star-point-5 { left: 78.5714%; top: 78.5714%; }
 
-.board-row { display: flex; }
+.board-row {
+  display: flex;
+  flex: 1;
+}
 
 .board-cell {
-  flex: 1 0 0;
-  aspect-ratio: 1 / 1;
+  flex: 1;
   position: relative;
   display: flex;
   align-items: center;
