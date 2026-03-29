@@ -1,77 +1,56 @@
-/* 整体容器 */
+page {
+  background: #1A1A2E;
+}
+
 .online-container {
-  padding: 0 36rpx 80rpx;
-  background: #f5f0e8;
+  padding: 16rpx 20rpx 80rpx;
+  background: #1A1A2E;
   min-height: 100vh;
   box-sizing: border-box;
+  width: 100%;
 }
 
-/* 顶部标题区域 */
+/* ── 顶部标题 ── */
 .header {
-  padding: 64rpx 0 40rpx;
-  border-bottom: 1rpx solid #e0d8cc;
-  margin-bottom: 40rpx;
-}
-
-.header-deco {
-  display: flex;
-  align-items: center;
-  gap: 10rpx;
+  padding: 24rpx 0 20rpx;
+  border-bottom: 1rpx solid #2A2A4A;
   margin-bottom: 24rpx;
-}
-
-.deco-dot {
-  width: 10rpx;
-  height: 10rpx;
-  border-radius: 50%;
-  background: #7a9e7e;
-}
-
-.deco-line {
-  flex: 1;
-  height: 1rpx;
-  background: #d5ccbc;
 }
 
 .title {
   display: block;
-  font-size: 52rpx;
+  font-size: 42rpx;
   font-weight: 700;
-  color: #2a2218;
-  letter-spacing: 4rpx;
-  margin-bottom: 14rpx;
-}
-
-.subtitle {
-  display: block;
-  font-size: 24rpx;
-  color: #9a8f80;
-  letter-spacing: 2rpx;
-  font-weight: 400;
+  color: #FFFFFF;
+  letter-spacing: 6rpx;
+  font-family: monospace;
+  margin-bottom: 8rpx;
 }
 
 .version {
   display: block;
-  font-size: 20rpx;
-  color: #bbb0a0;
-  margin-top: 10rpx;
-  letter-spacing: 1rpx;
+  font-size: 18rpx;
+  color: #3A3A6A;
+  letter-spacing: 2rpx;
+  font-family: monospace;
 }
 
-/* 单机入口 */
+/* ── 入口按钮 ── */
 .local-btn {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  background: #fffef9;
-  border: 1rpx solid #e8e0d0;
-  border-radius: 16rpx;
-  padding: 28rpx 28rpx;
-  margin-bottom: 32rpx;
+  background: #1E1E38;
+  border: 2rpx solid #2E3A5C;
+  border-radius: 0;
+  padding: 28rpx 24rpx;
+  margin-bottom: 16rpx;
+  box-shadow: 4rpx 4rpx 0 #0A0A1A;
+  box-sizing: border-box;
 }
 
 .local-btn:active {
-  background: #f8f3ea;
+  opacity: 0.75;
 }
 
 .local-btn-main {
@@ -83,33 +62,25 @@
 .local-btn-title {
   font-size: 30rpx;
   font-weight: 600;
-  color: #2a2218;
-  letter-spacing: 1rpx;
+  color: #C0C0E8;
+  letter-spacing: 2rpx;
+  font-family: monospace;
 }
 
 .local-btn-sub {
   font-size: 22rpx;
-  color: #9a8f80;
+  color: #4A6FA5;
   letter-spacing: 1rpx;
+  font-family: monospace;
 }
 
 .local-btn-arrow {
   font-size: 40rpx;
-  color: #bbb0a0;
+  color: #E8873A;
   line-height: 1;
 }
 
-.section-label {
-  display: block;
-  font-size: 22rpx;
-  font-weight: 500;
-  color: #bbb0a0;
-  letter-spacing: 3rpx;
-  margin-bottom: 16rpx;
-}
-
-
-/* 房间列表区域 */
+/* ── 房间列表 ── */
 .room-list {
   width: 100%;
 }
@@ -118,44 +89,57 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 20rpx;
+  margin-bottom: 16rpx;
+  margin-top: 8rpx;
 }
 
 .section-title {
-  font-size: 22rpx;
+  font-size: 20rpx;
   font-weight: 500;
-  color: #bbb0a0;
+  color: #3A3A6A;
   letter-spacing: 3rpx;
+  font-family: monospace;
 }
 
 .clear-text {
-  font-size: 22rpx;
-  color: #bbb0a0;
+  font-size: 20rpx;
+  color: #3A3A6A;
   letter-spacing: 1rpx;
+  font-family: monospace;
 }
 
-/* 房间卡片 */
+.clear-text:active {
+  color: #E8873A;
+}
+
+.section-label {
+  display: block;
+  font-size: 20rpx;
+  font-weight: 500;
+  color: #3A3A6A;
+  letter-spacing: 3rpx;
+  margin-bottom: 16rpx;
+  font-family: monospace;
+}
+
+/* ── 房间卡片 ── */
 .room-item {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 32rpx 28rpx;
-  border-radius: 16rpx;
-  margin-bottom: 16rpx;
-  background: #fffef9;
-  border: 1rpx solid #e8e0d0;
+  padding: 24rpx 24rpx;
+  background: #1E1E38;
+  border: 2rpx solid #2E3A5C;
+  border-radius: 0;
+  margin-bottom: 12rpx;
+  box-shadow: 3rpx 3rpx 0 #0A0A1A;
   box-sizing: border-box;
 }
 
 .room-item:active {
-  background: #f8f3ea;
+  opacity: 0.75;
 }
 
-.room-item:last-child {
-  margin-bottom: 0;
-}
-
-/* 房间信息 */
 .room-main-info {
   flex: 1;
   min-width: 0;
@@ -163,25 +147,27 @@
 }
 
 .room-name {
-  font-size: 30rpx;
+  font-size: 28rpx;
   font-weight: 600;
-  color: #2a2218;
+  color: #C0C0E8;
   display: flex;
   align-items: center;
   gap: 14rpx;
-  margin-bottom: 14rpx;
+  margin-bottom: 12rpx;
   letter-spacing: 1rpx;
+  font-family: monospace;
 }
 
 .room-status {
-  font-size: 20rpx;
+  font-size: 18rpx;
   font-weight: 500;
-  color: #7a9e7e;
-  background: #eef4ee;
+  color: #4A6FA5;
+  background: rgba(74, 111, 165, 0.12);
+  border: 1rpx solid #2E3A5C;
   padding: 4rpx 16rpx;
-  border-radius: 20rpx;
   white-space: nowrap;
   letter-spacing: 1rpx;
+  font-family: monospace;
 }
 
 .room-details {
@@ -194,77 +180,82 @@
   display: flex;
   align-items: center;
   gap: 10rpx;
-  font-size: 22rpx;
-  color: #9a8f80;
+  font-size: 20rpx;
+  color: #3A3A6A;
+  font-family: monospace;
 }
 
 .creator-avatar {
   width: 36rpx;
   height: 36rpx;
-  border-radius: 50%;
-  background: #d5ccbc;
+  background: #2E3A5C;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #6a5f50;
+  color: #4A6FA5;
   font-size: 18rpx;
   font-weight: 600;
   flex-shrink: 0;
+  font-family: monospace;
 }
 
 .time {
-  font-size: 22rpx;
-  color: #bbb0a0;
+  font-size: 20rpx;
+  color: #3A3A6A;
+  font-family: monospace;
 }
 
-/* 加入按钮 */
+/* ── 加入按钮 ── */
 .room-actions {
   flex-shrink: 0;
 }
 
 .join-btn {
-  background: #4a6e4e;
-  color: #f5f0e8;
-  border-radius: 10rpx;
+  background: #E8873A;
+  color: #1A1A2E;
   padding: 16rpx 30rpx;
-  font-size: 26rpx;
-  font-weight: 600;
+  font-size: 24rpx;
+  font-weight: 700;
   letter-spacing: 2rpx;
   user-select: none;
+  font-family: monospace;
+  box-shadow: 3rpx 3rpx 0 #0A0A1A;
 }
 
 .join-btn:active {
-  opacity: 0.7;
+  opacity: 0.75;
 }
 
-/* 空状态 */
+/* ── 空状态 ── */
 .empty-state {
   text-align: center;
-  padding: 100rpx 40rpx;
+  padding: 80rpx 40rpx;
 }
 
 .empty-icon {
-  font-size: 80rpx;
+  font-size: 72rpx;
   display: block;
   margin-bottom: 28rpx;
-  opacity: 0.35;
+  opacity: 0.3;
 }
 
 .empty-text {
-  font-size: 30rpx;
-  color: #6a5f50;
+  font-size: 28rpx;
+  color: #C0C0E8;
   display: block;
   font-weight: 600;
   margin-bottom: 12rpx;
-  letter-spacing: 2rpx;
+  letter-spacing: 3rpx;
+  font-family: monospace;
 }
 
 .empty-hint {
-  font-size: 24rpx;
-  color: #bbb0a0;
+  font-size: 22rpx;
+  color: #3A3A6A;
   display: block;
-  line-height: 1.9;
+  line-height: 2;
   letter-spacing: 1rpx;
+  font-family: monospace;
 }
 
 .empty-action {
@@ -273,21 +264,22 @@
 
 .empty-action-btn {
   display: inline-block;
-  background: #4a6e4e;
-  color: #f5f0e8;
-  border-radius: 50rpx;
+  background: #E8873A;
+  color: #1A1A2E;
   padding: 22rpx 60rpx;
   font-size: 28rpx;
-  font-weight: 600;
+  font-weight: 700;
   letter-spacing: 2rpx;
   user-select: none;
+  font-family: monospace;
+  box-shadow: 4rpx 4rpx 0 #0A0A1A;
 }
 
 .empty-action-btn:active {
-  opacity: 0.7;
+  opacity: 0.75;
 }
 
-/* 加载状态 */
+/* ── 加载状态 ── */
 .loading {
   text-align: center;
   padding: 120rpx 0;
@@ -303,19 +295,17 @@
 }
 
 .loading-text {
-  color: #bbb0a0;
-  font-size: 24rpx;
-  letter-spacing: 2rpx;
+  color: #3A3A6A;
+  font-size: 22rpx;
+  letter-spacing: 3rpx;
+  font-family: monospace;
 }
 
-/* 创建房间弹窗 */
+/* ── 弹窗 ── */
 .modal-mask {
   position: fixed;
-  left: 0;
-  top: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(42, 34, 24, 0.45);
+  left: 0; top: 0; right: 0; bottom: 0;
+  background: rgba(10, 10, 30, 0.78);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -327,38 +317,40 @@
 .modal-card {
   width: 100%;
   max-width: 640rpx;
-  background: #fffef9;
-  border-radius: 24rpx;
+  background: rgba(30, 30, 60, 0.97);
+  border: 2rpx solid #4A6FA5;
   padding: 44rpx 36rpx 36rpx;
   box-sizing: border-box;
-  border: 1rpx solid #e8e0d0;
+  box-shadow: 6rpx 6rpx 0 #0E0E22, 0 0 40rpx rgba(74,111,165,0.3);
 }
 
 .modal-title {
-  font-size: 34rpx;
+  font-size: 32rpx;
   font-weight: 700;
-  color: #2a2218;
+  color: #FFFFFF;
   margin-bottom: 8rpx;
-  letter-spacing: 2rpx;
+  letter-spacing: 4rpx;
+  font-family: monospace;
 }
 
 .modal-subtitle {
-  font-size: 24rpx;
-  color: #9a8f80;
+  font-size: 22rpx;
+  color: #4A6FA5;
   margin-bottom: 32rpx;
-  letter-spacing: 1rpx;
+  letter-spacing: 2rpx;
+  font-family: monospace;
 }
 
 .modal-input {
   width: 100%;
   height: 80rpx;
-  border-radius: 10rpx;
-  border: 1rpx solid #d5ccbc;
+  border: 2rpx solid #2E3A5C;
   padding: 0 20rpx;
   box-sizing: border-box;
   font-size: 28rpx;
-  color: #2a2218;
-  background: #f5f0e8;
+  color: #C0C0E8;
+  background: #16162E;
+  font-family: monospace;
 }
 
 .modal-actions {
@@ -370,44 +362,45 @@
 .modal-btn {
   flex: 1;
   height: 80rpx;
-  border-radius: 10rpx;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 28rpx;
-  font-weight: 600;
-  letter-spacing: 1rpx;
+  font-size: 26rpx;
+  font-weight: 700;
+  letter-spacing: 2rpx;
   user-select: none;
+  font-family: monospace;
+  box-shadow: 3rpx 3rpx 0 #0E0E22;
 }
 
 .modal-btn:active {
-  opacity: 0.7;
+  opacity: 0.75;
 }
 
 .cancel-btn {
-  background: #ede8de;
-  color: #6a5f50;
+  background: #1E1E38;
+  color: #4A6FA5;
+  border: 2rpx solid #2E3A5C;
 }
 
 .confirm-btn {
-  background: #4a6e4e;
-  color: #f5f0e8;
+  background: #E8873A;
+  color: #1A1A2E;
 }
 
-/* 本地对战模式选择弹窗 */
+/* ── 本地对战弹窗内组件 ── */
 .local-mode-btn {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  background: #f5f0e8;
-  border: 1rpx solid #e0d8cc;
-  border-radius: 12rpx;
+  background: #16162E;
+  border: 2rpx solid #2E3A5C;
   padding: 24rpx 20rpx;
   margin-bottom: 20rpx;
 }
 
 .local-mode-btn:active {
-  background: #ede8de;
+  opacity: 0.75;
 }
 
 .local-mode-main {
@@ -417,15 +410,17 @@
 }
 
 .local-mode-name {
-  font-size: 30rpx;
+  font-size: 28rpx;
   font-weight: 600;
-  color: #2a2218;
-  letter-spacing: 1rpx;
+  color: #C0C0E8;
+  letter-spacing: 2rpx;
+  font-family: monospace;
 }
 
 .local-mode-desc {
   font-size: 22rpx;
-  color: #9a8f80;
+  color: #4A6FA5;
+  font-family: monospace;
 }
 
 .local-difficulty-row {
@@ -439,26 +434,28 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  background: #f5f0e8;
-  border: 1rpx solid #e0d8cc;
-  border-radius: 12rpx;
+  background: #16162E;
+  border: 2rpx solid #2E3A5C;
   padding: 22rpx 0;
   gap: 8rpx;
   user-select: none;
 }
 
 .diff-btn:active {
-  background: #ede8de;
+  border-color: #E8873A;
+  opacity: 0.85;
 }
 
 .diff-name {
-  font-size: 28rpx;
-  font-weight: 600;
-  color: #2a2218;
-  letter-spacing: 1rpx;
+  font-size: 26rpx;
+  font-weight: 700;
+  color: #C0C0E8;
+  letter-spacing: 2rpx;
+  font-family: monospace;
 }
 
 .diff-desc {
   font-size: 20rpx;
-  color: #9a8f80;
+  color: #3A3A6A;
+  font-family: monospace;
 }
