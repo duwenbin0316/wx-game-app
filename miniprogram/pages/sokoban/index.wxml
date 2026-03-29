@@ -2,7 +2,7 @@
   <canvas id="sokoban-canvas" type="2d" class="sokoban-canvas"></canvas>
 
   <!-- 方向控制键 + 撤销 -->
-  <view class="controls" wx:if="{{gameState === 'playing'}}">
+  <view class="controls" wx:if="{{gameState === 'playing'}}" catchtouchend="noop">
     <view class="dpad">
       <view class="dpad-up"   catchtouchstart="onUp">▲</view>
       <view class="dpad-row">

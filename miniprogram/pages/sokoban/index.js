@@ -160,6 +160,8 @@ Page({
   },
 
   // ─── 触摸滑动手势 ─────────────────────────────────────
+  noop() {},
+
   onTouchStart(e) {
     const t = e.touches[0];
     this._tx = t.clientX;
