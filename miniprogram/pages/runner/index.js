@@ -409,9 +409,9 @@ Page({
     ctx.fillStyle = '#E8873A';
     PL_BODY.forEach(([r, c]) => ctx.fillRect(bx + c*PS, by + r*PS, PS, PS));
 
-    // 侧耳：body row1 左右各凸 1 格
-    ctx.fillRect(bx - PS,     by + 1*PS, PS, PS);   // 左耳
-    ctx.fillRect(bx + 6 * PS, by + 1*PS, PS, PS);   // 右耳
+    // 侧耳：body row2（眼睛下方，身体中段）左右各凸 1 格
+    ctx.fillRect(bx - PS,     by + 2*PS, PS, PS);   // 左耳
+    ctx.fillRect(bx + 6 * PS, by + 2*PS, PS, PS);   // 右耳
 
     // 高光（左上角亮橙）
     ctx.fillStyle = '#F5A855';
