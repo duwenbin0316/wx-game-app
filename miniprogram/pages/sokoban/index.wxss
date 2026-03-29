@@ -80,8 +80,6 @@ page {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 34rpx;
-  color: #4A6FA5;
   user-select: none;
   box-shadow: 3rpx 3rpx 0 #0A0A1A;
 }
@@ -90,8 +88,14 @@ page {
 .dpad-left:active, .dpad-right:active {
   background: rgba(232, 135, 58, 0.12);
   border-color: #E8873A;
-  color: #E8873A;
 }
+
+/* CSS 像素三角箭头 */
+.arr { display: block; width: 0; height: 0; }
+.arr-up    { border-left: 14rpx solid transparent; border-right: 14rpx solid transparent; border-bottom: 20rpx solid #4A6FA5; }
+.arr-down  { border-left: 14rpx solid transparent; border-right: 14rpx solid transparent; border-top:    20rpx solid #4A6FA5; }
+.arr-left  { border-top: 14rpx solid transparent; border-bottom: 14rpx solid transparent; border-right:  20rpx solid #4A6FA5; }
+.arr-right { border-top: 14rpx solid transparent; border-bottom: 14rpx solid transparent; border-left:   20rpx solid #4A6FA5; }
 
 .dpad-center {
   width: 96rpx;

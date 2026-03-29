@@ -11,13 +11,13 @@
   <!-- 方向控制键 + 撤销 -->
   <view class="controls" wx:if="{{gameState === 'playing'}}" catchtouchend="noop">
     <view class="dpad">
-      <view class="dpad-up"   catchtouchstart="onUp">▲</view>
+      <view class="dpad-up"   catchtouchstart="onUp"><view class="arr arr-up"></view></view>
       <view class="dpad-row">
-        <view class="dpad-left"  catchtouchstart="onLeft">◀</view>
+        <view class="dpad-left"  catchtouchstart="onLeft"><view class="arr arr-left"></view></view>
         <view class="dpad-center"></view>
-        <view class="dpad-right" catchtouchstart="onRight">▶</view>
+        <view class="dpad-right" catchtouchstart="onRight"><view class="arr arr-right"></view></view>
       </view>
-      <view class="dpad-down"  catchtouchstart="onDown">▼</view>
+      <view class="dpad-down"  catchtouchstart="onDown"><view class="arr arr-down"></view></view>
     </view>
     <view class="undo-btn" catchtouchstart="onUndo">↩ 撤销</view>
   </view>
