@@ -422,10 +422,10 @@ Page({
     ctx.fillStyle = '#1A1A2E';
     PL_EYES.forEach(([r, c]) => ctx.fillRect(bx + c*PSW + 1, by + r*PSH + 1, PSW - 2, PSH - 2));
 
-    // 两条腿，各1格，交替 1px 偏移跑步动画
+    // 两条腿交替显示（一帧左、一帧右，产生跑步闪烁感）
     ctx.fillStyle = '#C86820';
-    ctx.fillRect(bx + PL_LEG_L*PSW, by + 4*PSH + (step === 0 ? 0 : 1), PSW, PSH);
-    ctx.fillRect(bx + PL_LEG_R*PSW, by + 4*PSH + (step === 0 ? 1 : 0), PSW, PSH);
+    if (step === 0) ctx.fillRect(bx + PL_LEG_L*PSW, by + 4*PSH, PSW, PSH);
+    else            ctx.fillRect(bx + PL_LEG_R*PSW, by + 4*PSH, PSW, PSH);
   },
 
   _drawMoon() {
