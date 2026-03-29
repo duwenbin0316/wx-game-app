@@ -32,12 +32,6 @@ const PL_HL = [[0,0],[0,1],[1,0]];
 const PL_LEG_L = 1;
 const PL_LEG_R = 3;
 
-// ─── 云朵像素（3行×5列，像素块风格）────────────────────
-const CLOUD_PIXELS = [
-  [0,1],[0,2],[0,3],
-  [1,0],[1,1],[1,2],[1,3],[1,4],
-  [2,0],[2,1],[2,2],[2,3],[2,4],
-];
 
 // ─── Bug 像素图案（6列×5行，底部带脚）──────────────────
 const BUG_PIXELS = [
@@ -243,7 +237,7 @@ Page({
     // 移动云朵（速度比地面慢，营造视差效果）
     for (const cl of (this._clouds || [])) {
       cl.x -= this._speed * 0.15;
-      if (cl.x + cl.sz * 5 < 0) {
+      if (cl.x + cl.r * 3 < 0) {
         cl.x = this._W + Math.random() * 60;
         cl.y = this._groundY * (0.1 + Math.random() * 0.35);
       }
@@ -455,13 +449,27 @@ Page({
   },
 
   _drawClouds() {
-    const { _ctx: ctx } = this;
-    ctx.fillStyle = '#2C2C50';
     for (const cl of (this._clouds || [])) {
-      CLOUD_PIXELS.forEach(([r, c]) => {
-        ctx.fillRect(cl.x + c * cl.sz, cl.y + r * cl.sz, cl.sz, cl.sz);
-      });
+      this._drawCloud(cl.x, cl.y, cl.r);
     }
+  },
+
+  // 真实感云朵：多个重叠圆弧融合成蓬松轮廓
+  _drawCloud(cx, cy, r) {
+    const ctx = this._ctx;
+    ctx.fillStyle = 'rgba(58, 62, 95, 0.82)';
+    [
+      [  0,      0,    r     ],
+      [ -r*0.52, r*0.28, r*0.70],
+      [  r*0.52, r*0.28, r*0.70],
+      [ -r*0.88, r*0.52, r*0.50],
+      [  r*0.88, r*0.52, r*0.50],
+      [  0,      r*0.42, r*0.58],
+    ].forEach(([dx, dy, rad]) => {
+      ctx.beginPath();
+      ctx.arc(cx + dx, cy + dy, rad, 0, Math.PI * 2);
+      ctx.fill();
+    });
   },
 
   _drawObstacle(ob) {
@@ -588,9 +596,9 @@ Page({
   _initClouds() {
     const gY = this._groundY;
     this._clouds = [
-      { x: this._W * 0.15, y: gY * 0.20, sz: 8 },
-      { x: this._W * 0.55, y: gY * 0.12, sz: 7 },
-      { x: this._W * 0.85, y: gY * 0.32, sz: 8 },
+      { x: this._W * 0.15, y: gY * 0.22, r: 18 },
+      { x: this._W * 0.55, y: gY * 0.13, r: 14 },
+      { x: this._W * 0.82, y: gY * 0.30, r: 16 },
     ];
   },
 
