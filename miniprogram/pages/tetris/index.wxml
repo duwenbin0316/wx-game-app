@@ -1,0 +1,67 @@
+<view class="tetris-page">
+  <view class="game-header">
+    <text class="header-level">第 {{level}} 级</text>
+    <text class="header-score">{{score}} 分</text>
+  </view>
+
+  <view class="main-area">
+    <view class="board-wrap" bindtouchstart="onTouchStart" bindtouchend="onTouchEnd">
+      <canvas id="tetris-canvas" type="2d" class="board-canvas"></canvas>
+    </view>
+
+    <view class="side-panel">
+      <view class="side-section">
+        <text class="side-label">NEXT</text>
+        <canvas id="next-canvas" type="2d" class="next-canvas"></canvas>
+      </view>
+
+      <view class="side-section">
+        <text class="side-label">HOLD</text>
+        <view class="hold-box" catchtouchstart="onHold">
+          <view class="hold-piece {{holdClass}}">
+            <text>{{holdPiece}}</text>
+          </view>
+          <text class="hold-hint">点按暂存</text>
+        </view>
+      </view>
+
+      <view class="stats">
+        <view class="stat-row">
+          <text class="stat-label">LINES</text>
+          <text class="stat-value">{{lines}}</text>
+        </view>
+        <view class="stat-row">
+          <text class="stat-label">BEST</text>
+          <text class="stat-value">{{best}}</text>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <view class="controls" wx:if="{{gameState === 'playing'}}" catchtouchend="noop">
+    <view class="control-btn" catchtouchstart="onLeft">
+      <view class="arr arr-left"></view>
+    </view>
+    <view class="control-btn" catchtouchstart="onRight">
+      <view class="arr arr-right"></view>
+    </view>
+    <view class="control-btn" catchtouchstart="onDown">
+      <view class="arr arr-down"></view>
+    </view>
+    <view class="control-btn rotate-btn" catchtouchstart="onRotate">
+      <view class="arr arr-up"></view>
+    </view>
+    <view class="control-btn drop-btn" catchtouchstart="onDrop">
+      <text class="drop-text">DROP</text>
+    </view>
+  </view>
+
+  <view class="overlay" wx:if="{{gameState === 'over'}}">
+    <view class="over-card">
+      <text class="over-title">游戏结束</text>
+      <text class="over-score">得分 {{score}}</text>
+      <text class="over-best">最高 {{best}}</text>
+      <view class="restart-btn" catchtouchstart="onRestart">重新开始</view>
+    </view>
+  </view>
+</view>

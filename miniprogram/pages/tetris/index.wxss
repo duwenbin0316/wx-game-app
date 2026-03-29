@@ -1,0 +1,381 @@
+page {
+  background: #1A1A2E;
+}
+
+.tetris-page {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  display: flex;
+  flex-direction: column;
+  background: #1A1A2E;
+  color: #C0C0E8;
+  font-family: monospace;
+  touch-action: manipulation;
+}
+
+.game-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14rpx 32rpx;
+  background: #1E1E38;
+  border-bottom: 2rpx solid #2E3A5C;
+  flex-shrink: 0;
+}
+
+.header-level {
+  font-size: 26rpx;
+  font-weight: 700;
+  color: #C0C0E8;
+  letter-spacing: 3rpx;
+  font-family: monospace;
+}
+
+.header-score {
+  font-size: 24rpx;
+  color: #E8873A;
+  letter-spacing: 2rpx;
+  font-family: monospace;
+}
+
+.main-area {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: row;
+}
+
+.board-wrap {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+}
+
+.board-canvas {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.side-panel {
+  width: 132rpx;
+  background: #1E1E38;
+  border-left: 2rpx solid #2E3A5C;
+  padding: 18rpx 12rpx;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 18rpx;
+  flex-shrink: 0;
+}
+
+.side-section {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8rpx;
+}
+
+.side-label {
+  font-size: 20rpx;
+  color: #4A6FA5;
+  letter-spacing: 2rpx;
+  font-family: monospace;
+}
+
+.next-canvas {
+  width: 92rpx;
+  height: 92rpx;
+  display: block;
+  background: #0A0A1A;
+  border: 2rpx solid #2E3A5C;
+  box-shadow: 3rpx 3rpx 0 #0A0A1A;
+}
+
+.hold-box {
+  width: 100%;
+  min-height: 124rpx;
+  padding: 12rpx 8rpx;
+  box-sizing: border-box;
+  background: #16162E;
+  border: 2rpx solid #2E3A5C;
+  border-radius: 0;
+  box-shadow: 3rpx 3rpx 0 #0A0A1A;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8rpx;
+}
+
+.hold-box:active {
+  border-color: #E8873A;
+  background: rgba(232, 135, 58, 0.12);
+}
+
+.hold-piece {
+  min-width: 68rpx;
+  min-height: 68rpx;
+  padding: 6rpx;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2rpx solid #2E3A5C;
+  border-radius: 0;
+  font-size: 32rpx;
+  font-weight: 700;
+  letter-spacing: 2rpx;
+  font-family: monospace;
+}
+
+.hold-empty {
+  color: #4A6FA5;
+}
+
+.hold-I {
+  color: #60C0FF;
+  border-color: #60C0FF;
+}
+
+.hold-O {
+  color: #E8873A;
+  border-color: #E8873A;
+}
+
+.hold-T {
+  color: #A855F7;
+  border-color: #A855F7;
+}
+
+.hold-S {
+  color: #4CAF50;
+  border-color: #4CAF50;
+}
+
+.hold-Z {
+  color: #FF6B6B;
+  border-color: #FF6B6B;
+}
+
+.hold-J {
+  color: #4A6FA5;
+  border-color: #4A6FA5;
+}
+
+.hold-L {
+  color: #F5C842;
+  border-color: #F5C842;
+}
+
+.hold-hint {
+  font-size: 18rpx;
+  color: #4A6FA5;
+  letter-spacing: 1rpx;
+  text-align: center;
+  font-family: monospace;
+}
+
+.stats {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 10rpx;
+  margin-top: auto;
+}
+
+.stat-row {
+  width: 100%;
+  padding: 10rpx 8rpx;
+  box-sizing: border-box;
+  background: #16162E;
+  border: 2rpx solid #2E3A5C;
+  box-shadow: 3rpx 3rpx 0 #0A0A1A;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4rpx;
+}
+
+.stat-label {
+  font-size: 18rpx;
+  color: #4A6FA5;
+  letter-spacing: 1rpx;
+  font-family: monospace;
+}
+
+.stat-value {
+  font-size: 24rpx;
+  color: #C0C0E8;
+  font-weight: 700;
+  font-family: monospace;
+}
+
+.controls {
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  gap: 8rpx;
+  padding: 16rpx 24rpx 40rpx;
+  background: #1E1E38;
+  border-top: 2rpx solid #2E3A5C;
+  flex-shrink: 0;
+}
+
+.control-btn {
+  width: 88rpx;
+  height: 88rpx;
+  background: #16162E;
+  border: 2rpx solid #2E3A5C;
+  border-radius: 0;
+  box-shadow: 3rpx 3rpx 0 #0A0A1A;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #4A6FA5;
+  font-size: 34rpx;
+  font-family: monospace;
+  user-select: none;
+}
+
+.control-btn:active {
+  border-color: #E8873A;
+  color: #E8873A;
+  background: rgba(232, 135, 58, 0.12);
+}
+
+.control-btn:active .arr-up {
+  border-bottom-color: #E8873A;
+}
+
+.control-btn:active .arr-left {
+  border-right-color: #E8873A;
+}
+
+.control-btn:active .arr-right {
+  border-left-color: #E8873A;
+}
+
+.control-btn:active .arr-down {
+  border-top-color: #E8873A;
+}
+
+.drop-btn {
+  background: #E8873A;
+  color: #1A1A2E;
+  border-color: #E8873A;
+}
+
+.drop-btn:active {
+  opacity: 0.88;
+}
+
+.drop-text {
+  font-size: 22rpx;
+  font-weight: 700;
+  letter-spacing: 2rpx;
+  font-family: monospace;
+}
+
+.arr {
+  display: block;
+  width: 0;
+  height: 0;
+}
+
+.arr-up {
+  border-left: 14rpx solid transparent;
+  border-right: 14rpx solid transparent;
+  border-bottom: 20rpx solid #4A6FA5;
+}
+
+.arr-left {
+  border-top: 14rpx solid transparent;
+  border-bottom: 14rpx solid transparent;
+  border-right: 20rpx solid #4A6FA5;
+}
+
+.arr-right {
+  border-top: 14rpx solid transparent;
+  border-bottom: 14rpx solid transparent;
+  border-left: 20rpx solid #4A6FA5;
+}
+
+.arr-down {
+  border-left: 14rpx solid transparent;
+  border-right: 14rpx solid transparent;
+  border-top: 20rpx solid #4A6FA5;
+}
+
+.overlay {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(10, 10, 30, 0.85);
+  z-index: 10;
+}
+
+.over-card {
+  min-width: 480rpx;
+  padding: 48rpx 40rpx;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: rgba(30, 30, 60, 0.97);
+  border: 2rpx solid #E8873A;
+  border-radius: 0;
+  box-shadow: 6rpx 6rpx 0 #0E0E22;
+}
+
+.over-title {
+  font-size: 46rpx;
+  font-weight: 700;
+  color: #FFFFFF;
+  letter-spacing: 6rpx;
+  font-family: monospace;
+  margin-bottom: 18rpx;
+}
+
+.over-score {
+  font-size: 30rpx;
+  color: #E8873A;
+  letter-spacing: 2rpx;
+  font-family: monospace;
+  margin-bottom: 10rpx;
+}
+
+.over-best {
+  font-size: 22rpx;
+  color: #4A6FA5;
+  letter-spacing: 2rpx;
+  font-family: monospace;
+  margin-bottom: 42rpx;
+}
+
+.restart-btn {
+  padding: 20rpx 44rpx;
+  background: #E8873A;
+  color: #1A1A2E;
+  border: 2rpx solid #E8873A;
+  border-radius: 0;
+  box-shadow: 3rpx 3rpx 0 #0E0E22;
+  font-size: 28rpx;
+  font-weight: 700;
+  letter-spacing: 3rpx;
+  font-family: monospace;
+}
+
+.restart-btn:active {
+  opacity: 0.88;
+}

@@ -22,6 +22,12 @@ Page({
         name: '像素推箱子',
         desc: '把箱子推到目标位置，共 8 关',
         url: '/pages/sokoban/index'
+      },
+      {
+        id: 'tetris',
+        name: '俄罗斯方块',
+        desc: '消除方块，挑战最高分！',
+        url: '/pages/tetris/index'
       }
     ]
   },
