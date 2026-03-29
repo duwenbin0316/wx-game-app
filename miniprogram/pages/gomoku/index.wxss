@@ -239,8 +239,9 @@ page {
 }
 
 .chess.black {
-  background: radial-gradient(circle at 35% 35%, #4b5563, #0f172a);
-  box-shadow: 0 2rpx 8rpx rgba(0,0,0,0.5);
+  background: radial-gradient(circle at 35% 35%, #6b7280, #1e293b);
+  border: 2rpx solid #9ca3af;
+  box-shadow: 0 2rpx 8rpx rgba(0,0,0,0.6), 0 0 6rpx rgba(156,163,175,0.4);
 }
 
 .chess.white {
