@@ -150,8 +150,8 @@
 
 .board-grid {
   position: relative;
-  width: 100%;
   /* container 左右各 20rpx + board 左右各 20rpx = 共减 80rpx */
+  width: calc(100vw - 80rpx);
   height: calc(100vw - 80rpx);
   box-sizing: border-box;
 }
