@@ -29,7 +29,7 @@
       <text class="win-title">{{isAllDone ? '全部完成！' : '通关！'}}</text>
       <text class="win-sub">第 {{levelIndex + 1}} 关 · 用了 {{steps}} 步</text>
       <view class="win-btns">
-        <view class="win-btn retry-btn" catchtouchstart="onRestart">重玩</view>
+        <view class="win-btn retry-btn" catchtouchstart="onRestart">{{isAllDone ? '再来一遍' : '重玩'}}</view>
         <view class="win-btn next-btn" catchtouchstart="onNext" wx:if="{{!isAllDone}}">下一关 ›</view>
       </view>
     </view>

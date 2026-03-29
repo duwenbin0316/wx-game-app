@@ -202,7 +202,8 @@ Page({
 
   // ─── 通关按钮 ─────────────────────────────────────────
   onRestart() {
-    this._loadLevel(this.data.levelIndex);
+    const idx = this.data.isAllDone ? 0 : this.data.levelIndex;
+    this._loadLevel(idx);
   },
 
   onNext() {
