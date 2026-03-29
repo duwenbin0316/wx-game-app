@@ -454,22 +454,28 @@ Page({
     }
   },
 
-  // 真实感云朵：多个重叠圆弧融合成蓬松轮廓
+  // 真实感云朵：8个重叠圆弧，垂直压扁 0.55 倍，蓬松可爱
   _drawCloud(cx, cy, r) {
     const ctx = this._ctx;
-    ctx.fillStyle = 'rgba(58, 62, 95, 0.82)';
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.scale(1, 0.55);   // 压扁，让云朵更横向
+    ctx.fillStyle = 'rgba(58, 62, 95, 0.85)';
     [
-      [  0,      0,    r     ],
-      [ -r*0.52, r*0.28, r*0.70],
-      [  r*0.52, r*0.28, r*0.70],
-      [ -r*0.88, r*0.52, r*0.50],
-      [  r*0.88, r*0.52, r*0.50],
-      [  0,      r*0.42, r*0.58],
+      [  0,       0,      r      ],  // 中心主体
+      [ -r*0.50,  r*0.22, r*0.68 ],  // 左中
+      [  r*0.50,  r*0.22, r*0.68 ],  // 右中
+      [ -r*0.88,  r*0.42, r*0.50 ],  // 左边
+      [  r*0.88,  r*0.42, r*0.50 ],  // 右边
+      [  0,       r*0.38, r*0.56 ],  // 中底
+      [ -r*0.26, -r*0.22, r*0.46 ],  // 新：左顶小包
+      [  r*0.26, -r*0.22, r*0.46 ],  // 新：右顶小包
     ].forEach(([dx, dy, rad]) => {
       ctx.beginPath();
-      ctx.arc(cx + dx, cy + dy, rad, 0, Math.PI * 2);
+      ctx.arc(dx, dy, rad, 0, Math.PI * 2);
       ctx.fill();
     });
+    ctx.restore();
   },
 
   _drawObstacle(ob) {
