@@ -11,10 +11,10 @@ const PW = 32;
 const PH = 32;
 
 // ─── 玩家像素图案（宽扁像素怪兽，6列×6行）────────────────
-// 身体：6列×4行；侧耳：row1 左右各凸1格；腿：col1/col4 各2格
-// PS=4, POX=4 → 左耳 p.x+0, 右耳右边 p.x+32 = PW，完全贴合
-const PS  = 4;
-const POX = 4;
+// 像素块偏扁：PSW=5宽, PSH=4高；身体6列×4行；臂：rows1-2居中凸出
+const PSW = 5;   // 像素块宽（偏扁）
+const PSH = 4;   // 像素块高
+const POX = 1;   // body 左边距（视觉宽30px居于PW=32内）
 const POY = 8;   // 视觉高度24px(body16+腿8)，下移8px使脚贴地
 
 const PL_BODY = [
@@ -405,30 +405,30 @@ Page({
     const by = p.y + POY;
     const step = Math.floor(this._frame / 8) % 2; // 0 or 1，交替步伐
 
-    // 主体（橙色）
+    // 主体（橙色，偏扁像素块）
     ctx.fillStyle = '#E8873A';
-    PL_BODY.forEach(([r, c]) => ctx.fillRect(bx + c*PS, by + r*PS, PS, PS));
+    PL_BODY.forEach(([r, c]) => ctx.fillRect(bx + c*PSW, by + r*PSH, PSW, PSH));
 
-    // 侧耳：body row2（眼睛下方，身体中段）左右各凸 1 格
-    ctx.fillRect(bx - PS,     by + 2*PS, PS, PS);   // 左耳
-    ctx.fillRect(bx + 6 * PS, by + 2*PS, PS, PS);   // 右耳
+    // 侧臂：rows 1-2（垂直居中于4行身体），左右各凸 1 格，2行高
+    ctx.fillRect(bx - PSW,     by + 1*PSH, PSW, 2*PSH);   // 左臂
+    ctx.fillRect(bx + 6 * PSW, by + 1*PSH, PSW, 2*PSH);   // 右臂
 
     // 高光（左上角亮橙）
     ctx.fillStyle = '#F5A855';
-    PL_HL.forEach(([r, c]) => ctx.fillRect(bx + c*PS, by + r*PS, PS, PS));
+    PL_HL.forEach(([r, c]) => ctx.fillRect(bx + c*PSW, by + r*PSH, PSW, PSH));
 
     // 眼睛（深色小方块）
     ctx.fillStyle = '#1A1A2E';
-    PL_EYES.forEach(([r, c]) => ctx.fillRect(bx + c*PS + 1, by + r*PS + 1, PS - 2, PS - 2));
+    PL_EYES.forEach(([r, c]) => ctx.fillRect(bx + c*PSW + 1, by + r*PSH + 1, PSW - 2, PSH - 2));
 
     // 腿动画：两腿交替，一条完整(rows4-5)，另一条半步(row4)
     ctx.fillStyle = '#C86820';
     // 左腿
-    ctx.fillRect(bx + 1*PS, by + 4*PS, PS, PS);
-    if (step === 0) ctx.fillRect(bx + 1*PS, by + 5*PS, PS, PS);
+    ctx.fillRect(bx + 1*PSW, by + 4*PSH, PSW, PSH);
+    if (step === 0) ctx.fillRect(bx + 1*PSW, by + 5*PSH, PSW, PSH);
     // 右腿
-    ctx.fillRect(bx + 4*PS, by + 4*PS, PS, PS);
-    if (step === 1) ctx.fillRect(bx + 4*PS, by + 5*PS, PS, PS);
+    ctx.fillRect(bx + 4*PSW, by + 4*PSH, PSW, PSH);
+    if (step === 1) ctx.fillRect(bx + 4*PSW, by + 5*PSH, PSW, PSH);
   },
 
   _drawMoon() {
