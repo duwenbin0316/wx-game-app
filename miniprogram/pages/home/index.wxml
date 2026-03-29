@@ -1,18 +1,14 @@
 <view class="home-container">
-  <!-- 顶部标题 -->
+  <!-- 像素角色 Logo 区域 -->
   <view class="header">
-    <view class="header-deco">
-      <view class="deco-dot"></view>
-      <view class="deco-line"></view>
-      <view class="deco-dot"></view>
-    </view>
-    <text class="title">游戏大厅</text>
-    <text class="subtitle">GAME HUB</text>
+    <canvas id="logo-canvas" type="2d" class="logo-canvas"></canvas>
+    <text class="title">GAME HUB</text>
+    <text class="subtitle">像素游戏大厅</text>
   </view>
 
   <!-- 游戏列表 -->
   <view class="game-list">
-    <text class="section-label">全部游戏</text>
+    <text class="section-label">— 全部游戏 —</text>
     <view
       wx:for="{{games}}"
       wx:key="id"
