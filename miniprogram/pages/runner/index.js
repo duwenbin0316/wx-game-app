@@ -13,9 +13,9 @@ const PH = 32;
 // ─── 玩家像素图案（5列×4行，像素正方）────────────────────
 // PSW=PSH=5（正方像素块）；身体5列×4行 = 25×20px（比例1.25:1，贴近参考图）
 // 臂：rows1-2 居中凸出；腿：col1/col3 中间留1格
-const PSW = 5;   // 像素块宽
-const PSH = 5;   // 像素块高（正方块，整体不再太扁）
-const POX = 3;   // body 左边距（25px居于PW=32）
+const PSW = 4;   // 像素块宽（瘦一点）
+const PSH = 5;   // 像素块高
+const POX = 6;   // body 左边距（20px居于PW=32）
 const POY = 7;   // 视觉高度25px(body20+腿5)，下移7px使脚贴地
 
 const PL_BODY = [
