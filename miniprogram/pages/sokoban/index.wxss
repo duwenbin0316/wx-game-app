@@ -1,3 +1,7 @@
+page {
+  background: #1A1A2E;
+}
+
 .sokoban-container {
   position: fixed;
   top: 0; left: 0; right: 0; bottom: 0;
@@ -7,75 +11,110 @@
   touch-action: manipulation;
 }
 
+/* ── 顶部信息栏 ── */
+.game-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14rpx 32rpx;
+  background: #1E1E38;
+  border-bottom: 2rpx solid #2E3A5C;
+  flex-shrink: 0;
+}
+
+.header-level {
+  font-size: 26rpx;
+  font-weight: 700;
+  color: #C0C0E8;
+  letter-spacing: 3rpx;
+  font-family: monospace;
+}
+
+.header-steps {
+  font-size: 24rpx;
+  color: #E8873A;
+  letter-spacing: 2rpx;
+  font-family: monospace;
+}
+
+/* ── 游戏画布 ── */
 .sokoban-canvas {
   width: 100%;
   flex: 1;
   display: block;
+  min-height: 0;
 }
 
-/* ── 方向键 ── */
+/* ── 控制区 ── */
 .controls {
   display: flex;
   flex-direction: row;
   align-items: center;
   justify-content: space-between;
-  padding: 16rpx 48rpx 40rpx;
-  background: rgba(10, 10, 30, 0.6);
+  padding: 20rpx 40rpx 44rpx;
+  background: #1E1E38;
+  border-top: 2rpx solid #2E3A5C;
+  flex-shrink: 0;
 }
 
 .dpad {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 4rpx;
+  gap: 6rpx;
 }
 
 .dpad-row {
   display: flex;
   flex-direction: row;
   align-items: center;
-  gap: 4rpx;
+  gap: 6rpx;
 }
 
 .dpad-up, .dpad-down, .dpad-left, .dpad-right {
-  width: 88rpx;
-  height: 88rpx;
-  background: rgba(74, 111, 165, 0.35);
-  border: 2rpx solid #4A6FA5;
-  border-radius: 12rpx;
+  width: 96rpx;
+  height: 96rpx;
+  background: #16162E;
+  border: 2rpx solid #2E3A5C;
+  border-radius: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 36rpx;
-  color: #A0BFDF;
+  font-size: 34rpx;
+  color: #4A6FA5;
   user-select: none;
+  box-shadow: 3rpx 3rpx 0 #0A0A1A;
 }
 
 .dpad-up:active, .dpad-down:active,
 .dpad-left:active, .dpad-right:active {
-  background: rgba(74, 111, 165, 0.65);
+  background: rgba(232, 135, 58, 0.12);
+  border-color: #E8873A;
+  color: #E8873A;
 }
 
 .dpad-center {
-  width: 88rpx;
-  height: 88rpx;
+  width: 96rpx;
+  height: 96rpx;
 }
 
-/* 撤销按钮 */
+/* ── 撤销按钮 ── */
 .undo-btn {
-  padding: 20rpx 36rpx;
-  background: rgba(74, 111, 165, 0.25);
-  border: 2rpx solid #4A6FA5;
-  border-radius: 12rpx;
-  color: #A0BFDF;
-  font-size: 28rpx;
+  padding: 22rpx 40rpx;
+  background: #16162E;
+  border: 2rpx solid #2E3A5C;
+  border-radius: 0;
+  color: #4A6FA5;
+  font-size: 26rpx;
   font-family: monospace;
   letter-spacing: 2rpx;
   user-select: none;
+  box-shadow: 3rpx 3rpx 0 #0A0A1A;
 }
 
 .undo-btn:active {
-  background: rgba(74, 111, 165, 0.55);
+  background: rgba(74, 111, 165, 0.2);
+  border-color: #4A6FA5;
 }
 
 /* ── 通关 overlay ── */
@@ -93,32 +132,32 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 60rpx 56rpx 52rpx;
+  padding: 56rpx 56rpx 44rpx;
   background: rgba(30, 30, 60, 0.97);
   border: 2rpx solid #F5C842;
-  border-radius: 20rpx;
+  border-radius: 0;
   min-width: 520rpx;
-  box-shadow: 0 0 48rpx rgba(245, 200, 66, 0.3);
+  box-shadow: 6rpx 6rpx 0 #0E0E22, 0 0 40rpx rgba(245,200,66,0.25);
 }
 
 .win-emoji {
-  font-size: 72rpx;
+  font-size: 64rpx;
   color: #F5C842;
-  margin-bottom: 12rpx;
+  margin-bottom: 16rpx;
 }
 
 .win-title {
-  font-size: 52rpx;
+  font-size: 48rpx;
   font-weight: 700;
   color: #FFFFFF;
   letter-spacing: 6rpx;
   font-family: monospace;
-  margin-bottom: 16rpx;
+  margin-bottom: 14rpx;
 }
 
 .win-sub {
-  font-size: 24rpx;
-  color: #6A6A9A;
+  font-size: 22rpx;
+  color: #4A6FA5;
   letter-spacing: 2rpx;
   font-family: monospace;
   margin-bottom: 48rpx;
@@ -126,29 +165,30 @@
 
 .win-btns {
   display: flex;
-  gap: 24rpx;
+  gap: 20rpx;
 }
 
 .win-btn {
   padding: 20rpx 44rpx;
-  border-radius: 10rpx;
-  font-size: 30rpx;
+  border-radius: 0;
+  font-size: 28rpx;
   font-weight: 700;
   font-family: monospace;
   letter-spacing: 3rpx;
   user-select: none;
+  box-shadow: 3rpx 3rpx 0 #0E0E22;
 }
 
 .retry-btn {
-  background: transparent;
-  border: 2rpx solid #4A6FA5;
+  background: #1E1E38;
+  border: 2rpx solid #2E3A5C;
   color: #4A6FA5;
 }
 
 .retry-btn:active { opacity: 0.7; }
 
 .next-btn {
-  background: #F5C842;
+  background: #E8873A;
   color: #1A1A2E;
 }
 

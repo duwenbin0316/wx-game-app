@@ -234,10 +234,10 @@ Page({
     const cols = map[0].length;
     const rows = map.length;
     const maxW = this._W;
-    const maxH = this._H * 0.78;  // 留出控制区
+    const maxH = this._H;
     this._cell  = Math.floor(Math.min(maxW / cols, maxH / rows));
     this._offX  = Math.round((this._W - cols * this._cell) / 2);
-    this._offY  = Math.round((this._H * 0.78 - rows * this._cell) / 2);
+    this._offY  = Math.round((this._H - rows * this._cell) / 2);
 
     this.setData({ gameState: 'playing', levelIndex: idx, steps: 0, isAllDone: false });
     this._draw();

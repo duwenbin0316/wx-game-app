@@ -1,4 +1,11 @@
 <view class="sokoban-container" bindtouchstart="onTouchStart" bindtouchend="onTouchEnd">
+
+  <!-- 顶部信息栏 -->
+  <view class="game-header">
+    <text class="header-level">第 {{levelIndex + 1}} 关</text>
+    <text class="header-steps">{{steps}} 步</text>
+  </view>
+
   <canvas id="sokoban-canvas" type="2d" class="sokoban-canvas"></canvas>
 
   <!-- 方向控制键 + 撤销 -->
