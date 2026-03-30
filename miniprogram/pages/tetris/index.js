@@ -233,16 +233,40 @@ Page({
 
   onLeft() {
     if (this.data.gameState !== 'playing') return;
-    if (this._tryMove(0, -1)) {
-      this._renderAll();
-    }
+    if (this._tryMove(0, -1)) this._renderAll();
+    this._startRepeat(() => {
+      if (this._tryMove(0, -1)) this._renderAll();
+    });
   },
 
   onRight() {
     if (this.data.gameState !== 'playing') return;
-    if (this._tryMove(0, 1)) {
-      this._renderAll();
-    }
+    if (this._tryMove(0, 1)) this._renderAll();
+    this._startRepeat(() => {
+      if (this._tryMove(0, 1)) this._renderAll();
+    });
+  },
+
+  onDown() {
+    if (this.data.gameState !== 'playing') return;
+    this._stepDown(true);
+    this._startRepeat(() => this._stepDown(true));
+  },
+
+  onMoveEnd() {
+    this._stopRepeat();
+  },
+
+  _startRepeat(fn) {
+    this._stopRepeat();
+    this._repeatDelay = setTimeout(() => {
+      this._repeatTimer = setInterval(fn, 80);
+    }, 200);
+  },
+
+  _stopRepeat() {
+    if (this._repeatDelay) { clearTimeout(this._repeatDelay); this._repeatDelay = null; }
+    if (this._repeatTimer) { clearInterval(this._repeatTimer); this._repeatTimer = null; }
   },
 
   onRotate() {
@@ -250,11 +274,6 @@ Page({
     if (this._tryRotate()) {
       this._renderAll();
     }
-  },
-
-  onDown() {
-    if (this.data.gameState !== 'playing') return;
-    this._stepDown(true);
   },
 
   onDrop() {

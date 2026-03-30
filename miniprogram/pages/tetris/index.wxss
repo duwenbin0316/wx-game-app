@@ -219,12 +219,35 @@ page {
 .controls {
   display: flex;
   flex-direction: row;
-  justify-content: center;
-  gap: 8rpx;
-  padding: 16rpx 24rpx 40rpx;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20rpx 48rpx 44rpx;
   background: #1E1E38;
   border-top: 2rpx solid #2E3A5C;
   flex-shrink: 0;
+}
+
+.dpad {
+  display: flex;
+  flex-direction: column;
+  gap: 8rpx;
+}
+
+.dpad-top {
+  display: flex;
+  justify-content: center;
+}
+
+.dpad-mid {
+  display: flex;
+  flex-direction: row;
+  gap: 8rpx;
+}
+
+.action-zone {
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .control-btn {
@@ -266,6 +289,8 @@ page {
 }
 
 .drop-btn {
+  width: 120rpx;
+  height: 120rpx;
   background: #E8873A;
   color: #1A1A2E;
   border-color: #E8873A;
