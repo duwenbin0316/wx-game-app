@@ -221,33 +221,54 @@ page {
   flex-direction: row;
   justify-content: space-between;
   align-items: center;
-  padding: 20rpx 48rpx 44rpx;
+  padding: 24rpx 40rpx 52rpx;
   background: #1E1E38;
   border-top: 2rpx solid #2E3A5C;
   flex-shrink: 0;
 }
 
-.dpad {
+.ctrl-move {
   display: flex;
   flex-direction: column;
-  gap: 8rpx;
+  align-items: center;
+  gap: 10rpx;
 }
 
-.dpad-top {
-  display: flex;
-  justify-content: center;
-}
-
-.dpad-mid {
+.ctrl-lr {
   display: flex;
   flex-direction: row;
-  gap: 8rpx;
+  gap: 10rpx;
+  align-items: center;
 }
 
-.action-zone {
+.ctrl-action {
   display: flex;
+  flex-direction: row;
+  gap: 10rpx;
   align-items: center;
-  justify-content: center;
+}
+
+.ctrl-btn-lg {
+  width: 108rpx;
+  height: 108rpx;
+}
+
+.ctrl-btn-md {
+  width: 80rpx;
+  height: 80rpx;
+}
+
+.ctrl-rotate {
+  border-color: #6B5BD6;
+}
+
+.ctrl-rotate:active {
+  border-color: #A855F7 !important;
+  background: rgba(168, 85, 247, 0.15) !important;
+}
+
+.ctrl-rotate:active .arr-up {
+  border-bottom-color: #A855F7 !important;
 }
 
 .control-btn {
@@ -289,8 +310,6 @@ page {
 }
 
 .drop-btn {
-  width: 120rpx;
-  height: 120rpx;
   background: #E8873A;
   color: #1A1A2E;
   border-color: #E8873A;

@@ -39,26 +39,24 @@
   </view>
 
   <view class="controls" wx:if="{{gameState === 'playing'}}" catchtouchend="noop">
-    <view class="dpad">
-      <view class="dpad-top">
-        <view class="control-btn" catchtouchstart="onRotate">
-          <view class="arr arr-up"></view>
-        </view>
-      </view>
-      <view class="dpad-mid">
-        <view class="control-btn" catchtouchstart="onLeft" catchtouchend="onMoveEnd">
+    <view class="ctrl-move">
+      <view class="ctrl-lr">
+        <view class="control-btn ctrl-btn-lg" catchtouchstart="onLeft" catchtouchend="onMoveEnd">
           <view class="arr arr-left"></view>
         </view>
-        <view class="control-btn" catchtouchstart="onDown" catchtouchend="onMoveEnd">
+        <view class="control-btn ctrl-btn-md" catchtouchstart="onDown" catchtouchend="onMoveEnd">
           <view class="arr arr-down"></view>
         </view>
-        <view class="control-btn" catchtouchstart="onRight" catchtouchend="onMoveEnd">
+        <view class="control-btn ctrl-btn-lg" catchtouchstart="onRight" catchtouchend="onMoveEnd">
           <view class="arr arr-right"></view>
         </view>
       </view>
     </view>
-    <view class="action-zone">
-      <view class="control-btn drop-btn" catchtouchstart="onDrop">
+    <view class="ctrl-action">
+      <view class="control-btn ctrl-btn-lg ctrl-rotate" catchtouchstart="onRotate">
+        <view class="arr arr-up"></view>
+      </view>
+      <view class="control-btn ctrl-btn-lg drop-btn" catchtouchstart="onDrop">
         <text class="drop-text">DROP</text>
       </view>
     </view>
