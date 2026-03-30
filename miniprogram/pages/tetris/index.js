@@ -123,6 +123,7 @@ Page({
     level: 1,
     lines: 0,
     gameState: 'playing',
+    isNewBest: false,
     holdPiece: '--',
     holdClass: 'hold-empty'
   },
@@ -184,7 +185,24 @@ Page({
   },
 
   onHide() {
+    if (this.data.gameState === 'playing') {
+      this._stopGravity();
+      this.setData({ gameState: 'paused' });
+    } else {
+      this._stopGravity();
+    }
+  },
+
+  onPause() {
+    if (this.data.gameState !== 'playing') return;
     this._stopGravity();
+    this.setData({ gameState: 'paused' });
+  },
+
+  onResume() {
+    if (this.data.gameState !== 'paused') return;
+    this.setData({ gameState: 'playing' });
+    this._startGravity();
   },
 
   onUnload() {
@@ -333,7 +351,8 @@ Page({
       best: this._best || 0,
       level: 1,
       lines: 0,
-      gameState: 'playing'
+      gameState: 'playing',
+      isNewBest: false
     });
     this._syncHoldData();
 
@@ -529,7 +548,8 @@ Page({
   _finishGame() {
     this._stopGravity();
 
-    if (this._score > (this._best || 0)) {
+    const isNewBest = this._score > (this._best || 0);
+    if (isNewBest) {
       this._best = this._score;
       wx.setStorageSync(STORAGE_KEY, this._best);
     }
@@ -539,7 +559,8 @@ Page({
       best: this._best,
       level: this._level,
       lines: this._lines,
-      gameState: 'over'
+      gameState: 'over',
+      isNewBest
     });
     this._renderAll();
   },
