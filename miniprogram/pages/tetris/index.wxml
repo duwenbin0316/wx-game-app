@@ -63,10 +63,10 @@
       </view>
     </view>
     <view class="ctrl-action">
-      <view class="control-btn ctrl-btn-lg ctrl-rotate" catchtouchstart="onRotate">
+      <view class="control-btn ctrl-btn-act ctrl-rotate" catchtouchstart="onRotate">
         <text class="rot-text">ROT</text>
       </view>
-      <view class="control-btn ctrl-btn-lg drop-btn" catchtouchstart="onDrop">
+      <view class="control-btn ctrl-btn-act drop-btn" catchtouchstart="onDrop">
         <text class="drop-text">DROP</text>
       </view>
     </view>

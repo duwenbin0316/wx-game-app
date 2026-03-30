@@ -611,7 +611,8 @@ Page({
   },
 
   _computeBoardMetrics() {
-    const cell = Math.max(8, Math.floor(Math.min(this._canvasWidth / BOARD_COLS, this._canvasHeight / BOARD_ROWS)));
+    const MAX_CELL = 30; // cap to keep blocks crisp, not chunky
+    const cell = Math.max(8, Math.min(MAX_CELL, Math.floor(Math.min(this._canvasWidth / BOARD_COLS, this._canvasHeight / BOARD_ROWS))));
     const width = cell * BOARD_COLS;
     const height = cell * BOARD_ROWS;
     this._boardRect = {
