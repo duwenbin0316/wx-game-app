@@ -871,11 +871,17 @@ const applyTimeDecay = (pet) => {
 
 const getPet = async () => {
   try {
-    await createPetsCollection();
     const wxContext = cloud.getWXContext();
     const openid = wxContext.OPENID;
 
-    const result = await db.collection('pets').where({ openid }).get();
+    // 确保集合存在，查询失败时重试一次
+    let result;
+    try {
+      result = await db.collection('pets').where({ openid }).get();
+    } catch (queryErr) {
+      await createPetsCollection();
+      result = await db.collection('pets').where({ openid }).get();
+    }
 
     if (result.data && result.data.length > 0) {
       const pet = result.data[0];

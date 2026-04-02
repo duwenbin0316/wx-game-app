@@ -77,6 +77,7 @@ Page({
     showRename: false,
     renameInput: '',
     statusText: '',
+    loadError: '',
   },
 
   _canvasCtx: null,
@@ -122,6 +123,7 @@ Page({
 
   // ── 数据加载 ───────────────────────────────────────────────
   async _loadPet() {
+    this.setData({ loadError: '' });
     try {
       const result = await wx.cloud.callFunction({
         name: 'quickstartFunctions',
@@ -133,14 +135,24 @@ Page({
           pet,
           petAge: this._computeAge(pet),
           statusText: this._getStatusText(pet),
+          loadError: '',
         });
         if (this._canvasCtx && !this._animTimer) {
           this._startAnimation();
         }
+      } else {
+        const msg = result.result?.errMsg || '云函数返回失败';
+        console.error('[pet] getPet failed:', msg);
+        this.setData({ loadError: msg });
       }
     } catch (e) {
-      wx.showToast({ title: '加载失败', icon: 'none' });
+      console.error('[pet] callFunction error:', e);
+      this.setData({ loadError: e.message || '网络错误' });
     }
+  },
+
+  onRetry() {
+    this._loadPet();
   },
 
   _computeAge(pet) {

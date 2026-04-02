@@ -11,7 +11,13 @@
 
     <canvas id="pet-canvas" type="2d" class="pet-canvas"></canvas>
 
-    <text wx:if="{{!pet}}" class="loading-text">正在唤醒宠物...</text>
+    <block wx:if="{{loadError}}">
+      <text class="error-text">加载失败：{{loadError}}</text>
+      <view class="retry-btn" bindtap="onRetry">
+        <text class="retry-text">重试</text>
+      </view>
+    </block>
+    <text wx:elif="{{!pet}}" class="loading-text">正在唤醒宠物...</text>
     <text wx:else class="status-text">{{statusText}}</text>
     <text wx:if="{{pet}}" class="age-text">第 {{petAge}} 天</text>
   </view>
