@@ -28,6 +28,12 @@ Page({
         name: '俄罗斯方块',
         desc: '消除方块，挑战最高分！',
         url: '/pages/tetris/index'
+      },
+      {
+        id: 'pet',
+        name: '电子宠物',
+        desc: '像素风小猫咪，需要你的照顾',
+        url: '/pages/pet/index'
       }
     ]
   },

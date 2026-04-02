@@ -834,6 +834,159 @@ const respondUndo = async (event) => {
   }
 };
 
+// ── 电子宠物 ─────────────────────────────────────────────────
+
+const createPetsCollection = async () => {
+  try {
+    await db.createCollection('pets');
+  } catch (e) {
+    // already exists
+  }
+};
+
+const applyTimeDecay = (pet) => {
+  const now = Date.now();
+  const lastUpdated = pet.lastUpdated ? new Date(pet.lastUpdated).getTime() : now;
+  const hoursElapsed = Math.min((now - lastUpdated) / 3600000, 48);
+
+  let { hunger, happiness, health, isSleeping } = pet;
+
+  if (isSleeping) {
+    hunger     = Math.max(0, hunger     - hoursElapsed * 3);
+    happiness  = Math.max(0, happiness  - hoursElapsed * 1);
+    health     = Math.min(100, health   + hoursElapsed * 3);
+  } else {
+    hunger    = Math.max(0, hunger    - hoursElapsed * 8);
+    happiness = Math.max(0, happiness - hoursElapsed * 5);
+    if (hunger    < 25) health = Math.max(0, health - hoursElapsed * 5);
+    if (happiness < 25) health = Math.max(0, health - hoursElapsed * 3);
+  }
+
+  return {
+    hunger:    Math.round(hunger),
+    happiness: Math.round(happiness),
+    health:    Math.round(health),
+  };
+};
+
+const getPet = async () => {
+  try {
+    await createPetsCollection();
+    const wxContext = cloud.getWXContext();
+    const openid = wxContext.OPENID;
+
+    const result = await db.collection('pets').where({ openid }).get();
+
+    if (result.data && result.data.length > 0) {
+      const pet = result.data[0];
+      const decayed = applyTimeDecay(pet);
+      await db.collection('pets').doc(pet._id).update({
+        data: { ...decayed, lastUpdated: new Date() }
+      });
+      return { success: true, pet: { ...pet, ...decayed, lastUpdated: new Date().toISOString() } };
+    }
+
+    // First visit — create pet
+    const now = new Date();
+    const newPet = {
+      openid,
+      name: '小可爱',
+      hunger: 80,
+      happiness: 80,
+      health: 100,
+      isSleeping: false,
+      createdAt: now,
+      lastUpdated: now,
+    };
+    const added = await db.collection('pets').add({ data: newPet });
+    return {
+      success: true,
+      pet: { _id: added._id, ...newPet, createdAt: now.toISOString(), lastUpdated: now.toISOString() },
+      isNew: true,
+    };
+  } catch (e) {
+    return { success: false, errMsg: e.message };
+  }
+};
+
+const feedPet = async () => {
+  try {
+    const wxContext = cloud.getWXContext();
+    const result = await db.collection('pets').where({ openid: wxContext.OPENID }).get();
+    if (!result.data || !result.data.length) return { success: false, errMsg: 'Pet not found' };
+
+    const pet = result.data[0];
+    const decayed = applyTimeDecay(pet);
+    const updates = {
+      ...decayed,
+      hunger:    Math.min(100, decayed.hunger    + 35),
+      happiness: Math.min(100, decayed.happiness + 5),
+      lastUpdated: new Date(),
+    };
+    await db.collection('pets').doc(pet._id).update({ data: updates });
+    return { success: true, pet: { ...pet, ...updates, lastUpdated: new Date().toISOString() } };
+  } catch (e) {
+    return { success: false, errMsg: e.message };
+  }
+};
+
+const playWithPet = async () => {
+  try {
+    const wxContext = cloud.getWXContext();
+    const result = await db.collection('pets').where({ openid: wxContext.OPENID }).get();
+    if (!result.data || !result.data.length) return { success: false, errMsg: 'Pet not found' };
+
+    const pet = result.data[0];
+    const decayed = applyTimeDecay(pet);
+    const updates = {
+      ...decayed,
+      happiness: Math.min(100, decayed.happiness + 35),
+      hunger:    Math.max(0,   decayed.hunger    - 10),
+      lastUpdated: new Date(),
+    };
+    await db.collection('pets').doc(pet._id).update({ data: updates });
+    return { success: true, pet: { ...pet, ...updates, lastUpdated: new Date().toISOString() } };
+  } catch (e) {
+    return { success: false, errMsg: e.message };
+  }
+};
+
+const toggleSleepPet = async () => {
+  try {
+    const wxContext = cloud.getWXContext();
+    const result = await db.collection('pets').where({ openid: wxContext.OPENID }).get();
+    if (!result.data || !result.data.length) return { success: false, errMsg: 'Pet not found' };
+
+    const pet = result.data[0];
+    const decayed = applyTimeDecay(pet);
+    const updates = {
+      ...decayed,
+      isSleeping: !pet.isSleeping,
+      lastUpdated: new Date(),
+    };
+    await db.collection('pets').doc(pet._id).update({ data: updates });
+    return { success: true, pet: { ...pet, ...updates, lastUpdated: new Date().toISOString() } };
+  } catch (e) {
+    return { success: false, errMsg: e.message };
+  }
+};
+
+const namePet = async (event) => {
+  try {
+    const wxContext = cloud.getWXContext();
+    const trimmedName = (event.name || '').trim().slice(0, 10);
+    if (!trimmedName) return { success: false, errMsg: 'Name cannot be empty' };
+
+    const result = await db.collection('pets').where({ openid: wxContext.OPENID }).get();
+    if (!result.data || !result.data.length) return { success: false, errMsg: 'Pet not found' };
+
+    await db.collection('pets').doc(result.data[0]._id).update({ data: { name: trimmedName } });
+    return { success: true, name: trimmedName };
+  } catch (e) {
+    return { success: false, errMsg: e.message };
+  }
+};
+
 // Cloud function entry
 exports.main = async (event, context) => {
   switch (event.type) {
@@ -873,6 +1026,16 @@ exports.main = async (event, context) => {
       return await requestUndo(event);
     case "respondUndo":
       return await respondUndo(event);
+    case "getPet":
+      return await getPet();
+    case "feedPet":
+      return await feedPet();
+    case "playWithPet":
+      return await playWithPet();
+    case "toggleSleepPet":
+      return await toggleSleepPet();
+    case "namePet":
+      return await namePet(event);
     default:
       return {
         success: false,

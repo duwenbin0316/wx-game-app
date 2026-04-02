@@ -1,0 +1,261 @@
+.pet-container {
+  background: #1A1A2E;
+  min-height: 100vh;
+  padding: 40rpx 36rpx 80rpx;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* ── 画布区 ── */
+.canvas-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  margin-bottom: 36rpx;
+}
+
+.name-row {
+  display: flex;
+  align-items: center;
+  gap: 20rpx;
+  margin-bottom: 24rpx;
+}
+
+.pet-name {
+  font-size: 40rpx;
+  font-weight: 700;
+  color: #E8873A;
+  font-family: monospace;
+  letter-spacing: 2rpx;
+}
+
+.rename-btn {
+  background: #1E1E38;
+  border: 2rpx solid #2E3A5C;
+  padding: 8rpx 20rpx;
+  box-shadow: 3rpx 3rpx 0 #0E0E22;
+}
+
+.rename-btn:active {
+  transform: translate(2rpx, 2rpx);
+  box-shadow: 1rpx 1rpx 0 #0E0E22;
+}
+
+.rename-text {
+  font-size: 22rpx;
+  color: #4A6FA5;
+  font-family: monospace;
+}
+
+.pet-canvas {
+  width: 300rpx;
+  height: 300rpx;
+  display: block;
+  border: 4rpx solid #2E3A5C;
+  box-shadow: 6rpx 6rpx 0 #0E0E22;
+}
+
+.loading-text {
+  display: block;
+  font-size: 24rpx;
+  color: #3A4A6A;
+  font-family: monospace;
+  margin-top: 20rpx;
+  letter-spacing: 2rpx;
+}
+
+.status-text {
+  display: block;
+  font-size: 26rpx;
+  color: #E8E8FF;
+  font-family: monospace;
+  margin-top: 20rpx;
+  letter-spacing: 2rpx;
+  min-height: 40rpx;
+}
+
+.age-text {
+  display: block;
+  font-size: 22rpx;
+  color: #3A4A6A;
+  font-family: monospace;
+  margin-top: 8rpx;
+  letter-spacing: 2rpx;
+}
+
+/* ── 底部区域 ── */
+.bottom-section {
+  width: 100%;
+}
+
+/* ── 状态栏 ── */
+.stats-panel {
+  background: #1E1E38;
+  border: 2rpx solid #2E3A5C;
+  box-shadow: 4rpx 4rpx 0 #0E0E22;
+  padding: 28rpx 28rpx 20rpx;
+  margin-bottom: 24rpx;
+}
+
+.stat-row {
+  display: flex;
+  align-items: center;
+  margin-bottom: 20rpx;
+}
+
+.stat-row:last-child {
+  margin-bottom: 0;
+}
+
+.stat-label {
+  font-size: 22rpx;
+  color: #4A6FA5;
+  font-family: monospace;
+  width: 64rpx;
+  flex-shrink: 0;
+}
+
+.stat-track {
+  flex: 1;
+  height: 16rpx;
+  background: #0E0E22;
+  border: 2rpx solid #2E3A5C;
+  margin: 0 16rpx;
+  overflow: hidden;
+}
+
+.stat-fill {
+  height: 100%;
+  transition: width 0.4s ease;
+}
+
+.hunger-fill { background: #FF8C42; }
+.happy-fill  { background: #FFD700; }
+.health-fill { background: #44BB66; }
+.fill-low    { background: #FF4444; }
+
+.stat-num {
+  font-size: 22rpx;
+  color: #E8E8FF;
+  font-family: monospace;
+  width: 52rpx;
+  text-align: right;
+  flex-shrink: 0;
+}
+
+/* ── 操作按钮 ── */
+.actions {
+  display: flex;
+  gap: 16rpx;
+  width: 100%;
+}
+
+.action-btn {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 28rpx 0;
+  background: #1E1E38;
+  border: 2rpx solid #2E3A5C;
+  box-shadow: 4rpx 4rpx 0 #0E0E22;
+}
+
+.action-btn:active {
+  background: #252545;
+  box-shadow: 2rpx 2rpx 0 #0E0E22;
+  transform: translate(2rpx, 2rpx);
+}
+
+.btn-disabled {
+  opacity: 0.35;
+}
+
+.action-icon {
+  font-size: 44rpx;
+  margin-bottom: 10rpx;
+}
+
+.action-label {
+  font-size: 22rpx;
+  color: #4A6FA5;
+  font-family: monospace;
+}
+
+/* ── 改名弹窗 ── */
+.modal-mask {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+}
+
+.modal-box {
+  background: #1E1E38;
+  border: 2rpx solid #2E3A5C;
+  box-shadow: 8rpx 8rpx 0 #0E0E22;
+  padding: 48rpx 40rpx 40rpx;
+  width: 560rpx;
+  box-sizing: border-box;
+}
+
+.modal-title {
+  display: block;
+  font-size: 30rpx;
+  color: #E8873A;
+  font-family: monospace;
+  font-weight: 700;
+  margin-bottom: 32rpx;
+  text-align: center;
+}
+
+.modal-input {
+  width: 100%;
+  background: #0E0E22;
+  border: 2rpx solid #2E3A5C;
+  color: #E8E8FF;
+  font-size: 28rpx;
+  font-family: monospace;
+  padding: 18rpx 20rpx;
+  box-sizing: border-box;
+  margin-bottom: 32rpx;
+}
+
+.modal-btns {
+  display: flex;
+  gap: 20rpx;
+}
+
+.modal-btn-cancel,
+.modal-btn-confirm {
+  flex: 1;
+  text-align: center;
+  padding: 20rpx 0;
+  font-size: 26rpx;
+  font-family: monospace;
+  border: 2rpx solid #2E3A5C;
+  box-shadow: 3rpx 3rpx 0 #0E0E22;
+}
+
+.modal-btn-cancel {
+  color: #4A6FA5;
+  background: #1A1A2E;
+}
+
+.modal-btn-confirm {
+  color: #E8873A;
+  background: #1A1A2E;
+  font-weight: 700;
+}
+
+.modal-btn-cancel:active,
+.modal-btn-confirm:active {
+  transform: translate(2rpx, 2rpx);
+  box-shadow: 1rpx 1rpx 0 #0E0E22;
+}
