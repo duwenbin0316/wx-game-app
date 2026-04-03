@@ -3,7 +3,8 @@
   "functionRoot": "cloudfunctions",
   "functions": [
     {
-      "name": "quickstartFunctions"
+      "name": "quickstartFunctions",
+      "installDependency": true
     }
   ]
 }
