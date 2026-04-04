@@ -1,15 +1,16 @@
 <view class="pet-container">
 
-  <!-- 画布区（始终渲染，供 SelectorQuery 使用） -->
+  <!-- 画布区 -->
   <view class="canvas-section">
     <view class="name-row" wx:if="{{pet}}">
       <text class="pet-name">{{pet.name}}</text>
+      <text class="stage-badge">{{stageBadge}}</text>
       <view class="rename-btn" bindtap="onRenameShow">
         <text class="rename-text">改名</text>
       </view>
     </view>
 
-    <canvas id="pet-canvas" type="2d" class="pet-canvas"></canvas>
+    <canvas id="pet-canvas" type="2d" class="pet-canvas" bindtap="onTapPet"></canvas>
 
     <block wx:if="{{loadError}}">
       <text class="error-text">加载失败：{{loadError}}</text>
@@ -19,53 +20,58 @@
     </block>
     <text wx:elif="{{!pet}}" class="loading-text">正在唤醒宠物...</text>
     <text wx:else class="status-text">{{statusText}}</text>
-    <text wx:if="{{pet}}" class="age-text">第 {{petAge}} 天</text>
+
+    <view wx:if="{{pet}}" class="age-stage-row">
+      <text class="age-text">第 {{petAge}} 天</text>
+      <text class="stage-text">· {{stage}}</text>
+    </view>
   </view>
 
-  <!-- 状态栏 + 操作按钮（加载完成后显示） -->
+  <!-- 状态栏 + 操作按钮 -->
   <view wx:if="{{pet}}" class="bottom-section">
 
-    <!-- 状态栏 -->
     <view class="stats-panel">
       <view class="stat-row">
-        <text class="stat-label">饥饱</text>
+        <text class="stat-icon">🍖</text>
         <view class="stat-track">
           <view class="stat-fill hunger-fill {{pet.hunger < 30 ? 'fill-low' : ''}}"
                 style="width:{{pet.hunger}}%"></view>
         </view>
-        <text class="stat-num">{{pet.hunger}}</text>
+        <text class="stat-num {{pet.hunger < 30 ? 'num-low' : ''}}">{{pet.hunger}}</text>
       </view>
       <view class="stat-row">
-        <text class="stat-label">心情</text>
+        <text class="stat-icon">😊</text>
         <view class="stat-track">
           <view class="stat-fill happy-fill {{pet.happiness < 30 ? 'fill-low' : ''}}"
                 style="width:{{pet.happiness}}%"></view>
         </view>
-        <text class="stat-num">{{pet.happiness}}</text>
+        <text class="stat-num {{pet.happiness < 30 ? 'num-low' : ''}}">{{pet.happiness}}</text>
       </view>
       <view class="stat-row">
-        <text class="stat-label">健康</text>
+        <text class="stat-icon">❤️</text>
         <view class="stat-track">
           <view class="stat-fill health-fill {{pet.health < 30 ? 'fill-low' : ''}}"
                 style="width:{{pet.health}}%"></view>
         </view>
-        <text class="stat-num">{{pet.health}}</text>
+        <text class="stat-num {{pet.health < 30 ? 'num-low' : ''}}">{{pet.health}}</text>
       </view>
     </view>
 
-    <!-- 操作按钮 -->
     <view class="actions">
       <view class="action-btn {{pet.isSleeping ? 'btn-disabled' : ''}}" bindtap="onFeed">
         <text class="action-icon">🍖</text>
         <text class="action-label">喂食</text>
+        <text class="btn-effect">+35 饱食</text>
       </view>
       <view class="action-btn {{pet.isSleeping ? 'btn-disabled' : ''}}" bindtap="onPlay">
         <text class="action-icon">🎮</text>
         <text class="action-label">玩耍</text>
+        <text class="btn-effect">+35 心情</text>
       </view>
       <view class="action-btn" bindtap="onToggleSleep">
         <text class="action-icon">{{pet.isSleeping ? '☀️' : '💤'}}</text>
         <text class="action-label">{{pet.isSleeping ? '唤醒' : '睡觉'}}</text>
+        <text class="btn-effect">{{pet.isSleeping ? '恢复精神' : '恢复体力'}}</text>
       </view>
     </view>
 
