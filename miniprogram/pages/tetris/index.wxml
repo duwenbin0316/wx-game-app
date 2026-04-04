@@ -3,11 +3,16 @@
     <view class="header-left">
       <text class="header-lv-label">LV.</text><text class="header-lv-num">{{level}}</text>
     </view>
-    <view class="header-pause-btn" catchtouchstart="onPause" wx:if="{{gameState === 'playing'}}">
-      <view class="pause-bar"></view>
-      <view class="pause-bar"></view>
+    <view class="header-center">
+      <view class="header-pause-btn" catchtouchstart="onPause" wx:if="{{gameState === 'playing'}}">
+        <view class="pause-bar"></view>
+        <view class="pause-bar"></view>
+      </view>
+      <view class="header-pause-btn header-pause-disabled" wx:else></view>
+      <view class="header-mute-btn" catchtouchstart="onToggleMute">
+        <text class="mute-icon">{{muted ? '🔇' : '🔊'}}</text>
+      </view>
     </view>
-    <view class="header-pause-btn header-pause-disabled" wx:else></view>
     <view class="header-right">
       <text class="header-score-label">SCORE</text>
       <text class="header-score">{{score}}</text>

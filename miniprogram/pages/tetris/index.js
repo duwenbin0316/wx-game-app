@@ -125,12 +125,14 @@ Page({
     gameState: 'playing',
     isNewBest: false,
     holdPiece: '--',
-    holdClass: 'hold-empty'
+    holdClass: 'hold-empty',
+    muted: false,
   },
 
   onLoad() {
     this._best = wx.getStorageSync(STORAGE_KEY) || 0;
     this.setData({ best: this._best });
+    this._initAudio();
   },
 
   onReady() {
@@ -181,6 +183,7 @@ Page({
     if (this._isReady && this.data.gameState === 'playing' && !this._gravityTimer) {
       this._startGravity();
       this._renderAll();
+      this._playBgm();
     }
   },
 
@@ -191,25 +194,88 @@ Page({
     } else {
       this._stopGravity();
     }
+    this._pauseBgm();
   },
 
   onPause() {
     if (this.data.gameState !== 'playing') return;
     this._stopGravity();
     this.setData({ gameState: 'paused' });
+    this._pauseBgm();
   },
 
   onResume() {
     if (this.data.gameState !== 'paused') return;
     this.setData({ gameState: 'playing' });
     this._startGravity();
+    this._playBgm();
   },
 
   onUnload() {
     this._stopGravity();
+    this._destroyAudio();
   },
 
   noop() {},
+
+  onToggleMute() {
+    const muted = !this.data.muted;
+    this.setData({ muted });
+    if (this._audio) {
+      this._audio.bgm.volume = muted ? 0 : 0.45;
+    }
+  },
+
+  // ── 音频系统 ────────────────────────────────────────────────
+  _initAudio() {
+    const bgm = wx.createInnerAudioContext();
+    bgm.src = '/assets/sounds/tetris-bgm.mp3';
+    bgm.loop = true;
+    bgm.volume = 0.45;
+    bgm.obeyMuteSwitch = false;
+
+    const mkSfx = (src, vol = 0.8) => {
+      const ctx = wx.createInnerAudioContext();
+      ctx.src = src;
+      ctx.volume = vol;
+      ctx.obeyMuteSwitch = false;
+      return ctx;
+    };
+
+    this._audio = {
+      bgm,
+      drop:     mkSfx('/assets/sounds/tetris-drop.mp3',     0.7),
+      clear:    mkSfx('/assets/sounds/tetris-clear.mp3',    0.9),
+      tetris:   mkSfx('/assets/sounds/tetris-tetris.mp3',   1.0),
+      levelup:  mkSfx('/assets/sounds/tetris-levelup.mp3',  0.9),
+      gameover: mkSfx('/assets/sounds/tetris-gameover.mp3', 0.9),
+    };
+  },
+
+  _destroyAudio() {
+    if (!this._audio) return;
+    Object.values(this._audio).forEach(ctx => {
+      try { ctx.stop(); ctx.destroy(); } catch (e) {}
+    });
+    this._audio = null;
+  },
+
+  _playBgm() {
+    if (!this._audio || this.data.muted) return;
+    this._audio.bgm.play();
+  },
+
+  _pauseBgm() {
+    if (!this._audio) return;
+    try { this._audio.bgm.pause(); } catch (e) {}
+  },
+
+  _playSfx(name) {
+    if (!this._audio || this.data.muted) return;
+    const ctx = this._audio[name];
+    if (!ctx) return;
+    try { ctx.stop(); ctx.play(); } catch (e) {}
+  },
 
   onTouchStart(e) {
     const touch = e.touches && e.touches[0];
@@ -359,6 +425,7 @@ Page({
     if (!this._spawnFromQueue()) return;
     this._startGravity();
     this._renderAll();
+    this._playBgm();
   },
 
   _takeFromBag() {
@@ -479,6 +546,8 @@ Page({
     const cleared = this._clearLines();
     if (cleared > 0) {
       this._applyLineClear(cleared);
+    } else {
+      this._playSfx('drop');
     }
 
     if (!this._spawnFromQueue()) return;
@@ -520,12 +589,15 @@ Page({
       level: nextLevel
     };
 
-    if (nextLevel !== this._level) {
+    const levelUp = nextLevel !== this._level;
+    if (levelUp) {
       this._level = nextLevel;
       this._startGravity();
     }
 
     this.setData(patch);
+    this._playSfx(count >= 4 ? 'tetris' : 'clear');
+    if (levelUp) setTimeout(() => this._playSfx('levelup'), 300);
   },
 
   _addScore(points, syncData = true) {
@@ -562,6 +634,8 @@ Page({
       gameState: 'over',
       isNewBest
     });
+    this._pauseBgm();
+    this._playSfx('gameover');
     this._renderAll();
   },
 

@@ -69,6 +69,25 @@ page {
   pointer-events: none;
 }
 
+.header-center {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8rpx;
+}
+
+.header-mute-btn {
+  padding: 4rpx 12rpx;
+}
+
+.header-mute-btn:active {
+  opacity: 0.6;
+}
+
+.mute-icon {
+  font-size: 28rpx;
+}
+
 .pause-bar {
   width: 7rpx;
   height: 26rpx;
