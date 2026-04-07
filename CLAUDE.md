@@ -284,6 +284,10 @@ const openid = wxContext.OPENID;  // Always use this
 
 ---
 
+## Workflow Conventions
+
+After making and committing changes, **always push directly to `master`** — GitHub Actions will handle deployment automatically. Tell the user once that the push is done so they can monitor the Action and verify the result themselves.
+
 ## Testing
 
 No automated test suite exists. All testing is manual:
