@@ -29,6 +29,7 @@
     isAiMode: false,
     aiDifficulty: 'medium',
     lastMoveKey: '',
+    winCellSet: {},
     showResult: false,
     resultTitle: '',
     resultSub: '',
@@ -133,7 +134,8 @@
       undoLeft: this.data.undoLimit,
       isUndoWaiting: false,
       showResult: false,
-      lastMoveKey: ''
+      lastMoveKey: '',
+      winCellSet: {}
     });
     this.lastWinnerNotice = null;
   },
@@ -261,6 +263,12 @@
       return;
     }
 
+    // Highlight the winning 5 cells on the board
+    const winCellKeys = this.findWinCells(this.data.board, winner);
+    const winCellSet = {};
+    winCellKeys.forEach(k => { winCellSet[k] = true; });
+    this.setData({ winCellSet });
+
     let title, isWin;
     if (this.data.mode === 'online') {
       isWin = winner === this.data.myColor;
@@ -274,6 +282,33 @@
     }
 
     this.setData({ showResult: true, resultTitle: title, resultSub: sub, resultIsWin: isWin });
+  },
+
+  findWinCells(board, winner) {
+    const directions = [
+      [[0, 1], [0, -1]],
+      [[1, 0], [-1, 0]],
+      [[1, 1], [-1, -1]],
+      [[1, -1], [-1, 1]]
+    ];
+    const size = this.data.boardSize;
+    for (let r = 0; r < size; r++) {
+      for (let c = 0; c < size; c++) {
+        if (board[r][c] !== winner) continue;
+        for (const dir of directions) {
+          const cells = [{ r, c }];
+          for (const [dx, dy] of dir) {
+            let nr = r + dx, nc = c + dy;
+            while (nr >= 0 && nr < size && nc >= 0 && nc < size && board[nr][nc] === winner) {
+              cells.push({ r: nr, c: nc });
+              nr += dx; nc += dy;
+            }
+          }
+          if (cells.length >= 5) return cells.map(p => `${p.r}-${p.c}`);
+        }
+      }
+    }
+    return [];
   },
 
   onResultRestart() {

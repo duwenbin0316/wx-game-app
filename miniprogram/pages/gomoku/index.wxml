@@ -42,8 +42,8 @@
               data-row="{{item.r}}"
               data-col="{{item.c}}"
               bindtap="onCellTap">
-          <view wx:if="{{board[item.r][item.c] === 'black'}}" class="chess black {{item.id === lastMoveKey ? 'last' : ''}}"></view>
-          <view wx:if="{{board[item.r][item.c] === 'white'}}" class="chess white {{item.id === lastMoveKey ? 'last' : ''}}"></view>
+          <view wx:if="{{board[item.r][item.c] === 'black'}}" class="chess black {{item.id === lastMoveKey ? 'last' : ''}} {{winCellSet[item.id] ? 'win' : ''}}"></view>
+          <view wx:if="{{board[item.r][item.c] === 'white'}}" class="chess white {{item.id === lastMoveKey ? 'last' : ''}} {{winCellSet[item.id] ? 'win' : ''}}"></view>
         </view>
       </view>
     </view>
