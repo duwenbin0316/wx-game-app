@@ -376,6 +376,7 @@ Page({
     this._lockDelayTimer = null;
     this._lockResetCount = 0;
     this._clearingRows = [];
+    this._flashGeneration = (this._flashGeneration || 0) + 1;
     this._nextType = this._takeFromBag();
 
     this.setData({
@@ -553,7 +554,9 @@ Page({
       this._clearingRows = clearingRows;
       this._current = null;
       this._renderAll();
+      const generation = this._flashGeneration;
       setTimeout(() => {
+        if (this._flashGeneration !== generation) return;
         this._clearingRows = [];
         this._board = nextBoard;
         this._applyLineClear(clearingRows.length);
