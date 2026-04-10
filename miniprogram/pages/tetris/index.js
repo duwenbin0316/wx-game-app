@@ -527,6 +527,7 @@ Page({
   },
 
   _lockCurrentPiece() {
+    if (this.data.gameState !== 'playing' || !this._current) return;
     const cells = this._getPieceCells(this._current);
     let toppedOut = false;
 
