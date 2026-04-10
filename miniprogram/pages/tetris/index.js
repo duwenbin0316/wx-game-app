@@ -324,6 +324,7 @@ Page({
 
   onDrop() {
     if (this.data.gameState !== 'playing' || !this._current) return;
+    this._cancelLockDelay();
 
     let distance = 0;
     while (!this._collides(this._current, 1, 0, this._current.rotation)) {
@@ -372,6 +373,8 @@ Page({
     this._level = 1;
     this._holdType = '';
     this._holdUsed = false;
+    this._lockDelayTimer = null;
+    this._lockResetCount = 0;
     this._nextType = this._takeFromBag();
 
     this.setData({
@@ -404,6 +407,8 @@ Page({
   },
 
   _setCurrentPiece(type) {
+    this._cancelLockDelay();
+    this._lockResetCount = 0;
     this._current = {
       type,
       color: TETROMINOES[type].color,
@@ -437,6 +442,31 @@ Page({
     }
   },
 
+  _isOnGround() {
+    return !!this._current && this._collides(this._current, 1, 0, this._current.rotation);
+  },
+
+  _startLockDelay() {
+    this._cancelLockDelay();
+    this._lockDelayTimer = setTimeout(() => {
+      this._lockDelayTimer = null;
+      this._lockCurrentPiece();
+    }, 500);
+  },
+
+  _resetLockDelay() {
+    if (this._lockResetCount >= 15) return;
+    this._lockResetCount += 1;
+    this._startLockDelay();
+  },
+
+  _cancelLockDelay() {
+    if (this._lockDelayTimer) {
+      clearTimeout(this._lockDelayTimer);
+      this._lockDelayTimer = null;
+    }
+  },
+
   _tick() {
     if (this.data.gameState !== 'playing') return;
     this._stepDown(false);
@@ -450,11 +480,13 @@ Page({
       if (fromSoftDrop) {
         this._addScore(1);
       }
+      this._cancelLockDelay();
       this._renderAll();
       return true;
     }
 
-    this._lockCurrentPiece();
+    this._startLockDelay();
+    this._renderAll();
     return false;
   },
 
@@ -464,6 +496,9 @@ Page({
     }
     this._current.row += rowDelta;
     this._current.col += colDelta;
+    if (this._isOnGround()) {
+      this._resetLockDelay();
+    }
     return true;
   },
 
@@ -481,6 +516,9 @@ Page({
         this._current.rotation = nextRotation;
         this._current.row += rowDelta;
         this._current.col += colDelta;
+        if (this._isOnGround()) {
+          this._resetLockDelay();
+        }
         return true;
       }
     }
@@ -580,6 +618,7 @@ Page({
   },
 
   _finishGame() {
+    this._cancelLockDelay();
     this._stopGravity();
 
     const isNewBest = this._score > (this._best || 0);
@@ -696,9 +735,10 @@ Page({
         this._drawBlock(ctx, cell.row, cell.col, this._current.color, 0.2);
       });
 
+      const lockAlpha = this._lockDelayTimer ? 0.75 : 1;
       const currentCells = this._getPieceCells(this._current);
       currentCells.forEach(cell => {
-        this._drawBlock(ctx, cell.row, cell.col, cell.color, 1);
+        this._drawBlock(ctx, cell.row, cell.col, cell.color, lockAlpha);
       });
     }
 
