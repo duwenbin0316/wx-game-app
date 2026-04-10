@@ -375,6 +375,7 @@ Page({
     this._holdUsed = false;
     this._lockDelayTimer = null;
     this._lockResetCount = 0;
+    this._clearingRows = [];
     this._nextType = this._takeFromBag();
 
     this.setData({
@@ -544,24 +545,36 @@ Page({
       return;
     }
 
-    const cleared = this._clearLines();
-    if (cleared > 0) {
-      this._applyLineClear(cleared);
+    const { clearingRows, nextBoard } = this._clearLines();
+
+    if (clearingRows.length > 0) {
+      this._playSfx(clearingRows.length >= 4 ? 'tetris' : 'clear');
+      this._stopGravity();
+      this._clearingRows = clearingRows;
+      this._current = null;
+      this._renderAll();
+      setTimeout(() => {
+        this._clearingRows = [];
+        this._board = nextBoard;
+        this._applyLineClear(clearingRows.length);
+        if (!this._spawnFromQueue()) return;
+        this._startGravity();
+        this._renderAll();
+      }, 150);
     } else {
       this._playSfx('drop');
+      if (!this._spawnFromQueue()) return;
+      this._renderAll();
     }
-
-    if (!this._spawnFromQueue()) return;
-    this._renderAll();
   },
 
   _clearLines() {
+    const clearingRows = [];
     const nextBoard = [];
-    let cleared = 0;
 
     for (let row = 0; row < BOARD_ROWS; row += 1) {
       if (this._board[row].every(cell => !!cell)) {
-        cleared += 1;
+        clearingRows.push(row);
       } else {
         nextBoard.push(this._board[row]);
       }
@@ -571,8 +584,7 @@ Page({
       nextBoard.unshift(Array(BOARD_COLS).fill(''));
     }
 
-    this._board = nextBoard;
-    return cleared;
+    return { clearingRows, nextBoard };
   },
 
   _applyLineClear(count) {
@@ -597,7 +609,6 @@ Page({
     }
 
     this.setData(patch);
-    this._playSfx(count >= 4 ? 'tetris' : 'clear');
     if (levelUp) setTimeout(() => this._playSfx('levelup'), 300);
   },
 
@@ -740,6 +751,14 @@ Page({
       const currentCells = this._getPieceCells(this._current);
       currentCells.forEach(cell => {
         this._drawBlock(ctx, cell.row, cell.col, cell.color, lockAlpha);
+      });
+    }
+
+    if (this._clearingRows && this._clearingRows.length > 0) {
+      const { x, y, cell, width } = this._boardRect;
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.85)';
+      this._clearingRows.forEach(row => {
+        ctx.fillRect(x, y + row * cell, width, cell);
       });
     }
 
