@@ -57,9 +57,7 @@
     <view class="ctrl-dpad">
       <view class="dpad-row">
         <view class="dpad-gap"></view>
-        <view class="control-btn dpad-btn" catchtouchstart="onDrop">
-          <view class="arr arr-up"></view>
-        </view>
+        <view class="dpad-gap"></view>
         <view class="dpad-gap"></view>
       </view>
       <view class="dpad-row">
@@ -81,13 +79,13 @@
     </view>
 
     <view class="ctrl-ab">
-      <view class="control-btn ab-btn btn-a" catchtouchstart="onRotate">
+      <view class="control-btn ab-btn btn-a" catchtouchstart="onAStart" catchtouchend="onAEnd">
         <text class="ab-label">A</text>
         <text class="ab-hint">ROT</text>
       </view>
-      <view class="control-btn ab-btn btn-b" catchtouchstart="onHold">
+      <view class="control-btn ab-btn btn-b" catchtouchstart="onDrop">
         <text class="ab-label">B</text>
-        <text class="ab-hint">HOLD</text>
+        <text class="ab-hint">DROP</text>
       </view>
     </view>
   </view>

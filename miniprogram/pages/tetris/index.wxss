@@ -324,6 +324,9 @@ page {
 .dpad-gap {
   width: 140rpx;
   height: 140rpx;
+  background: #16162E;
+  border: 2rpx solid #2E3A5C;
+  box-shadow: 3rpx 3rpx 0 #0A0A1A;
 }
 
 .dpad-center {
@@ -360,12 +363,12 @@ page {
 }
 
 .btn-b {
-  border-color: #4A6FA5;
+  border-color: #E8873A;
 }
 
 .btn-b:active {
-  border-color: #60C0FF !important;
-  background: rgba(96, 192, 255, 0.12) !important;
+  border-color: #E8873A !important;
+  background: rgba(232, 135, 58, 0.2) !important;
 }
 
 .ab-label {

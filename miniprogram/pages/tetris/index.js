@@ -322,6 +322,20 @@ Page({
     }
   },
 
+  onAStart() {
+    this._aTouchStart = Date.now();
+  },
+
+  onAEnd() {
+    if (this.data.gameState !== 'playing') return;
+    const duration = Date.now() - (this._aTouchStart || 0);
+    if (duration >= 300) {
+      this.onHold();
+    } else {
+      this.onRotate();
+    }
+  },
+
   onDrop() {
     if (this.data.gameState !== 'playing' || !this._current) return;
     this._cancelLockDelay();
@@ -453,7 +467,7 @@ Page({
     this._lockDelayTimer = setTimeout(() => {
       this._lockDelayTimer = null;
       this._lockCurrentPiece();
-    }, 500);
+    }, 300);
   },
 
   _resetLockDelay() {
@@ -747,7 +761,7 @@ Page({
         this._current.col
       );
       ghostCells.forEach(cell => {
-        this._drawBlock(ctx, cell.row, cell.col, this._current.color, 0.2);
+        this._drawBlock(ctx, cell.row, cell.col, this._current.color, 0.35);
       });
 
       const lockAlpha = this._lockDelayTimer ? 0.75 : 1;
