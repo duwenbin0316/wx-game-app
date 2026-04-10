@@ -277,44 +277,6 @@ Page({
     try { ctx.stop(); ctx.play(); } catch (e) {}
   },
 
-  onTouchStart(e) {
-    const touch = e.touches && e.touches[0];
-    if (!touch) return;
-    this._touchStartX = touch.clientX;
-    this._touchStartY = touch.clientY;
-    this._touchStartAt = Date.now();
-  },
-
-  onTouchEnd(e) {
-    if (this.data.gameState !== 'playing') return;
-    const touch = e.changedTouches && e.changedTouches[0];
-    if (!touch) return;
-
-    const dx = touch.clientX - (this._touchStartX || 0);
-    const dy = touch.clientY - (this._touchStartY || 0);
-    const dt = Date.now() - (this._touchStartAt || Date.now());
-    const MIN = 30;
-
-    if (Math.abs(dx) < MIN && Math.abs(dy) < MIN) return;
-
-    if (Math.abs(dx) >= Math.abs(dy)) {
-      dx > 0 ? this.onRight() : this.onLeft();
-      return;
-    }
-
-    if (dy < 0) {
-      this.onRotate();
-      return;
-    }
-
-    const speed = Math.abs(dy) / Math.max(dt, 1);
-    if (speed > 0.45 || Math.abs(dy) > 120) {
-      this.onDrop();
-    } else {
-      this.onDown();
-    }
-  },
-
   onLeft() {
     if (this.data.gameState !== 'playing') return;
     if (this._tryMove(0, -1)) this._renderAll();

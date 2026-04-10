@@ -297,71 +297,93 @@ page {
   display: flex;
   flex-direction: row;
   justify-content: space-between;
-  align-items: flex-end;
-  padding: 20rpx 44rpx 52rpx;
+  align-items: center;
+  padding: 16rpx 44rpx 52rpx;
   background: #1E1E38;
   border-top: 2rpx solid #2E3A5C;
   box-shadow: 0 -6rpx 0 #0A0A1A;
   flex-shrink: 0;
 }
 
-.ctrl-move {
+/* ── D-Pad ─────────────────────────────────────── */
+.ctrl-dpad {
   display: flex;
-  flex-direction: row;
-  gap: 12rpx;
-  align-items: center;
+  flex-direction: column;
 }
 
-.ctrl-lr {
+.dpad-row {
   display: flex;
   flex-direction: row;
-  gap: 12rpx;
-  align-items: center;
 }
 
-.ctrl-action {
+.dpad-btn {
+  width: 140rpx;
+  height: 140rpx;
+}
+
+.dpad-gap {
+  width: 140rpx;
+  height: 140rpx;
+}
+
+.dpad-center {
+  width: 140rpx;
+  height: 140rpx;
+  background: #16162E;
+  border: 2rpx solid #2E3A5C;
+  box-shadow: 3rpx 3rpx 0 #0A0A1A;
+}
+
+/* ── AB 键 ─────────────────────────────────────── */
+.ctrl-ab {
   display: flex;
   flex-direction: column;
   gap: 12rpx;
   align-items: center;
 }
 
-.ctrl-btn-lg {
-  width: 120rpx;
-  height: 120rpx;
+.ab-btn {
+  width: 140rpx;
+  height: 140rpx;
+  flex-direction: column;
+  gap: 4rpx;
 }
 
-.ctrl-btn-md {
-  width: 120rpx;
-  height: 120rpx;
+.btn-a {
+  border-color: #A855F7;
 }
 
-.ctrl-btn-act {
-  width: 120rpx;
-  height: 120rpx;
-}
-
-.ctrl-rotate {
-  border-color: #6B5BD6;
-}
-
-.ctrl-rotate:active {
+.btn-a:active {
   border-color: #A855F7 !important;
   background: rgba(168, 85, 247, 0.15) !important;
 }
 
-.rot-text {
-  font-size: 20rpx;
+.btn-b {
+  border-color: #4A6FA5;
+}
+
+.btn-b:active {
+  border-color: #60C0FF !important;
+  background: rgba(96, 192, 255, 0.12) !important;
+}
+
+.ab-label {
+  font-size: 30rpx;
   font-weight: 700;
-  letter-spacing: 2rpx;
   font-family: monospace;
-  color: #8B7BD4;
+  color: #C0C0E8;
+  line-height: 1;
 }
 
-.ctrl-rotate:active .rot-text {
-  color: #A855F7;
+.ab-hint {
+  font-size: 16rpx;
+  color: #4A6FA5;
+  letter-spacing: 1rpx;
+  font-family: monospace;
+  line-height: 1;
 }
 
+/* ── 共用按钮基类（保留） ──────────────────────── */
 .control-btn {
   width: 88rpx;
   height: 88rpx;
@@ -400,23 +422,7 @@ page {
   border-top-color: #E8873A;
 }
 
-.drop-btn {
-  background: #E8873A;
-  color: #1A1A2E;
-  border-color: #E8873A;
-}
-
-.drop-btn:active {
-  opacity: 0.88;
-}
-
-.drop-text {
-  font-size: 22rpx;
-  font-weight: 700;
-  letter-spacing: 2rpx;
-  font-family: monospace;
-}
-
+/* ── 方向箭头（保留） ─────────────────────────── */
 .arr {
   display: block;
   width: 0;
@@ -447,6 +453,7 @@ page {
   border-top: 24rpx solid #4A6FA5;
 }
 
+/* ── 覆盖层（保留） ───────────────────────────── */
 .overlay {
   position: fixed;
   top: 0;

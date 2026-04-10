@@ -20,7 +20,7 @@
   </view>
 
   <view class="main-area">
-    <view class="board-wrap" bindtouchstart="onTouchStart" bindtouchend="onTouchEnd">
+    <view class="board-wrap">
       <canvas id="tetris-canvas" type="2d" class="board-canvas"></canvas>
     </view>
 
@@ -54,25 +54,40 @@
   </view>
 
   <view class="controls" wx:if="{{gameState === 'playing'}}" catchtouchend="noop">
-    <view class="ctrl-move">
-      <view class="ctrl-lr">
-        <view class="control-btn ctrl-btn-lg" catchtouchstart="onLeft" catchtouchend="onMoveEnd">
+    <view class="ctrl-dpad">
+      <view class="dpad-row">
+        <view class="dpad-gap"></view>
+        <view class="control-btn dpad-btn" catchtouchstart="onDrop">
+          <view class="arr arr-up"></view>
+        </view>
+        <view class="dpad-gap"></view>
+      </view>
+      <view class="dpad-row">
+        <view class="control-btn dpad-btn" catchtouchstart="onLeft" catchtouchend="onMoveEnd">
           <view class="arr arr-left"></view>
         </view>
-        <view class="control-btn ctrl-btn-lg" catchtouchstart="onDown" catchtouchend="onMoveEnd">
-          <view class="arr arr-down"></view>
-        </view>
-        <view class="control-btn ctrl-btn-lg" catchtouchstart="onRight" catchtouchend="onMoveEnd">
+        <view class="dpad-center"></view>
+        <view class="control-btn dpad-btn" catchtouchstart="onRight" catchtouchend="onMoveEnd">
           <view class="arr arr-right"></view>
         </view>
       </view>
-    </view>
-    <view class="ctrl-action">
-      <view class="control-btn ctrl-btn-act ctrl-rotate" catchtouchstart="onRotate">
-        <text class="rot-text">ROT</text>
+      <view class="dpad-row">
+        <view class="dpad-gap"></view>
+        <view class="control-btn dpad-btn" catchtouchstart="onDown" catchtouchend="onMoveEnd">
+          <view class="arr arr-down"></view>
+        </view>
+        <view class="dpad-gap"></view>
       </view>
-      <view class="control-btn ctrl-btn-act drop-btn" catchtouchstart="onDrop">
-        <text class="drop-text">DROP</text>
+    </view>
+
+    <view class="ctrl-ab">
+      <view class="control-btn ab-btn btn-a" catchtouchstart="onRotate">
+        <text class="ab-label">A</text>
+        <text class="ab-hint">ROT</text>
+      </view>
+      <view class="control-btn ab-btn btn-b" catchtouchstart="onHold">
+        <text class="ab-label">B</text>
+        <text class="ab-hint">HOLD</text>
       </view>
     </view>
   </view>
