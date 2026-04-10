@@ -343,6 +343,7 @@ page {
 }
 
 .ab-btn {
+  display: flex;
   width: 140rpx;
   height: 140rpx;
   flex-direction: column;

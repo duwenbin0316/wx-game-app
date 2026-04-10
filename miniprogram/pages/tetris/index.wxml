@@ -32,7 +32,7 @@
 
       <view class="side-section">
         <text class="side-label">HOLD</text>
-        <view class="hold-box" catchtouchstart="onHold">
+        <view class="hold-box">
           <view class="hold-piece {{holdClass}}">
             <text>{{holdPiece}}</text>
           </view>
