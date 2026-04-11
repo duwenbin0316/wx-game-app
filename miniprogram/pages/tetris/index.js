@@ -488,7 +488,9 @@ Page({
       return true;
     }
 
-    this._startLockDelay();
+    if (!this._lockDelayTimer) {
+      this._startLockDelay();
+    }
     this._renderAll();
     return false;
   },
@@ -568,6 +570,7 @@ Page({
     } else {
       this._playSfx('drop');
       if (!this._spawnFromQueue()) return;
+      this._startGravity();
       this._renderAll();
     }
   },
