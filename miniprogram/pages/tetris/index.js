@@ -322,19 +322,6 @@ Page({
     }
   },
 
-  onAStart() {
-    this._aTouchStart = Date.now();
-  },
-
-  onAEnd() {
-    if (this.data.gameState !== 'playing') return;
-    const duration = Date.now() - (this._aTouchStart || 0);
-    if (duration >= 300) {
-      this.onHold();
-    } else {
-      this.onRotate();
-    }
-  },
 
   onDrop() {
     if (this.data.gameState !== 'playing' || !this._current) return;

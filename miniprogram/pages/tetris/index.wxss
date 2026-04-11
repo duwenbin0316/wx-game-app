@@ -308,47 +308,32 @@ page {
 /* ── D-Pad ─────────────────────────────────────── */
 .ctrl-dpad {
   display: flex;
-  flex-direction: column;
-}
-
-.dpad-row {
-  display: flex;
   flex-direction: row;
+  gap: 14rpx;
+  align-items: center;
 }
 
 .dpad-btn {
-  width: 140rpx;
-  height: 140rpx;
+  width: 154rpx;
+  height: 154rpx;
 }
 
-.dpad-gap {
-  width: 140rpx;
-  height: 140rpx;
-  background: #16162E;
-  border: 2rpx solid #2E3A5C;
-  box-shadow: 3rpx 3rpx 0 #0A0A1A;
-}
-
-.dpad-center {
-  width: 140rpx;
-  height: 140rpx;
-  background: #16162E;
-  border: 2rpx solid #2E3A5C;
-  box-shadow: 3rpx 3rpx 0 #0A0A1A;
+.dpad-down {
+  border-color: #4A6FA5;
 }
 
 /* ── AB 键 ─────────────────────────────────────── */
 .ctrl-ab {
   display: flex;
   flex-direction: column;
-  gap: 12rpx;
+  gap: 14rpx;
   align-items: center;
 }
 
 .ab-btn {
   display: flex;
-  width: 140rpx;
-  height: 140rpx;
+  width: 154rpx;
+  height: 154rpx;
   flex-direction: column;
   gap: 4rpx;
 }

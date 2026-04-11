@@ -55,31 +55,19 @@
 
   <view class="controls" wx:if="{{gameState === 'playing'}}" catchtouchend="noop">
     <view class="ctrl-dpad">
-      <view class="dpad-row">
-        <view class="dpad-gap"></view>
-        <view class="dpad-gap"></view>
-        <view class="dpad-gap"></view>
+      <view class="control-btn dpad-btn" catchtouchstart="onLeft" catchtouchend="onMoveEnd">
+        <view class="arr arr-left"></view>
       </view>
-      <view class="dpad-row">
-        <view class="control-btn dpad-btn" catchtouchstart="onLeft" catchtouchend="onMoveEnd">
-          <view class="arr arr-left"></view>
-        </view>
-        <view class="dpad-center"></view>
-        <view class="control-btn dpad-btn" catchtouchstart="onRight" catchtouchend="onMoveEnd">
-          <view class="arr arr-right"></view>
-        </view>
+      <view class="control-btn dpad-btn dpad-down" catchtouchstart="onDown" catchtouchend="onMoveEnd">
+        <view class="arr arr-down"></view>
       </view>
-      <view class="dpad-row">
-        <view class="dpad-gap"></view>
-        <view class="control-btn dpad-btn" catchtouchstart="onDown" catchtouchend="onMoveEnd">
-          <view class="arr arr-down"></view>
-        </view>
-        <view class="dpad-gap"></view>
+      <view class="control-btn dpad-btn" catchtouchstart="onRight" catchtouchend="onMoveEnd">
+        <view class="arr arr-right"></view>
       </view>
     </view>
 
     <view class="ctrl-ab">
-      <view class="control-btn ab-btn btn-a" catchtouchstart="onAStart" catchtouchend="onAEnd">
+      <view class="control-btn ab-btn btn-a" catchtouchstart="onRotate">
         <text class="ab-label">A</text>
         <text class="ab-hint">ROT</text>
       </view>
