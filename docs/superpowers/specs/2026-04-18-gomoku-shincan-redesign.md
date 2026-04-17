@@ -86,10 +86,16 @@
 ```css
 .players-row {
   display: flex;
-  align-items: center;
+  align-items: center;   /* 纵向居中对齐所有子元素 */
   justify-content: space-between;
   margin-top: 14rpx;
 }
+
+/* player-slot 内部纵向也居中 */
+/* .player-slot 已是 flex-direction:column + align-items:center，天然居中 */
+
+/* vs-block 内部纵向居中 */
+/* .vs-block 已是 flex-direction:column + align-items:center + justify-content:center */
 
 .player-slot {
   display: flex;
