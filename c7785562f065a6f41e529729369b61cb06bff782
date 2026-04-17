@@ -1,0 +1,23 @@
+docs/superpowers/specs/2026-04-18-gomoku-shincan-redesign.md
+  e155b361abfffbce 1-184
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.3.0",
+  "base_commit_sha": "c7785562f065a6f41e529729369b61cb06bff782",
+  "prompts": {
+    "e155b361abfffbce": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "8036fb82-c70e-488b-8d60-16d4150a898f",
+        "model": "<synthetic>"
+      },
+      "human_author": "duwenbin0316",
+      "messages": [],
+      "total_additions": 1104,
+      "total_deletions": 0,
+      "accepted_lines": 1104,
+      "overriden_lines": 0
+    }
+  }
+}
