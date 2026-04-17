@@ -1,0 +1,25 @@
+miniprogram/pages/gomoku/index.wxml
+  e155b361abfffbce 13-16,19-24,28-32
+miniprogram/pages/gomoku/index.wxss
+  e155b361abfffbce 72,76,78,80-81,84-87,89-90,93-94,96,100-101,104-118,122-123,126,131,135-137,142,146-156
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.3.0",
+  "base_commit_sha": "7aae828fdcb4d8bdb4dfa34cc8b85f2f8cd4f0a8",
+  "prompts": {
+    "e155b361abfffbce": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "8036fb82-c70e-488b-8d60-16d4150a898f",
+        "model": "<synthetic>"
+      },
+      "human_author": "duwenbin0316",
+      "messages": [],
+      "total_additions": 133,
+      "total_deletions": 109,
+      "accepted_lines": 1060,
+      "overriden_lines": 0
+    }
+  }
+}
