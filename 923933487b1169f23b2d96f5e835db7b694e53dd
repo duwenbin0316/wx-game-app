@@ -1,0 +1,21 @@
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.3.0",
+  "base_commit_sha": "923933487b1169f23b2d96f5e835db7b694e53dd",
+  "prompts": {
+    "e155b361abfffbce": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "8036fb82-c70e-488b-8d60-16d4150a898f",
+        "model": "<synthetic>"
+      },
+      "human_author": "duwenbin0316",
+      "messages": [],
+      "total_additions": 3522,
+      "total_deletions": 0,
+      "accepted_lines": 4455,
+      "overriden_lines": 0
+    }
+  }
+}
