@@ -68,75 +68,92 @@ page {
 /* ── 玩家行 ── */
 .players-row {
   display: flex;
-  justify-content: center;
   align-items: center;
-  gap: 20rpx;
+  justify-content: space-between;
   margin-top: 14rpx;
 }
 
-.player-card {
+.player-slot {
   display: flex;
-  flex-direction: row;
+  flex-direction: column;
   align-items: center;
-  justify-content: center;
-  padding: 0 16rpx;
-  border-radius: 0;
-  background: #16162E;
-  border: 2rpx solid #2A2A4A;
-  width: 270rpx;
-  box-sizing: border-box;
-  gap: 12rpx;
-  height: 56rpx;
+  gap: 6rpx;
+  width: 96rpx;
 }
 
-.player-card.active {
-  border-color: #E8873A;
-  background: rgba(232, 135, 58, 0.08);
+.player-slot.active   { opacity: 1; }
+.player-slot.inactive { opacity: 0.35; filter: grayscale(30%); }
+
+.char-img { width: 72rpx; height: 80rpx; }
+
+.char-active {
+  filter: drop-shadow(0 0 6rpx rgba(232,135,58,0.9));
 }
 
-.player-card.my-player {
-  border-color: #4A6FA5;
-}
-
-.player-label {
-  display: flex;
-  align-items: center;
-  font-size: 24rpx;
-  font-weight: 600;
-  color: #C0C0E8;
+.player-name {
+  font-size: 22rpx;
   letter-spacing: 1rpx;
+  font-family: monospace;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  width: 200rpx;
-  font-family: monospace;
+  max-width: 90rpx;
+  text-align: center;
 }
 
-.vs {
-  font-size: 22rpx;
-  font-weight: 700;
-  color: #3A3A6A;
-  letter-spacing: 3rpx;
-  font-family: monospace;
+.player-slot.active   .player-name { color: #E8873A; }
+.player-slot.inactive .player-name { color: #4A6FA5; }
+
+.vs-block {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+}
+
+.pieces-row {
+  display: flex;
+  align-items: center;
+  gap: 10rpx;
 }
 
 .chess-piece {
-  width: 32rpx;
-  height: 32rpx;
+  width: 30rpx;
+  height: 30rpx;
   border-radius: 50%;
   box-sizing: border-box;
-  flex: 0 0 auto;
+  flex-shrink: 0;
 }
 
 .chess-piece.black {
   background: radial-gradient(circle at 35% 35%, #5b6470, #111827);
+  border: 2rpx solid #9ca3af;
   box-shadow: 0 2rpx 6rpx rgba(0,0,0,0.5);
+}
+
+.chess-piece.black.active {
+  border-color: #E8873A;
+  box-shadow: 0 0 0 4rpx rgba(232,135,58,0.3), 0 2rpx 6rpx rgba(0,0,0,0.5);
 }
 
 .chess-piece.white {
   background: radial-gradient(circle at 35% 35%, #ffffff, #ddd);
-  border: 1rpx solid #888;
+  border: 2rpx solid #aaa;
   box-shadow: 0 2rpx 6rpx rgba(0,0,0,0.3);
+}
+
+.chess-piece.white.active {
+  border-color: #A78BFA;
+  box-shadow: 0 0 0 4rpx rgba(167,139,250,0.3), 0 2rpx 6rpx rgba(0,0,0,0.3);
+}
+
+.vs-text {
+  font-size: 18rpx;
+  font-weight: 700;
+  color: #3A3A6A;
+  letter-spacing: 3rpx;
+  font-family: monospace;
 }
 
 /* ── 棋盘 ── */

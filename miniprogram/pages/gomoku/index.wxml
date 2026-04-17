@@ -10,18 +10,25 @@
     </view>
 
     <view class="players-row">
-      <view class="player-card {{currentPlayer === 'black' ? 'active' : ''}} {{myColor === 'black' ? 'my-player' : ''}}">
-        <view class="chess-piece black"></view>
-        <view class="player-label">
-          {{blackName}}
+      <!-- 小新 / 黑棋 -->
+      <view class="player-slot {{currentPlayer === 'black' ? 'active' : 'inactive'}}">
+        <image class="char-img {{currentPlayer === 'black' ? 'char-active' : ''}}" src="/images/shinnosuke.png" mode="aspectFit"/>
+        <text class="player-name">{{blackName}}</text>
+      </view>
+
+      <!-- 中间：棋子 + VS -->
+      <view class="vs-block">
+        <view class="pieces-row">
+          <view class="chess-piece black {{currentPlayer === 'black' ? 'active' : ''}}"></view>
+          <text class="vs-text">VS</text>
+          <view class="chess-piece white {{currentPlayer === 'white' ? 'active' : ''}}"></view>
         </view>
       </view>
-      <view class="vs">VS</view>
-      <view class="player-card {{currentPlayer === 'white' ? 'active' : ''}} {{myColor === 'white' ? 'my-player' : ''}}">
-        <view class="chess-piece white"></view>
-        <view class="player-label">
-          {{whiteName}}
-        </view>
+
+      <!-- 左卫门 / 白棋 -->
+      <view class="player-slot {{currentPlayer === 'white' ? 'active' : 'inactive'}}">
+        <image class="char-img {{currentPlayer === 'white' ? 'char-active' : ''}}" src="/images/boo.png" mode="aspectFit"/>
+        <text class="player-name">{{whiteName}}</text>
       </view>
     </view>
   </view>
