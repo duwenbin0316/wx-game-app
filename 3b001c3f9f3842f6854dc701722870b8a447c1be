@@ -1,0 +1,25 @@
+miniprogram/pages/gomoku/index.wxss
+  e155b361abfffbce 87
+miniprogram/pages/gomoku/index.wxml
+  e155b361abfffbce 15,30
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.3.0",
+  "base_commit_sha": "3b001c3f9f3842f6854dc701722870b8a447c1be",
+  "prompts": {
+    "e155b361abfffbce": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "8036fb82-c70e-488b-8d60-16d4150a898f",
+        "model": "<synthetic>"
+      },
+      "human_author": "duwenbin0316",
+      "messages": [],
+      "total_additions": 316,
+      "total_deletions": 308,
+      "accepted_lines": 1156,
+      "overriden_lines": 0
+    }
+  }
+}
