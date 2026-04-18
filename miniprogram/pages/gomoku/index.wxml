@@ -12,7 +12,7 @@
     <view class="players-row">
       <!-- 小新 / 黑棋 -->
       <view class="player-slot {{currentPlayer === 'black' ? 'active' : 'inactive'}}">
-        <image class="char-img {{currentPlayer === 'black' ? 'char-active' : ''}}" src="/images/shinnosuke.png" mode="aspectFit"/>
+        <image class="char-img {{currentPlayer === 'black' ? 'char-active' : ''}}" src="/images/shinnosuke.png" mode="widthFix"/>
         <text class="player-name">{{blackName}}</text>
       </view>
 
@@ -27,7 +27,7 @@
 
       <!-- 左卫门 / 白棋 -->
       <view class="player-slot {{currentPlayer === 'white' ? 'active' : 'inactive'}}">
-        <image class="char-img {{currentPlayer === 'white' ? 'char-active' : ''}}" src="/images/boo.png" mode="aspectFit"/>
+        <image class="char-img {{currentPlayer === 'white' ? 'char-active' : ''}}" src="/images/boo.png" mode="widthFix"/>
         <text class="player-name">{{whiteName}}</text>
       </view>
     </view>
