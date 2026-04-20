@@ -84,7 +84,20 @@ page {
 .player-slot.active   { opacity: 1; }
 .player-slot.inactive { opacity: 0.35; filter: grayscale(30%); }
 
-.char-img { width: 72rpx; }
+.char-frame {
+  width: 86rpx;
+  height: 86rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+.char-img {
+  width: 78rpx;
+  height: 78rpx;
+}
 
 .char-active {
   filter: drop-shadow(0 0 6rpx rgba(232,135,58,0.9));
