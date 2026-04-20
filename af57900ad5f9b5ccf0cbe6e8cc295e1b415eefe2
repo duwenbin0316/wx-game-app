@@ -1,0 +1,38 @@
+miniprogram/pages/gomoku/index.wxss
+  022d35e710607c53 87-100
+miniprogram/pages/gomoku/index.wxml
+  022d35e710607c53 15-16,32-33
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.3.0",
+  "base_commit_sha": "af57900ad5f9b5ccf0cbe6e8cc295e1b415eefe2",
+  "prompts": {
+    "022d35e710607c53": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019dab94-0dcf-7703-9e4c-b34305aa8f48",
+        "model": "gpt-5.4"
+      },
+      "human_author": "duwenbin0316",
+      "messages": [],
+      "total_additions": 340,
+      "total_deletions": 297,
+      "accepted_lines": 271,
+      "overriden_lines": 0
+    },
+    "e155b361abfffbce": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "8036fb82-c70e-488b-8d60-16d4150a898f",
+        "model": "<synthetic>"
+      },
+      "human_author": "duwenbin0316",
+      "messages": [],
+      "total_additions": 0,
+      "total_deletions": 0,
+      "accepted_lines": 920,
+      "overriden_lines": 0
+    }
+  }
+}
