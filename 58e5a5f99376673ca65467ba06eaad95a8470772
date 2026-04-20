@@ -1,0 +1,54 @@
+.opencode/skills/openspec-propose/SKILL.md
+  ca158d8a7e6c172f 1-110
+.opencode/package.json
+  ca158d8a7e6c172f 1-5
+.opencode/commands/opsx-explore.md
+  ca158d8a7e6c172f 1-170
+.opencode/skills/openspec-apply-change/SKILL.md
+  ca158d8a7e6c172f 1-156
+.opencode/commands/opsx-apply.md
+  ca158d8a7e6c172f 1-149
+.opencode/commands/opsx-archive.md
+  ca158d8a7e6c172f 1-154
+.opencode/commands/opsx-propose.md
+  ca158d8a7e6c172f 1-103
+.opencode/skills/openspec-archive-change/SKILL.md
+  ca158d8a7e6c172f 1-114
+.opencode/.gitignore
+  ca158d8a7e6c172f 1-5
+.opencode/skills/openspec-explore/SKILL.md
+  ca158d8a7e6c172f 1-288
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.3.0",
+  "base_commit_sha": "58e5a5f99376673ca65467ba06eaad95a8470772",
+  "prompts": {
+    "ca158d8a7e6c172f": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_2544c0261ffest300hJpgO4uQM",
+        "model": "unknown"
+      },
+      "human_author": "duwenbin0316",
+      "messages": [],
+      "total_additions": 1254,
+      "total_deletions": 0,
+      "accepted_lines": 1254,
+      "overriden_lines": 0
+    },
+    "e155b361abfffbce": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "8036fb82-c70e-488b-8d60-16d4150a898f",
+        "model": "<synthetic>"
+      },
+      "human_author": "duwenbin0316",
+      "messages": [],
+      "total_additions": 0,
+      "total_deletions": 0,
+      "accepted_lines": 920,
+      "overriden_lines": 0
+    }
+  }
+}
