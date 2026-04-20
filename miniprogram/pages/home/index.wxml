@@ -8,7 +8,6 @@
 
   <!-- 游戏列表 -->
   <view class="game-list">
-    <text class="section-label">— 全部游戏 —</text>
     <view
       wx:for="{{games}}"
       wx:key="id"
