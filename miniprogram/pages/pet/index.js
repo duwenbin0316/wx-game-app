@@ -17,52 +17,28 @@ const SPRITE_BASE = [
 ];
 
 // 眼睛位置：左眼 col5-6，右眼 col9-10（各 2×2 方块）；col2/col13 为两侧小手
+// 造型与目标图保持一致，仅眨眼/睡觉时闭眼，其余状态都是睁眼
 const FACE_ROWS = {
-  normal: [
+  open: [
     [0,0,1,1,1,2,2,1,1,2,2,1,1,1,0,0],
     [0,0,1,1,1,2,2,1,1,2,2,1,1,1,0,0],
     [0,0,0,1,1,1,1,1,1,1,1,1,1,0,0,0],
   ],
-  blink: [
+  closed: [
     [0,0,1,1,1,1,1,1,1,1,1,1,1,1,0,0],
     [0,0,1,1,1,2,2,1,1,2,2,1,1,1,0,0],
     [0,0,0,1,1,1,1,1,1,1,1,1,1,0,0,0],
   ],
-  happy: [
-    [0,0,1,1,1,2,1,1,1,1,2,1,1,1,0,0],  // 弯眼上角
-    [0,0,1,1,1,1,2,1,1,2,1,1,1,1,0,0],  // 弯眼下角
-    [0,0,0,1,1,1,1,1,1,1,1,1,1,0,0,0],
-  ],
-  sad: [
-    [0,0,1,1,1,1,2,1,1,2,1,1,1,1,0,0],  // 皱眉（内角上挑）
-    [0,0,1,1,1,2,2,1,1,2,2,1,1,1,0,0],
-    [0,0,0,1,1,1,1,1,1,1,1,1,1,0,0,0],
-  ],
-  sleeping: [
-    [0,0,1,1,1,1,1,1,1,1,1,1,1,1,0,0],  // 上眼皮闭
-    [0,0,1,1,1,2,2,1,1,2,2,1,1,1,0,0],  // 下半眯睁
-    [0,0,0,1,1,1,1,1,1,1,1,1,1,0,0,0],
-  ],
-  critical: [
-    [0,0,1,1,2,1,2,1,1,2,1,2,1,1,0,0],  // ╲ 斜线眼
-    [0,0,1,1,1,2,1,1,1,1,2,1,1,1,0,0],
-    [0,0,0,1,1,1,1,1,1,1,1,1,1,0,0,0],
-  ],
 };
 
-// 成年王冠（插在头顶上方，对齐 col4-11 的头顶）
-const CROWN_ROW = [0,0,0,0,1,0,0,1,2,1,0,1,0,0,0,0];
-
-function buildSprite(state, isAdult) {
-  const face = FACE_ROWS[state] || FACE_ROWS.normal;
-  const rows = [
+function buildSprite(state) {
+  const face = (state === 'blink' || state === 'sleeping') ? FACE_ROWS.closed : FACE_ROWS.open;
+  return [
     SPRITE_BASE[0], SPRITE_BASE[1],
     face[0], face[1], face[2],
     SPRITE_BASE[2], SPRITE_BASE[3], SPRITE_BASE[4],
     SPRITE_BASE[5], SPRITE_BASE[6],
   ];
-  if (isAdult) rows.unshift(CROWN_ROW);
-  return rows;
 }
 
 // ── 页面 ──────────────────────────────────────────────────────
@@ -278,7 +254,6 @@ Page({
 
     const { pet } = this.data;
     const isSleeping = pet?.isSleeping;
-    const isAdult    = this.data.stage === '成年';
 
     // 背景（睡觉时更深）
     ctx.fillStyle = isSleeping ? '#08091A' : '#0E1024';
@@ -304,7 +279,7 @@ Page({
     }
 
     const state   = this._getPetState();
-    const sprite  = buildSprite(state, isAdult);
+    const sprite  = buildSprite(state);
     const cols    = 16;
     const spriteW = cols * PS;
     const spriteH = sprite.length * PS;
