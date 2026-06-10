@@ -4,40 +4,33 @@ const COLORS = {
   2: '#000000',  // 眼睛
 };
 
-// 16列 × 10行像素精灵（Clawd 造型：平顶直角方身 + 两侧小手 + 四条细腿）
-const SPRITE_BASE = [
-  [0,0,0,1,1,1,1,1,1,1,1,1,1,0,0,0],  // 0: 头顶（平整直角）
-  [0,0,0,1,1,1,1,1,1,1,1,1,1,0,0,0],  // 1: 头部（直边）
-  [0,0,0,1,1,1,1,1,1,1,1,1,1,0,0,0],  // 2: 身体上（直边）
-  // 行3-5：表情区（动态，行3-4 两侧带小手）
-  [0,0,0,1,1,1,1,1,1,1,1,1,1,0,0,0],  // 3→体: 身体中
-  [0,0,0,1,1,1,1,1,1,1,1,1,1,0,0,0],  // 4→体: 身体下
-  [0,0,0,0,1,0,1,0,0,1,0,1,0,0,0,0],  // 5→体: 四条细腿
-  [0,0,0,0,1,0,1,0,0,1,0,1,0,0,0,0],  // 6→体: 脚
-];
+// 32列 × 20行精灵网格（细网格便于精确还原眼睛大小与间距）
+const GRID_COLS = 32;
 
-// 眼睛位置：左眼 col5-6，右眼 col9-10（各 2×2 方块）；col2/col13 为两侧小手
-// 造型与目标图保持一致，仅眨眼/睡觉时闭眼，其余状态都是睁眼
-const FACE_ROWS = {
-  open: [
-    [0,0,1,1,1,2,2,1,1,2,2,1,1,1,0,0],
-    [0,0,1,1,1,2,2,1,1,2,2,1,1,1,0,0],
-    [0,0,0,1,1,1,1,1,1,1,1,1,1,0,0,0],
-  ],
-  closed: [
-    [0,0,1,1,1,1,1,1,1,1,1,1,1,1,0,0],
-    [0,0,1,1,1,2,2,1,1,2,2,1,1,1,0,0],
-    [0,0,0,1,1,1,1,1,1,1,1,1,1,0,0,0],
-  ],
-};
+// 按 [起始col, 结束col, 色号] 区段生成一行
+function makeRow(spans) {
+  const row = new Array(GRID_COLS).fill(0);
+  spans.forEach(([s, e, ci]) => { for (let i = s; i <= e; i++) row[i] = ci; });
+  return row;
+}
+
+// 身体 col6-25（20宽，平顶直角）；小手 col4-5 / col26-27；
+// 眼睛 2×2：左 col9-10、右 col21-22（中心在身宽 20% / 80% 处，间距≈半个身宽）
+const ROW_BODY  = makeRow([[6, 25, 1]]);
+const ROW_HANDS = makeRow([[4, 27, 1]]);
+const ROW_EYES  = makeRow([[4, 27, 1], [9, 10, 2], [21, 22, 2]]);
+const ROW_LEGS  = makeRow([[8, 9, 1], [11, 12, 1], [19, 20, 1], [22, 23, 1]]);
 
 function buildSprite(state) {
-  const face = (state === 'blink' || state === 'sleeping') ? FACE_ROWS.closed : FACE_ROWS.open;
+  const closed = (state === 'blink' || state === 'sleeping');
   return [
-    SPRITE_BASE[0], SPRITE_BASE[1], SPRITE_BASE[2],
-    face[0], face[1], face[2],
-    SPRITE_BASE[3], SPRITE_BASE[4],
-    SPRITE_BASE[5], SPRITE_BASE[6],
+    ROW_BODY, ROW_BODY, ROW_BODY, ROW_BODY, ROW_BODY,  // 0-4: 头/身体上部（平顶直角）
+    ROW_HANDS,                                          // 5: 小手起始
+    closed ? ROW_HANDS : ROW_EYES,                      // 6: 眼睛上行（闭眼时无）
+    ROW_EYES,                                           // 7: 眼睛下行（闭眼时只剩此行=眯眼线）
+    ROW_HANDS,                                          // 8: 小手结束
+    ROW_BODY, ROW_BODY, ROW_BODY, ROW_BODY, ROW_BODY, ROW_BODY, ROW_BODY,  // 9-15: 身体下部
+    ROW_LEGS, ROW_LEGS, ROW_LEGS, ROW_LEGS,             // 16-19: 四条细腿
   ];
 }
 
@@ -194,8 +187,8 @@ Page({
         this._canvasCtx = ctx;
         this._canvasW   = W;
         this._canvasH   = H;
-        // 更细腻的像素尺寸（/ 28 而非 / 14）
-        this._pixelSize = Math.max(4, Math.floor(Math.min(W, H) / 28));
+        // 32 列细网格：像素尺寸 = 画布短边 / 56
+        this._pixelSize = Math.max(2, Math.floor(Math.min(W, H) / 56));
         this._startAnimation();
       });
   },
@@ -250,7 +243,7 @@ Page({
     if (!ctx) return;
     const W  = this._canvasW;
     const H  = this._canvasH;
-    const PS = Math.max(4, Math.round(this._pixelSize * (this._stageScale || 1)));
+    const PS = Math.max(2, Math.round(this._pixelSize * (this._stageScale || 1)));
 
     const { pet } = this.data;
     const isSleeping = pet?.isSleeping;
@@ -259,8 +252,8 @@ Page({
     ctx.fillStyle = isSleeping ? '#08091A' : '#0E1024';
     ctx.fillRect(0, 0, W, H);
 
-    // 棋盘背景（用 2×PS 格，不会太密）
-    const bgPS = PS * 2;
+    // 棋盘背景（用 4×PS 格，不会太密）
+    const bgPS = PS * 4;
     ctx.fillStyle = isSleeping ? '#0D0E20' : '#131530';
     for (let col = 0; col < Math.ceil(W / bgPS); col++) {
       for (let row = 0; row < Math.ceil(H / bgPS); row++) {
@@ -271,7 +264,7 @@ Page({
     if (!pet) {
       const dots = '.'.repeat((Math.floor(Date.now() / 400) % 3) + 1);
       ctx.fillStyle = '#3A4A6A';
-      ctx.font = `${PS * 1.5}px monospace`;
+      ctx.font = `${PS * 3}px monospace`;
       ctx.textAlign = 'center';
       ctx.fillText(dots, W / 2, H / 2);
       ctx.textAlign = 'left';
@@ -280,17 +273,16 @@ Page({
 
     const state   = this._getPetState();
     const sprite  = buildSprite(state);
-    const cols    = 16;
-    const spriteW = cols * PS;
+    const spriteW = GRID_COLS * PS;
     const spriteH = sprite.length * PS;
 
     // 弹跳
     let bounceAmp = isSleeping ? 0 : (this.data.happyFlash ? 2 : 1);
     if (this._tapBounceTick > 0) { bounceAmp = 4; this._tapBounceTick--; }
-    const bounce = Math.round(Math.sin(Date.now() / 400) * bounceAmp * PS * 0.4);
+    const bounce = Math.round(Math.sin(Date.now() / 400) * bounceAmp * PS * 0.8);
 
     // 饥饿摇晃
-    const shakeOx = this._shakeActive ? Math.round(Math.sin(Date.now() / 80) * PS * 0.5) : 0;
+    const shakeOx = this._shakeActive ? Math.round(Math.sin(Date.now() / 80) * PS) : 0;
 
     const ox = Math.floor((W - spriteW) / 2) + shakeOx;
     const oy = Math.floor((H - spriteH) / 2) + bounce;
@@ -306,31 +298,31 @@ Page({
 
     // 地面线
     ctx.fillStyle = '#2E3A5C';
-    ctx.fillRect(ox - PS, oy + spriteH + 2, spriteW + PS * 2, 2);
+    ctx.fillRect(ox - PS * 2, oy + spriteH + 2, spriteW + PS * 4, 2);
 
     const t = Date.now() / 1200;
 
     // ZZZ（睡觉）
     if (state === 'sleeping') {
-      const zSz = Math.max(10, Math.round(PS * 1.4));
+      const zSz = Math.max(10, Math.round(PS * 2.8));
       ctx.font = `bold ${zSz}px monospace`;
       ctx.globalAlpha = 0.5 + Math.abs(Math.sin(t)) * 0.5;
       ctx.fillStyle = '#9BB8FF';
-      ctx.fillText('z', ox + spriteW + PS,       oy + PS * 3);
+      ctx.fillText('z', ox + spriteW + PS * 2, oy + PS * 6);
       ctx.globalAlpha = 0.4 + Math.abs(Math.sin(t + 1)) * 0.4;
-      ctx.fillText('Z', ox + spriteW + PS * 2.5, oy + PS);
+      ctx.fillText('Z', ox + spriteW + PS * 5, oy + PS * 2);
       ctx.globalAlpha = 1;
     }
 
     // ★（开心）
     if (state === 'happy') {
-      const sSz = Math.max(8, Math.round(PS * 1.4));
+      const sSz = Math.max(8, Math.round(PS * 2.8));
       ctx.font = `bold ${sSz}px monospace`;
       ctx.fillStyle = '#FFD700';
       ctx.globalAlpha = 0.5 + Math.abs(Math.sin(t)) * 0.5;
-      ctx.fillText('★', ox - PS * 3,             oy + PS * 3);
+      ctx.fillText('★', ox - PS * 6,           oy + PS * 6);
       ctx.globalAlpha = 0.5 + Math.abs(Math.sin(t + 1.5)) * 0.5;
-      ctx.fillText('★', ox + spriteW + PS * 1.5, oy + PS * 2);
+      ctx.fillText('★', ox + spriteW + PS * 3, oy + PS * 4);
       ctx.globalAlpha = 1;
     }
 
@@ -348,7 +340,7 @@ Page({
     }
 
     // 浮动粒子
-    const fSz = Math.max(10, PS * 1.6);
+    const fSz = Math.max(10, PS * 3.2);
     ctx.font = `${fSz}px serif`;
     this._particles = this._particles.filter(p => p.alpha > 0);
     this._particles.forEach(p => {
@@ -365,10 +357,10 @@ Page({
   _spawnParticles(text, count) {
     const W  = this._canvasW;
     const H  = this._canvasH;
-    const PS = Math.max(4, Math.round(this._pixelSize * (this._stageScale || 1)));
-    const spriteW = 16 * PS;
+    const PS = Math.max(2, Math.round(this._pixelSize * (this._stageScale || 1)));
+    const spriteW = GRID_COLS * PS;
     const cx = W / 2;
-    const cy = H / 2 - PS;
+    const cy = H / 2 - PS * 2;
     for (let i = 0; i < count; i++) {
       this._particles.push({
         text,
