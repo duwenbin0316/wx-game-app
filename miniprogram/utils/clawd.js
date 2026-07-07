@@ -20,10 +20,10 @@ function makeRow(spans) {
 }
 
 // 身体 col6-25（20宽，平顶直角）；小手 col4-5 / col26-27；
-// 眼睛 2×2：左 col9-10、右 col21-22（中心在身宽 20% / 80% 处，间距≈半个身宽）
+// 眼睛 3×3：左 col9-11、右 col20-22（中心在身宽约 22% / 78% 处，间距≈半个身宽）
 const ROW_BODY  = makeRow([[6, 25, 1]]);
 const ROW_HANDS = makeRow([[4, 27, 1]]);
-const ROW_EYES  = makeRow([[4, 27, 1], [9, 10, 2], [21, 22, 2]]);
+const ROW_EYES  = makeRow([[4, 27, 1], [9, 11, 2], [20, 22, 2]]);
 
 // 腿：四条细腿（静止），跑步时内外两对交替
 const ROW_LEGS_ALL   = makeRow([[8, 9, 1], [11, 12, 1], [19, 20, 1], [22, 23, 1]]);
@@ -42,8 +42,8 @@ function buildSprite(opts = {}) {
     ROW_BODY, ROW_BODY, ROW_BODY, ROW_BODY, ROW_BODY,  // 0-4: 头/身体上部（平顶直角）
     ROW_HANDS,                                          // 5: 小手起始
     closed ? ROW_HANDS : ROW_EYES,                      // 6: 眼睛上行（闭眼时无）
-    ROW_EYES,                                           // 7: 眼睛下行（闭眼时只剩此行=眯眼线）
-    ROW_HANDS,                                          // 8: 小手结束
+    closed ? ROW_HANDS : ROW_EYES,                      // 7: 眼睛中行（闭眼时无）
+    ROW_EYES,                                           // 8: 眼睛下行（闭眼时只剩此行=眯眼线）
     ROW_BODY, ROW_BODY, ROW_BODY, ROW_BODY, ROW_BODY, ROW_BODY, ROW_BODY,  // 9-15: 身体下部
     legs, legs, legs, legs,                             // 16-19: 细腿
   ];
