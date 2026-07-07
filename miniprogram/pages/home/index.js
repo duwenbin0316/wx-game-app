@@ -1,6 +1,5 @@
-// 像素参数（与跑酷一致）
-const PSW = 4;
-const PSH = 5;
+// 共享 Clawd 精灵（全小程序统一造型，见 utils/clawd.js）
+const { GRID_COLS, GRID_ROWS, drawClawd } = require('../../utils/clawd');
 
 Page({
   data: {
@@ -32,7 +31,7 @@ Page({
       {
         id: 'pet',
         name: '电子宠物',
-        desc: '像素风小猫咪，需要你的照顾',
+        desc: '橙色小家伙 Clawd，需要你的照顾',
         url: '/pages/pet/index'
       }
     ]
@@ -56,48 +55,18 @@ Page({
       });
   },
 
-  // ── 绘制像素角色 Logo ──────────────────────────────────
+  // ── 绘制 Clawd Logo（与宠物/游戏内造型统一）──────────────
   _drawLogo(ctx, W, H) {
-    const scale = 3.5;
-    const pw = PSW * scale;
-    const ph = PSH * scale;
-    const bodyW = 5 * pw;
-    const bodyH = 4 * ph;
-    const legH  = ph;
-    const totalH = bodyH + legH;
-    const bx = (W - bodyW) / 2;
-    const by = (H - totalH) / 2;
+    // 图案内容占 col4-27（24格），留 1 格边距选像素尺寸
+    const ps = Math.min(W / 26, H / 22);
 
-    // 外发光
-    ctx.fillStyle = 'rgba(232, 135, 58, 0.12)';
+    // 外发光（品牌橙）
+    ctx.fillStyle = 'rgba(217, 119, 87, 0.12)';
     ctx.beginPath();
     ctx.arc(W / 2, H / 2, W * 0.46, 0, Math.PI * 2);
     ctx.fill();
 
-    // 主体（橙色）
-    ctx.fillStyle = '#E8873A';
-    for (let r = 0; r < 4; r++)
-      for (let c = 0; c < 5; c++)
-        ctx.fillRect(bx + c * pw, by + r * ph, pw, ph);
-
-    // 侧臂（rows 1-2）
-    ctx.fillRect(bx - pw,     by + ph, pw, 2 * ph);
-    ctx.fillRect(bx + 5 * pw, by + ph, pw, 2 * ph);
-
-    // 高光（左上角）
-    ctx.fillStyle = '#F5A855';
-    [[0,0],[0,1],[1,0]].forEach(([r, c]) =>
-      ctx.fillRect(bx + c * pw, by + r * ph, pw, ph));
-
-    // 眼睛
-    ctx.fillStyle = '#1A1A2E';
-    [[1,1],[1,3]].forEach(([r, c]) =>
-      ctx.fillRect(bx + c * pw + 1, by + r * ph + 1, pw - 2, ph - 2));
-
-    // 腿
-    ctx.fillStyle = '#C86820';
-    ctx.fillRect(bx + 1 * pw, by + bodyH, pw, legH);
-    ctx.fillRect(bx + 3 * pw, by + bodyH, pw, legH);
+    drawClawd(ctx, (W - GRID_COLS * ps) / 2, (H - GRID_ROWS * ps) / 2, ps);
   },
 
   onTapGame(e) {

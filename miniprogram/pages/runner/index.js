@@ -10,27 +10,9 @@ const GROUND_R   = 0.68;  // 地面在屏幕高度的比例
 const PW = 32;
 const PH = 32;
 
-// ─── 玩家像素图案（5列×4行，像素正方）────────────────────
-// PSW=PSH=5（正方像素块）；身体5列×4行 = 25×20px（比例1.25:1，贴近参考图）
-// 臂：rows1-2 居中凸出；腿：col1/col3 中间留1格
-const PSW = 4;   // 像素块宽（瘦一点）
-const PSH = 5;   // 像素块高
-const POX = 6;   // body 左边距（20px居于PW=32）
-const POY = 7;   // 视觉高度25px(body20+腿5)，下移7px使脚贴地
-
-const PL_BODY = [
-  [0,0],[0,1],[0,2],[0,3],[0,4],  // body row 0
-  [1,0],[1,1],[1,2],[1,3],[1,4],  // body row 1（眼睛行）
-  [2,0],[2,1],[2,2],[2,3],[2,4],  // body row 2
-  [3,0],[3,1],[3,2],[3,3],[3,4],  // body row 3
-];
-// 眼睛：row1 col1 和 col3（5列中对称）
-const PL_EYES = [[1,1],[1,3]];
-// 高光（左上角）
-const PL_HL = [[0,0],[0,1],[1,0]];
-// 两条腿：col1（左）、col3（右），各1格，中间col2留空
-const PL_LEG_L = 1;
-const PL_LEG_R = 3;
+// ─── 玩家造型：共享 Clawd 精灵（全小程序统一，见 utils/clawd.js）──
+const { GRID_COLS, GRID_ROWS, drawClawd } = require('../../utils/clawd');
+const PLAYER_PS = 1.3;  // 单格边长：视觉约 31×26px，居中于 32×32 碰撞框
 
 
 // ─── Bug 像素图案（6列×5行，底部带脚）──────────────────
@@ -396,30 +378,10 @@ Page({
 
   _drawPlayer() {
     const { _ctx: ctx, _player: p } = this;
-    const bx = p.x + POX;
-    const by = p.y + POY;
-    const step = Math.floor(this._frame / 8) % 2; // 0 or 1，交替步伐
-
-    // 主体（橙色，偏扁像素块）
-    ctx.fillStyle = '#E8873A';
-    PL_BODY.forEach(([r, c]) => ctx.fillRect(bx + c*PSW, by + r*PSH, PSW, PSH));
-
-    // 侧臂：rows 1-2（垂直居中于4行身体），左右各凸 1 格，2行高
-    ctx.fillRect(bx - PSW,     by + 1*PSH, PSW, 2*PSH);   // 左臂
-    ctx.fillRect(bx + 5 * PSW, by + 1*PSH, PSW, 2*PSH);   // 右臂（5列）
-
-    // 高光（左上角亮橙）
-    ctx.fillStyle = '#F5A855';
-    PL_HL.forEach(([r, c]) => ctx.fillRect(bx + c*PSW, by + r*PSH, PSW, PSH));
-
-    // 眼睛（深色小方块）
-    ctx.fillStyle = '#1A1A2E';
-    PL_EYES.forEach(([r, c]) => ctx.fillRect(bx + c*PSW + 1, by + r*PSH + 1, PSW - 2, PSH - 2));
-
-    // 两条腿交替显示（一帧左、一帧右，产生跑步闪烁感）
-    ctx.fillStyle = '#C86820';
-    if (step === 0) ctx.fillRect(bx + PL_LEG_L*PSW, by + 4*PSH, PSW, PSH);
-    else            ctx.fillRect(bx + PL_LEG_R*PSW, by + 4*PSH, PSW, PSH);
+    const step = Math.floor(this._frame / 8) % 2;          // 0/1 交替步伐（内外腿对切换）
+    const gx = p.x + (PW - GRID_COLS * PLAYER_PS) / 2;     // 水平居中于碰撞框
+    const gy = p.y + PH - GRID_ROWS * PLAYER_PS;           // 脚底贴碰撞框底部
+    drawClawd(ctx, gx, gy, PLAYER_PS, { legFrame: step });
   },
 
   _drawMoon() {
@@ -571,7 +533,7 @@ Page({
     ctx.fillStyle = '#6A6A9A';
     ctx.font = '12px monospace';
     ctx.fillText('S C O R E', cw / 2, 66);
-    ctx.fillStyle = '#E8873A';
+    ctx.fillStyle = '#D97757';
     ctx.font = 'bold 46px monospace';
     ctx.fillText(String(score), cw / 2, 116);
 

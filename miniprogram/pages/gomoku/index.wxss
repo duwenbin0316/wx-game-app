@@ -62,7 +62,7 @@ page {
 }
 
 .status-text.waiting   { color: #4A6FA5; }
-.status-text.your-turn { color: #E8873A; }
+.status-text.your-turn { color: #D97757; }
 .status-text.finished  { color: #6A6A9A; }
 
 /* ── 玩家行 ── */
@@ -101,7 +101,7 @@ page {
 }
 
 .char-active {
-  filter: drop-shadow(0 0 6rpx rgba(232,135,58,0.9));
+  filter: drop-shadow(0 0 6rpx rgba(217,119,87,0.9));
 }
 
 .player-name {
@@ -115,7 +115,7 @@ page {
   text-align: center;
 }
 
-.player-slot.active   .player-name { color: #E8873A; }
+.player-slot.active   .player-name { color: #D97757; }
 .player-slot.inactive .player-name { color: #4A6FA5; }
 
 .vs-block {
@@ -148,8 +148,8 @@ page {
 }
 
 .chess-piece.black.active {
-  border-color: #E8873A;
-  box-shadow: 0 0 0 4rpx rgba(232,135,58,0.3), 0 2rpx 6rpx rgba(0,0,0,0.5);
+  border-color: #D97757;
+  box-shadow: 0 0 0 4rpx rgba(217,119,87,0.3), 0 2rpx 6rpx rgba(0,0,0,0.5);
 }
 
 .chess-piece.white {
@@ -297,7 +297,7 @@ page {
   border-radius: 50%;
   top: 50%; left: 50%;
   transform: translate(-50%, -50%);
-  background: rgba(232, 135, 58, 0.9);
+  background: rgba(217, 119, 87, 0.9);
 }
 
 /* ── 底部按钮 ── */
@@ -319,7 +319,7 @@ page {
 }
 
 .restart-btn {
-  background: #E8873A;
+  background: #D97757;
   color: #1A1A2E;
 }
 
@@ -428,7 +428,7 @@ page {
 .result-btn:active { opacity: 0.75; }
 
 .result-restart {
-  background: #E8873A;
+  background: #D97757;
   color: #1A1A2E;
 }
 

@@ -27,7 +27,7 @@
 .pet-name {
   font-size: 40rpx;
   font-weight: 700;
-  color: #E8873A;
+  color: #D97757;
   font-family: monospace;
   letter-spacing: 2rpx;
 }
@@ -94,7 +94,7 @@
 
 .retry-btn {
   background: #1E1E38;
-  border: 2rpx solid #E8873A;
+  border: 2rpx solid #D97757;
   box-shadow: 3rpx 3rpx 0 #0E0E22;
   padding: 14rpx 48rpx;
   margin-top: 16rpx;
@@ -107,7 +107,7 @@
 
 .retry-text {
   font-size: 26rpx;
-  color: #E8873A;
+  color: #D97757;
   font-family: monospace;
   font-weight: 700;
 }
@@ -272,7 +272,7 @@
 .modal-title {
   display: block;
   font-size: 30rpx;
-  color: #E8873A;
+  color: #D97757;
   font-family: monospace;
   font-weight: 700;
   margin-bottom: 32rpx;
@@ -313,7 +313,7 @@
 }
 
 .modal-btn-confirm {
-  color: #E8873A;
+  color: #D97757;
   background: #1A1A2E;
   font-weight: 700;
 }

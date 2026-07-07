@@ -1,6 +1,5 @@
-// ─── 像素块参数（与跑酷角色一致）────────────────────────
-const PSW = 4;   // 像素块宽
-const PSH = 5;   // 像素块高
+// ─── 玩家造型：共享 Clawd 精灵（全小程序统一，见 utils/clawd.js）──
+const { GRID_COLS, GRID_ROWS, drawClawd } = require('../../utils/clawd');
 
 // ─── 8 关关卡数据 ───────────────────────────────────────
 // '#' 墙  ' ' 地板  '@' 玩家  '$' 箱子  '.' 目标  '*' 箱=目标  '+' 玩家=目标
@@ -110,9 +109,6 @@ const C_BG      = '#1A1A2E';
 const C_FLOOR   = '#222240';
 const C_WALL    = '#3A3A5C';
 const C_WALL_D  = '#252545';  // 墙右/下暗边
-const C_PLAYER  = '#E8873A';
-const C_PLAYER_H= '#F5A855';
-const C_PLAYER_D= '#C86820';
 const C_BOX     = '#8B5E3C';
 const C_BOX_H   = '#A0724A';
 const C_BOX_D   = '#6A4428';
@@ -438,43 +434,8 @@ Page({
 
   // ── 玩家（复用跑酷角色像素参数）──
   _drawPlayer(ctx, x, y, C) {
-    // 按格子大小缩放：格子可能比跑酷里的 PW=32 小
-    const scale = C / 32;
-    const pw = PSW * scale;
-    const ph = PSH * scale;
-
-    // 身体5列×4行，居中于格子
-    const bodyW = 5 * pw;
-    const bodyH = 4 * ph;
-    const legH  = ph;
-    const totalH = bodyH + legH;
-    const bx = x + (C - bodyW) / 2;
-    const by = y + (C - totalH) / 2;
-
-    // 主体（橙色）
-    ctx.fillStyle = C_PLAYER;
-    for (let r = 0; r < 4; r++) {
-      for (let c = 0; c < 5; c++) {
-        ctx.fillRect(bx + c * pw, by + r * ph, pw, ph);
-      }
-    }
-    // 侧臂：row1-2 左右各凸1格
-    ctx.fillRect(bx - pw,     by + 1 * ph, pw, 2 * ph);
-    ctx.fillRect(bx + 5 * pw, by + 1 * ph, pw, 2 * ph);
-
-    // 高光（左上角）
-    ctx.fillStyle = C_PLAYER_H;
-    [[0,0],[0,1],[1,0]].forEach(([r, c]) =>
-      ctx.fillRect(bx + c * pw, by + r * ph, pw, ph));
-
-    // 眼睛
-    ctx.fillStyle = '#1A1A2E';
-    [[1,1],[1,3]].forEach(([r, c]) =>
-      ctx.fillRect(bx + c * pw + 1, by + r * ph + 1, pw - 2, ph - 2));
-
-    // 腿
-    ctx.fillStyle = C_PLAYER_D;
-    ctx.fillRect(bx + 1 * pw, by + bodyH, pw, ph);
-    ctx.fillRect(bx + 3 * pw, by + bodyH, pw, ph);
+    // 共享 Clawd 造型，按格子大小缩放并居中（内容宽约 0.86C、高 0.71C）
+    const ps = C / 28;
+    drawClawd(ctx, x + (C - GRID_COLS * ps) / 2, y + (C - GRID_ROWS * ps) / 2, ps);
   },
 });

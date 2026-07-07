@@ -41,7 +41,7 @@
 .overlay-logo {
   font-size: 64rpx;
   font-weight: 900;
-  color: #E8873A;
+  color: #D97757;
   font-family: monospace;
   letter-spacing: -4rpx;
   margin-bottom: 16rpx;
@@ -66,7 +66,7 @@
 }
 
 .hint-row {
-  background: #E8873A;
+  background: #D97757;
   border-radius: 8rpx;
   padding: 16rpx 48rpx;
   margin-bottom: 20rpx;
@@ -125,7 +125,7 @@
 .score-value {
   font-size: 72rpx;
   font-weight: 700;
-  color: #E8873A;
+  color: #D97757;
   font-family: monospace;
   line-height: 1;
 }
@@ -146,7 +146,7 @@
 
 .retry-btn {
   flex: 1;
-  background: #E8873A;
+  background: #D97757;
   border-radius: 10rpx;
   padding: 20rpx 0;
   text-align: center;

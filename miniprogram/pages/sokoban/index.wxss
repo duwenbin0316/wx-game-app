@@ -32,7 +32,7 @@ page {
 
 .header-steps {
   font-size: 24rpx;
-  color: #E8873A;
+  color: #D97757;
   letter-spacing: 2rpx;
   font-family: monospace;
 }
@@ -86,8 +86,8 @@ page {
 
 .dpad-up:active, .dpad-down:active,
 .dpad-left:active, .dpad-right:active {
-  background: rgba(232, 135, 58, 0.12);
-  border-color: #E8873A;
+  background: rgba(217, 119, 87, 0.12);
+  border-color: #D97757;
 }
 
 /* CSS 像素三角箭头 */
@@ -192,7 +192,7 @@ page {
 .retry-btn:active { opacity: 0.7; }
 
 .next-btn {
-  background: #E8873A;
+  background: #D97757;
   color: #1A1A2E;
 }
 

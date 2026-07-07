@@ -76,7 +76,7 @@ page {
 
 .local-btn-arrow {
   font-size: 40rpx;
-  color: #E8873A;
+  color: #D97757;
   line-height: 1;
 }
 
@@ -109,7 +109,7 @@ page {
 }
 
 .clear-text:active {
-  color: #E8873A;
+  color: #D97757;
 }
 
 .section-label {
@@ -211,7 +211,7 @@ page {
 }
 
 .join-btn {
-  background: #E8873A;
+  background: #D97757;
   color: #1A1A2E;
   padding: 16rpx 30rpx;
   font-size: 24rpx;
@@ -264,7 +264,7 @@ page {
 
 .empty-action-btn {
   display: inline-block;
-  background: #E8873A;
+  background: #D97757;
   color: #1A1A2E;
   padding: 22rpx 60rpx;
   font-size: 28rpx;
@@ -384,7 +384,7 @@ page {
 }
 
 .confirm-btn {
-  background: #E8873A;
+  background: #D97757;
   color: #1A1A2E;
 }
 
@@ -442,7 +442,7 @@ page {
 }
 
 .diff-btn:active {
-  border-color: #E8873A;
+  border-color: #D97757;
   opacity: 0.85;
 }
 

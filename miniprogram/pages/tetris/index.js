@@ -9,7 +9,7 @@ const STORAGE_KEY = 'tetris_best';
 const COLORS = {
   bg: '#1A1A2E',
   grid: '#2E3A5C',
-  accent: '#E8873A',
+  accent: '#D97757',
   shadow: '#0A0A1A',
   previewBg: '#0A0A1A'
 };
@@ -32,7 +32,7 @@ const TETROMINOES = {
     ]
   },
   O: {
-    color: '#E8873A',
+    color: '#D97757',
     rotations: [
       [[0, 0], [0, 1], [1, 0], [1, 1]],
       [[0, 0], [0, 1], [1, 0], [1, 1]],

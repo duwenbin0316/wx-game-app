@@ -61,7 +61,7 @@ page {
 }
 
 .header-pause-btn:active {
-  border-color: #E8873A;
+  border-color: #D97757;
 }
 
 .header-pause-disabled {
@@ -111,7 +111,7 @@ page {
 
 .header-score {
   font-size: 44rpx;
-  color: #E8873A;
+  color: #D97757;
   letter-spacing: 1rpx;
   font-family: monospace;
   font-weight: 700;
@@ -191,8 +191,8 @@ page {
 }
 
 .hold-box:active {
-  border-color: #E8873A;
-  background: rgba(232, 135, 58, 0.12);
+  border-color: #D97757;
+  background: rgba(217, 119, 87, 0.12);
 }
 
 .hold-piece {
@@ -221,8 +221,8 @@ page {
 }
 
 .hold-O {
-  color: #E8873A;
-  border-color: #E8873A;
+  color: #D97757;
+  border-color: #D97757;
 }
 
 .hold-T {
@@ -348,12 +348,12 @@ page {
 }
 
 .btn-b {
-  border-color: #E8873A;
+  border-color: #D97757;
 }
 
 .btn-b:active {
-  border-color: #E8873A !important;
-  background: rgba(232, 135, 58, 0.2) !important;
+  border-color: #D97757 !important;
+  background: rgba(217, 119, 87, 0.2) !important;
 }
 
 .ab-label {
@@ -390,25 +390,25 @@ page {
 }
 
 .control-btn:active {
-  border-color: #E8873A;
-  color: #E8873A;
-  background: rgba(232, 135, 58, 0.12);
+  border-color: #D97757;
+  color: #D97757;
+  background: rgba(217, 119, 87, 0.12);
 }
 
 .control-btn:active .arr-up {
-  border-bottom-color: #E8873A;
+  border-bottom-color: #D97757;
 }
 
 .control-btn:active .arr-left {
-  border-right-color: #E8873A;
+  border-right-color: #D97757;
 }
 
 .control-btn:active .arr-right {
-  border-left-color: #E8873A;
+  border-left-color: #D97757;
 }
 
 .control-btn:active .arr-down {
-  border-top-color: #E8873A;
+  border-top-color: #D97757;
 }
 
 /* ── 方向箭头（保留） ─────────────────────────── */
@@ -464,7 +464,7 @@ page {
   flex-direction: column;
   align-items: center;
   background: rgba(30, 30, 60, 0.97);
-  border: 2rpx solid #E8873A;
+  border: 2rpx solid #D97757;
   border-radius: 0;
   box-shadow: 6rpx 6rpx 0 #0E0E22;
 }
@@ -481,13 +481,13 @@ page {
 .newbest-badge {
   padding: 8rpx 24rpx;
   margin-bottom: 20rpx;
-  background: rgba(232, 135, 58, 0.18);
-  border: 2rpx solid #E8873A;
+  background: rgba(217, 119, 87, 0.18);
+  border: 2rpx solid #D97757;
 }
 
 .newbest-text {
   font-size: 24rpx;
-  color: #E8873A;
+  color: #D97757;
   letter-spacing: 4rpx;
   font-family: monospace;
   font-weight: 700;
@@ -521,9 +521,9 @@ page {
 
 .restart-btn {
   padding: 20rpx 52rpx;
-  background: #E8873A;
+  background: #D97757;
   color: #1A1A2E;
-  border: 2rpx solid #E8873A;
+  border: 2rpx solid #D97757;
   border-radius: 0;
   box-shadow: 3rpx 3rpx 0 #0E0E22;
   font-size: 28rpx;
@@ -550,6 +550,6 @@ page {
 }
 
 .pause-restart-btn:active {
-  border-color: #E8873A;
-  color: #E8873A;
+  border-color: #D97757;
+  color: #D97757;
 }

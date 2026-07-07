@@ -1,38 +1,5 @@
-// ── 像素色盘 ─────────────────────────────────────────────────
-const COLORS = {
-  1: '#D97757',  // 身体（Claude 品牌橙，纯色扁平）
-  2: '#000000',  // 眼睛
-};
-
-// 32列 × 20行精灵网格（细网格便于精确还原眼睛大小与间距）
-const GRID_COLS = 32;
-
-// 按 [起始col, 结束col, 色号] 区段生成一行
-function makeRow(spans) {
-  const row = new Array(GRID_COLS).fill(0);
-  spans.forEach(([s, e, ci]) => { for (let i = s; i <= e; i++) row[i] = ci; });
-  return row;
-}
-
-// 身体 col6-25（20宽，平顶直角）；小手 col4-5 / col26-27；
-// 眼睛 2×2：左 col9-10、右 col21-22（中心在身宽 20% / 80% 处，间距≈半个身宽）
-const ROW_BODY  = makeRow([[6, 25, 1]]);
-const ROW_HANDS = makeRow([[4, 27, 1]]);
-const ROW_EYES  = makeRow([[4, 27, 1], [9, 10, 2], [21, 22, 2]]);
-const ROW_LEGS  = makeRow([[8, 9, 1], [11, 12, 1], [19, 20, 1], [22, 23, 1]]);
-
-function buildSprite(state) {
-  const closed = (state === 'blink' || state === 'sleeping');
-  return [
-    ROW_BODY, ROW_BODY, ROW_BODY, ROW_BODY, ROW_BODY,  // 0-4: 头/身体上部（平顶直角）
-    ROW_HANDS,                                          // 5: 小手起始
-    closed ? ROW_HANDS : ROW_EYES,                      // 6: 眼睛上行（闭眼时无）
-    ROW_EYES,                                           // 7: 眼睛下行（闭眼时只剩此行=眯眼线）
-    ROW_HANDS,                                          // 8: 小手结束
-    ROW_BODY, ROW_BODY, ROW_BODY, ROW_BODY, ROW_BODY, ROW_BODY, ROW_BODY,  // 9-15: 身体下部
-    ROW_LEGS, ROW_LEGS, ROW_LEGS, ROW_LEGS,             // 16-19: 四条细腿
-  ];
-}
+// ── 共享 Clawd 精灵（全小程序统一造型，见 utils/clawd.js）──────
+const { GRID_COLS, GRID_ROWS, drawClawd } = require('../../utils/clawd');
 
 // ── 页面 ──────────────────────────────────────────────────────
 Page({
@@ -272,9 +239,9 @@ Page({
     }
 
     const state   = this._getPetState();
-    const sprite  = buildSprite(state);
+    const closed  = (state === 'blink' || state === 'sleeping');
     const spriteW = GRID_COLS * PS;
-    const spriteH = sprite.length * PS;
+    const spriteH = GRID_ROWS * PS;
 
     // 弹跳
     let bounceAmp = isSleeping ? 0 : (this.data.happyFlash ? 2 : 1);
@@ -287,14 +254,8 @@ Page({
     const ox = Math.floor((W - spriteW) / 2) + shakeOx;
     const oy = Math.floor((H - spriteH) / 2) + bounce;
 
-    // 精灵绘制：纯色扁平填充（无缝、无网格边框，Clawd 风格）
-    sprite.forEach((row, r) => {
-      row.forEach((ci, c) => {
-        if (!ci) return;
-        ctx.fillStyle = COLORS[ci];
-        ctx.fillRect(ox + c * PS, oy + r * PS, PS, PS);
-      });
-    });
+    // 精灵绘制：共享 Clawd 造型，纯色扁平填充
+    drawClawd(ctx, ox, oy, PS, { closed });
 
     // 地面线
     ctx.fillStyle = '#2E3A5C';

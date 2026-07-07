@@ -26,7 +26,7 @@
   display: block;
   font-size: 48rpx;
   font-weight: 700;
-  color: #E8873A;
+  color: #D97757;
   letter-spacing: 10rpx;
   font-family: monospace;
   margin-bottom: 10rpx;
@@ -98,6 +98,6 @@
 
 .game-arrow {
   font-size: 52rpx;
-  color: #E8873A;
+  color: #D97757;
   line-height: 1;
 }
