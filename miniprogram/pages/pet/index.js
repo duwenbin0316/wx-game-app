@@ -254,8 +254,8 @@ Page({
     const ox = Math.floor((W - spriteW) / 2) + shakeOx;
     const oy = Math.floor((H - spriteH) / 2) + bounce;
 
-    // 精灵绘制：共享 Clawd 造型，纯色扁平填充
-    drawClawd(ctx, ox, oy, PS, { closed });
+    // 精灵绘制：共享 Clawd 造型，宠物页近景用大眼
+    drawClawd(ctx, ox, oy, PS, { closed, largeEyes: true });
 
     // 地面线
     ctx.fillStyle = '#2E3A5C';
