@@ -378,10 +378,12 @@ Page({
 
   _drawPlayer() {
     const { _ctx: ctx, _player: p } = this;
-    const step = Math.floor(this._frame / 8) % 2;          // 0/1 交替步伐（内外腿对切换）
+    const airborne = p.jumps > 0;                          // 腾空：四腿伸展，不做跑步动画
+    const step = Math.floor(this._frame / 6) % 2;          // 0/1 交替抬腿
+    const bob  = (!airborne && step === 1) ? -1 : 0;       // 换步瞬间身体微微上提
     const gx = p.x + (PW - GRID_COLS * PLAYER_PS) / 2;     // 水平居中于碰撞框
-    const gy = p.y + PH - GRID_ROWS * PLAYER_PS;           // 脚底贴碰撞框底部
-    drawClawd(ctx, gx, gy, PLAYER_PS, { legFrame: step });
+    const gy = p.y + PH - GRID_ROWS * PLAYER_PS + bob;     // 脚底贴碰撞框底部
+    drawClawd(ctx, gx, gy, PLAYER_PS, { legFrame: airborne ? 'all' : step });
   },
 
   _drawMoon() {
