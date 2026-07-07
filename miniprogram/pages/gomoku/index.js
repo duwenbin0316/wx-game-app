@@ -422,8 +422,9 @@
       return;
     }
 
+    // wx.getUserProfile 只能在用户点击事件中调用，分享进房是页面加载流程，
+    // 这里必然拿不到资料——不能因此放弃加入，改用默认昵称入座（云函数侧兜底'玩家2'）
     const userInfo = await this.ensureUserInfo();
-    if (!userInfo) return;
 
     try {
       wx.showLoading({ title: '加入房间中...' });
@@ -432,7 +433,7 @@
         data: {
           type: 'joinRoom',
           roomId: this.data.roomId,
-          playerInfo: userInfo
+          playerInfo: userInfo || {}
         }
       });
       wx.hideLoading();
@@ -444,6 +445,8 @@
         });
         return;
       }
+
+      wx.showToast({ title: '已加入房间，你执白棋', icon: 'none' });
 
       const refreshResult = await wx.cloud.callFunction({
         name: 'quickstartFunctions',
