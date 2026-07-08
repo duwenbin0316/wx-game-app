@@ -391,6 +391,63 @@ const joinRoom = async (event) => {
   }
 };
 
+// 重新开始（同房间再来一局，双方任一玩家在对局结束后可发起）
+const restartRoom = async (event) => {
+  try {
+    const wxContext = cloud.getWXContext();
+    const { roomId } = event;
+
+    const room = await db.collection('gameRooms').doc(roomId).get();
+    if (!room.data) {
+      return {
+        success: false,
+        errMsg: 'Room not found'
+      };
+    }
+
+    const data = room.data;
+    if (data.blackPlayer !== wxContext.OPENID && data.whitePlayer !== wxContext.OPENID) {
+      return {
+        success: false,
+        errMsg: 'Not a player of this room'
+      };
+    }
+
+    if (data.status !== 'finished') {
+      return {
+        success: false,
+        errMsg: 'Game not finished yet'
+      };
+    }
+
+    const resetData = {
+      board: createEmptyBoard(),
+      currentPlayer: 'black',
+      winner: null,
+      status: 'playing',
+      moveHistory: [],
+      pendingUndo: {},
+      undoCounts: { black: 0, white: 0 },
+      lastActionType: 'restart',
+      lastActionAt: new Date()
+    };
+
+    await db.collection('gameRooms').doc(roomId).update({
+      data: resetData
+    });
+
+    return {
+      success: true,
+      room: { ...data, ...resetData }
+    };
+  } catch (e) {
+    return {
+      success: false,
+      errMsg: e.message
+    };
+  }
+};
+
 // 落子
 const makeMove = async (event) => {
   try {
@@ -1018,6 +1075,8 @@ exports.main = async (event, context) => {
       return await getRoomList();
     case "joinRoom":
       return await joinRoom(event);
+    case "restartRoom":
+      return await restartRoom(event);
     case "makeMove":
       return await makeMove(event);
     case "getRoomInfo":

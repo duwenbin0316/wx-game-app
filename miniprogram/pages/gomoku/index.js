@@ -314,14 +314,59 @@
   onResultRestart() {
     this.setData({ showResult: false });
     if (this.data.mode === 'online') {
-      wx.showModal({
-        title: '提示',
-        content: '联机模式请创建新房间',
-        showCancel: false
-      });
+      this.restartOnlineGame();
       return;
     }
     this.initLocalGame();
+  },
+
+  // 联机模式同房间重开一局（无需退出重新建房）
+  async restartOnlineGame() {
+    try {
+      wx.showLoading({ title: '开始新一局...' });
+      const result = await wx.cloud.callFunction({
+        name: 'quickstartFunctions',
+        data: {
+          type: 'restartRoom',
+          roomId: this.data.roomId
+        }
+      });
+      wx.hideLoading();
+      if (result.result && result.result.success) {
+        this.resetOnlineGameState(result.result.room);
+        wx.showToast({ title: '新一局开始，黑棋先行', icon: 'none' });
+      } else {
+        wx.showToast({
+          title: (result.result && result.result.errMsg) || '重新开始失败',
+          icon: 'none'
+        });
+      }
+    } catch (e) {
+      wx.hideLoading();
+      wx.showToast({ title: '网络错误', icon: 'none' });
+    }
+  },
+
+  resetOnlineGameState(room) {
+    this.lastWinnerNotice = null;
+    this.pendingMove = null;
+    this.setData({
+      roomInfo: room,
+      board: room.board,
+      currentPlayer: 'black',
+      winner: null,
+      status: 'playing',
+      canPlay: this.data.myColor === 'black',
+      showResult: false,
+      lastMoveKey: '',
+      winCellSet: {},
+      canUndo: false,
+      myUndoCount: 0,
+      undoLeft: this.data.undoLimit,
+      isUndoWaiting: false
+    });
+    this.startRoomWatch();
+    this.startRoomPolling();
   },
 
   onResultLeave() {
@@ -707,7 +752,22 @@
     const history = Array.isArray(room.moveHistory) ? room.moveHistory : [];
     const lastServerMove = history.length ? history[history.length - 1] : null;
     updates.lastMoveKey = lastServerMove ? `${lastServerMove.row}-${lastServerMove.col}` : '';
+
+    // 对方发起了同房间重开：清掉上一局的结果面板与胜利高亮
+    const isRematch = prevWinner && !room.winner && room.status === 'playing';
+    if (isRematch) {
+      this.lastWinnerNotice = null;
+      this.pendingMove = null;
+      updates.showResult = false;
+      updates.winCellSet = {};
+      updates.canUndo = false;
+      updates.myUndoCount = 0;
+      updates.undoLeft = this.data.undoLimit;
+    }
     this.setData(updates);
+    if (isRematch && this.hasRoomReady) {
+      wx.showToast({ title: '对方开始了新一局，黑棋先行', icon: 'none' });
+    }
 
     this.handlePendingUndo(room);
     this.updateUndoLoading(room);
@@ -718,15 +778,15 @@
       hasBoardChange &&
       room.status === 'playing' &&
       room.currentPlayer === this.data.myColor &&
-      room.lastActionType !== 'undo';
+      room.lastActionType !== 'undo' &&
+      room.lastActionType !== 'restart';
     if (shouldPlayRemoteSound) {
       this.playOpponentSound();
     }
 
+    // 终局后保持监听/轮询不停，双方任一方点"再来一局"另一方才能实时收到重开
     if (!prevWinner && room.winner) {
       this.notifyWinner(room.winner);
-      this.stopRoomWatch();
-      this.stopRoomPolling();
     }
   },
 
