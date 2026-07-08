@@ -694,9 +694,6 @@
         changes.forEach(({ r, c }) => {
           updates[`board[${r}][${c}]`] = nextBoard[r][c];
         });
-        if (changes.length === 1) {
-          updates.lastMoveKey = `${changes[0].r}-${changes[0].c}`;
-        }
       } else {
         hasBoardChange = changes.length > 0;
         updates.board = nextBoard;
@@ -705,6 +702,11 @@
       hasBoardChange = true;
       updates.board = nextBoard;
     }
+    // 最后一手标记以服务器 moveHistory 为准（棋盘 diff 无法区分落子/悔棋，
+    // 也覆盖不了自己落子已乐观上屏、重进房间整盘替换等场景）
+    const history = Array.isArray(room.moveHistory) ? room.moveHistory : [];
+    const lastServerMove = history.length ? history[history.length - 1] : null;
+    updates.lastMoveKey = lastServerMove ? `${lastServerMove.row}-${lastServerMove.col}` : '';
     this.setData(updates);
 
     this.handlePendingUndo(room);
@@ -871,6 +873,7 @@
     const prevWinner = this.data.winner;
     const prevCanPlay = this.data.canPlay;
     const prevCanUndo = this.data.canUndo;
+    const prevLastMoveKey = this.data.lastMoveKey;
     const nextPlayer = prevCurrentPlayer === 'black' ? 'white' : 'black';
     const boardPath = `board[${row}][${col}]`;
     this.pendingMove = { row, col, player: prevCurrentPlayer, ts: Date.now() };
@@ -879,7 +882,8 @@
       [boardPath]: prevCurrentPlayer,
       currentPlayer: nextPlayer,
       canPlay: false,
-      canUndo: false
+      canUndo: false,
+      lastMoveKey: `${row}-${col}`
     });
     this.playPlaceSound();
 
@@ -911,7 +915,8 @@
           currentPlayer: prevCurrentPlayer,
           winner: prevWinner,
           canPlay: prevCanPlay,
-          canUndo: prevCanUndo
+          canUndo: prevCanUndo,
+          lastMoveKey: prevLastMoveKey
         });
         wx.showToast({
           title: result.result.errMsg || '落子失败',
@@ -926,7 +931,8 @@
         currentPlayer: prevCurrentPlayer,
         winner: prevWinner,
         canPlay: prevCanPlay,
-        canUndo: prevCanUndo
+        canUndo: prevCanUndo,
+        lastMoveKey: prevLastMoveKey
       });
       wx.showToast({
         title: '网络错误',
