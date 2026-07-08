@@ -1035,10 +1035,19 @@
 
   onRestart() {
     if (this.data.mode === 'online') {
+      // 对局结束后可同房间重开；进行中不允许单方面重置对局
+      if (!this.data.winner) {
+        wx.showToast({ title: '对局进行中，结束后可重新开始', icon: 'none' });
+        return;
+      }
       wx.showModal({
-        title: '提示',
-        content: '联机模式不支持重新开始，请创建新房间',
-        showCancel: false
+        title: '重新开始',
+        content: '在当前房间开始新的一局？',
+        success: (res) => {
+          if (res.confirm) {
+            this.restartOnlineGame();
+          }
+        }
       });
       return;
     }
