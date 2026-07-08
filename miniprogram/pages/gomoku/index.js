@@ -331,8 +331,33 @@
     this.initLocalGame();
   },
 
-  // 联机模式申请同房间重开（需对方同意；若对方也已申请则直接重开）
+  // 终局后同房间直接重开（不需要对方确认，对方通过同步自动进入新局）
   async restartOnlineGame() {
+    try {
+      wx.showLoading({ title: '开始新一局...' });
+      const result = await wx.cloud.callFunction({
+        name: 'quickstartFunctions',
+        data: {
+          type: 'restartRoom',
+          roomId: this.data.roomId
+        }
+      });
+      wx.hideLoading();
+      const res = result.result || {};
+      if (res.success) {
+        this.resetOnlineGameState(res.room);
+        wx.showToast({ title: '新一局开始，黑棋先行', icon: 'none' });
+      } else {
+        wx.showToast({ title: res.errMsg || '重新开始失败', icon: 'none' });
+      }
+    } catch (e) {
+      wx.hideLoading();
+      wx.showToast({ title: '网络错误', icon: 'none' });
+    }
+  },
+
+  // 对局进行中申请重开（需对方同意；若对方也已申请则直接重开）
+  async requestRestartOnline() {
     if (this.data.isRestartWaiting) return;
     try {
       wx.showLoading({ title: '发送申请...' });
@@ -367,13 +392,16 @@
     const pending = room && room.pendingRestart;
     if (!pending || !pending.byOpenid || !this.data.myOpenid) {
       this.isRestartModalOpen = false;
-      this.lastRestartPromptKey = null;
+      // 注意：不重置 lastRestartPromptKey——乱序到达的旧快照可能仍带着已处理
+      // 的申请，重置后会再次弹框；新申请的时间戳不同，不影响后续弹出
       return;
     }
     if (this.isRestartModalOpen) return;
     if (pending.byOpenid === this.data.myOpenid) return;
 
-    const key = `${pending.byOpenid}-${pending.at || ''}`;
+    // key 用时间戳归一化：watch 推送里 at 是 Date 对象、轮询返回里是 ISO 字符串，
+    // 直接拼字符串会导致同一申请生成两个 key，去重失效反复弹框
+    const key = `${pending.byOpenid}-${pending.at ? new Date(pending.at).getTime() : ''}`;
     if (this.lastRestartPromptKey === key) return;
     this.lastRestartPromptKey = key;
     this.isRestartModalOpen = true;
@@ -432,7 +460,6 @@
   resetOnlineGameState(room) {
     this.lastWinnerNotice = null;
     this.pendingMove = null;
-    this.lastRestartPromptKey = null;
     this.setData({
       roomInfo: room,
       board: room.board,
@@ -1266,13 +1293,17 @@
         wx.showToast({ title: '等待对方加入后才能重新开始', icon: 'none' });
         return;
       }
-      // 终局后直接申请；对局进行中也可申请，但需对方同意才会重置
+      // 终局后直接重开；对局进行中需对方同意才会重置
+      if (room.status === 'finished' || this.data.winner) {
+        this.restartOnlineGame();
+        return;
+      }
       wx.showModal({
         title: '重新开始',
-        content: '将向对方发送重新开始申请，对方同意后开始新的一局',
+        content: '对局进行中：将向对方发送重新开始申请，对方同意后开始新的一局',
         success: (res) => {
           if (res.confirm) {
-            this.restartOnlineGame();
+            this.requestRestartOnline();
           }
         }
       });
