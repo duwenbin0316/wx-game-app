@@ -25,6 +25,7 @@
     undoLimit: 3,
     undoLeft: 0,
     isUndoWaiting: false,
+    isRestartWaiting: false,
     hasClosedRoom: false,
     isAiMode: false,
     aiDifficulty: 'medium',
@@ -44,6 +45,8 @@
     this.initAudio();
     this.pendingMove = null;
     this.isUndoModalOpen = false;
+    this.isRestartModalOpen = false;
+    this.lastRestartPromptKey = null;
     this.lastWinnerNotice = null;
 
     if (mode === 'online' && roomId) {
@@ -74,9 +77,9 @@
     this.clearWatchRetry();
     this.stopRoomWatch();
     this.stopRoomPolling();
-    if (this.data.isUndoWaiting) {
+    if (this.data.isUndoWaiting || this.data.isRestartWaiting) {
       wx.hideLoading();
-      this.setData({ isUndoWaiting: false });
+      this.setData({ isUndoWaiting: false, isRestartWaiting: false });
     }
     this.stopUndoPolling();
     if (this.audioContext) {
@@ -107,9 +110,9 @@
     this.clearWatchRetry();
     this.stopRoomWatch();
     this.stopRoomPolling();
-    if (this.data.isUndoWaiting) {
+    if (this.data.isUndoWaiting || this.data.isRestartWaiting) {
       wx.hideLoading();
-      this.setData({ isUndoWaiting: false });
+      this.setData({ isUndoWaiting: false, isRestartWaiting: false });
     }
     this.stopUndoPolling();
     // 页面隐藏时不自动删除房间，保留房间供其他玩家使用
@@ -320,36 +323,108 @@
     this.initLocalGame();
   },
 
-  // 联机模式同房间重开一局（无需退出重新建房）
+  // 联机模式申请同房间重开（需对方同意；若对方也已申请则直接重开）
   async restartOnlineGame() {
+    if (this.data.isRestartWaiting) return;
     try {
-      wx.showLoading({ title: '开始新一局...' });
+      wx.showLoading({ title: '发送申请...' });
       const result = await wx.cloud.callFunction({
         name: 'quickstartFunctions',
         data: {
-          type: 'restartRoom',
+          type: 'requestRestart',
           roomId: this.data.roomId
         }
       });
       wx.hideLoading();
-      if (result.result && result.result.success) {
-        this.resetOnlineGameState(result.result.room);
-        wx.showToast({ title: '新一局开始，黑棋先行', icon: 'none' });
-      } else {
-        wx.showToast({
-          title: (result.result && result.result.errMsg) || '重新开始失败',
-          icon: 'none'
-        });
+      const res = result.result || {};
+      if (!res.success) {
+        wx.showToast({ title: res.errMsg || '申请失败', icon: 'none' });
+        return;
       }
+      if (res.restarted) {
+        this.resetOnlineGameState(res.room);
+        wx.showToast({ title: '新一局开始，黑棋先行', icon: 'none' });
+        return;
+      }
+      this.setData({ isRestartWaiting: true });
+      wx.showLoading({ title: '等待对方同意...' });
     } catch (e) {
       wx.hideLoading();
       wx.showToast({ title: '网络错误', icon: 'none' });
     }
   },
 
+  // 收到对方的重开申请 → 弹框确认
+  handlePendingRestart(room) {
+    const pending = room && room.pendingRestart;
+    if (!pending || !pending.byOpenid || !this.data.myOpenid) {
+      this.isRestartModalOpen = false;
+      this.lastRestartPromptKey = null;
+      return;
+    }
+    if (this.isRestartModalOpen) return;
+    if (pending.byOpenid === this.data.myOpenid) return;
+
+    const key = `${pending.byOpenid}-${pending.at || ''}`;
+    if (this.lastRestartPromptKey === key) return;
+    this.lastRestartPromptKey = key;
+    this.isRestartModalOpen = true;
+
+    wx.showModal({
+      title: '对方申请重新开始',
+      content: '对方想在当前房间开始新的一局，是否同意？',
+      confirmText: '同意',
+      cancelText: '拒绝',
+      success: async (res) => {
+        try {
+          wx.showLoading({ title: '处理中...' });
+          const result = await wx.cloud.callFunction({
+            name: 'quickstartFunctions',
+            data: {
+              type: 'respondRestart',
+              roomId: this.data.roomId,
+              approve: !!res.confirm
+            }
+          });
+          wx.hideLoading();
+          const r = result.result || {};
+          if (!r.success) {
+            wx.showToast({ title: r.errMsg || '处理失败', icon: 'none' });
+            return;
+          }
+          if (r.restarted) {
+            this.resetOnlineGameState(r.room);
+            wx.showToast({ title: '新一局开始，黑棋先行', icon: 'none' });
+          }
+        } catch (e) {
+          wx.hideLoading();
+          wx.showToast({ title: '网络错误', icon: 'none' });
+        }
+      },
+      complete: () => {
+        this.isRestartModalOpen = false;
+      }
+    });
+  },
+
+  // 我在等待对方同意重开时，根据房间状态收敛等待中的 loading
+  updateRestartLoading(room) {
+    if (!this.data.isRestartWaiting) return;
+    const pending = room && room.pendingRestart;
+    const isMine = pending && pending.byOpenid === this.data.myOpenid;
+    if (!isMine) {
+      wx.hideLoading();
+      this.setData({ isRestartWaiting: false });
+      if (room && room.lastActionType === 'restartRejected') {
+        wx.showToast({ title: '对方拒绝了重新开始', icon: 'none' });
+      }
+    }
+  },
+
   resetOnlineGameState(room) {
     this.lastWinnerNotice = null;
     this.pendingMove = null;
+    this.lastRestartPromptKey = null;
     this.setData({
       roomInfo: room,
       board: room.board,
@@ -363,7 +438,8 @@
       canUndo: false,
       myUndoCount: 0,
       undoLeft: this.data.undoLimit,
-      isUndoWaiting: false
+      isUndoWaiting: false,
+      isRestartWaiting: false
     });
     this.startRoomWatch();
     this.startRoomPolling();
@@ -692,6 +768,8 @@
       this.setData(partialUpdates);
       this.handlePendingUndo(room);
       this.updateUndoLoading(room);
+      this.handlePendingRestart(room);
+      this.updateRestartLoading(room);
       return;
     }
 
@@ -753,8 +831,11 @@
     const lastServerMove = history.length ? history[history.length - 1] : null;
     updates.lastMoveKey = lastServerMove ? `${lastServerMove.row}-${lastServerMove.col}` : '';
 
-    // 对方发起了同房间重开：清掉上一局的结果面板与胜利高亮
-    const isRematch = prevWinner && !room.winner && room.status === 'playing';
+    // 同房间重开发生（终局后重开 winner 由有变无；对局中双方同意重开则手数清零）
+    const prevHistoryLen = this.data.roomInfo && Array.isArray(this.data.roomInfo.moveHistory)
+      ? this.data.roomInfo.moveHistory.length : 0;
+    const isRematch = room.lastActionType === 'restart' && room.status === 'playing' &&
+      ((prevWinner && !room.winner) || (prevHistoryLen > 0 && history.length === 0));
     if (isRematch) {
       this.lastWinnerNotice = null;
       this.pendingMove = null;
@@ -766,11 +847,13 @@
     }
     this.setData(updates);
     if (isRematch && this.hasRoomReady) {
-      wx.showToast({ title: '对方开始了新一局，黑棋先行', icon: 'none' });
+      wx.showToast({ title: '新一局开始，黑棋先行', icon: 'none' });
     }
 
     this.handlePendingUndo(room);
     this.updateUndoLoading(room);
+    this.handlePendingRestart(room);
+    this.updateRestartLoading(room);
 
     const shouldPlayRemoteSound =
       this.hasRoomReady &&
@@ -1035,14 +1118,15 @@
 
   onRestart() {
     if (this.data.mode === 'online') {
-      // 对局结束后可同房间重开；进行中不允许单方面重置对局
-      if (!this.data.winner) {
-        wx.showToast({ title: '对局进行中，结束后可重新开始', icon: 'none' });
+      const room = this.data.roomInfo;
+      if (!room || !room.whitePlayer) {
+        wx.showToast({ title: '等待对方加入后才能重新开始', icon: 'none' });
         return;
       }
+      // 终局后直接申请；对局进行中也可申请，但需对方同意才会重置
       wx.showModal({
         title: '重新开始',
-        content: '在当前房间开始新的一局？',
+        content: '将向对方发送重新开始申请，对方同意后开始新的一局',
         success: (res) => {
           if (res.confirm) {
             this.restartOnlineGame();

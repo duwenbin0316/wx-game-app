@@ -391,7 +391,21 @@ const joinRoom = async (event) => {
   }
 };
 
-// 重新开始（同房间再来一局，双方任一玩家在对局结束后可发起）
+// 重开一局的房间重置字段
+const buildRematchData = () => ({
+  board: createEmptyBoard(),
+  currentPlayer: 'black',
+  winner: null,
+  status: 'playing',
+  moveHistory: [],
+  pendingUndo: {},
+  pendingRestart: {},
+  undoCounts: { black: 0, white: 0 },
+  lastActionType: 'restart',
+  lastActionAt: new Date()
+});
+
+// 重新开始（同房间直接重开，保留给旧版客户端；新客户端走申请-同意流程）
 const restartRoom = async (event) => {
   try {
     const wxContext = cloud.getWXContext();
@@ -420,18 +434,7 @@ const restartRoom = async (event) => {
       };
     }
 
-    const resetData = {
-      board: createEmptyBoard(),
-      currentPlayer: 'black',
-      winner: null,
-      status: 'playing',
-      moveHistory: [],
-      pendingUndo: {},
-      undoCounts: { black: 0, white: 0 },
-      lastActionType: 'restart',
-      lastActionAt: new Date()
-    };
-
+    const resetData = buildRematchData();
     await db.collection('gameRooms').doc(roomId).update({
       data: resetData
     });
@@ -445,6 +448,101 @@ const restartRoom = async (event) => {
       success: false,
       errMsg: e.message
     };
+  }
+};
+
+// 申请重新开始（需对方同意；若对方也已申请则视为双方同意直接重开）
+const requestRestart = async (event) => {
+  try {
+    const wxContext = cloud.getWXContext();
+    const { roomId } = event;
+    if (!roomId) {
+      return { success: false, errMsg: 'roomId is required' };
+    }
+
+    const room = await db.collection('gameRooms').doc(roomId).get();
+    if (!room.data) {
+      return { success: false, errMsg: 'Room not found' };
+    }
+
+    const data = room.data;
+    const myColor = data.blackPlayer === wxContext.OPENID
+      ? 'black'
+      : (data.whitePlayer === wxContext.OPENID ? 'white' : null);
+    if (!myColor) {
+      return { success: false, errMsg: 'Not a player of this room' };
+    }
+    if (!data.whitePlayer) {
+      return { success: false, errMsg: 'Opponent not joined yet' };
+    }
+    if (data.status !== 'playing' && data.status !== 'finished') {
+      return { success: false, errMsg: 'Room not in game' };
+    }
+
+    const pending = data.pendingRestart;
+    if (pending && pending.byOpenid && pending.byOpenid !== wxContext.OPENID) {
+      // 对方也在申请重开 → 双方意愿一致，直接重开
+      const resetData = buildRematchData();
+      await db.collection('gameRooms').doc(roomId).update({ data: resetData });
+      return { success: true, restarted: true, room: { ...data, ...resetData } };
+    }
+
+    await db.collection('gameRooms').doc(roomId).update({
+      data: {
+        pendingRestart: { byOpenid: wxContext.OPENID, byColor: myColor, at: new Date() },
+        lastActionType: 'restartRequest',
+        lastActionAt: new Date()
+      }
+    });
+    return { success: true, restarted: false };
+  } catch (e) {
+    return { success: false, errMsg: e.message };
+  }
+};
+
+// 响应重新开始申请
+const respondRestart = async (event) => {
+  try {
+    const wxContext = cloud.getWXContext();
+    const { roomId, approve } = event;
+    if (!roomId) {
+      return { success: false, errMsg: 'roomId is required' };
+    }
+
+    const room = await db.collection('gameRooms').doc(roomId).get();
+    if (!room.data) {
+      return { success: false, errMsg: 'Room not found' };
+    }
+
+    const data = room.data;
+    if (data.blackPlayer !== wxContext.OPENID && data.whitePlayer !== wxContext.OPENID) {
+      return { success: false, errMsg: 'Not a player of this room' };
+    }
+
+    const pending = data.pendingRestart;
+    if (!pending || !pending.byOpenid) {
+      return { success: false, errMsg: 'No pending restart request' };
+    }
+    if (pending.byOpenid === wxContext.OPENID) {
+      return { success: false, errMsg: 'Cannot respond to your own request' };
+    }
+
+    if (!approve) {
+      await db.collection('gameRooms').doc(roomId).update({
+        data: {
+          pendingRestart: {},
+          lastActionType: 'restartRejected',
+          lastActionAt: new Date()
+        }
+      });
+      return { success: true, restarted: false };
+    }
+
+    const resetData = buildRematchData();
+    await db.collection('gameRooms').doc(roomId).update({ data: resetData });
+    return { success: true, restarted: true, room: { ...data, ...resetData } };
+  } catch (e) {
+    return { success: false, errMsg: e.message };
   }
 };
 
@@ -1077,6 +1175,10 @@ exports.main = async (event, context) => {
       return await joinRoom(event);
     case "restartRoom":
       return await restartRoom(event);
+    case "requestRestart":
+      return await requestRestart(event);
+    case "respondRestart":
+      return await respondRestart(event);
     case "makeMove":
       return await makeMove(event);
     case "getRoomInfo":
