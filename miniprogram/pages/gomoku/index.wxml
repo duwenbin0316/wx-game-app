@@ -37,7 +37,7 @@
     </view>
   </view>
 
-  <view class="game-board" bindtap="onBoardTap">
+  <view class="game-board {{isFlipping ? 'flipping' : ''}}" bindtap="onBoardTap">
     <view class="board-grid">
       <view class="star-points" aria-hidden="true">
         <view class="star-point star-point-1"></view>
@@ -65,13 +65,17 @@
     <view class="undo-btn {{canUndo ? '' : 'disabled'}}" bindtap="onUndo">
       悔棋<text wx:if="{{mode === 'online'}}">({{undoLeft}})</text>
     </view>
+    <view class="flip-btn" bindtap="onFlipTable">掀桌</view>
     <view class="restart-btn" bindtap="onRestart">重新开始</view>
   </view>
+
+  <!-- 掀桌横幅 -->
+  <view class="flip-banner" wx:if="{{isFlipping}}">(╯°□°)╯︵ ┻━┻</view>
 
   <!-- 结果覆盖层 -->
   <view class="result-mask" wx:if="{{showResult}}">
     <view class="result-card">
-      <view class="result-icon">{{resultIsWin ? '🏆' : '🎯'}}</view>
+      <view class="result-icon">{{resultIcon ? resultIcon : (resultIsWin ? '🏆' : '🎯')}}</view>
       <text class="result-title">{{resultTitle}}</text>
       <text class="result-sub">{{resultSub}}</text>
       <view class="result-actions">

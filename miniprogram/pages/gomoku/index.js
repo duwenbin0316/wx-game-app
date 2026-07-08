@@ -26,6 +26,8 @@
     undoLeft: 0,
     isUndoWaiting: false,
     isRestartWaiting: false,
+    isFlipping: false,
+    resultIcon: '',
     hasClosedRoom: false,
     isAiMode: false,
     aiDifficulty: 'medium',
@@ -48,6 +50,7 @@
     this.isRestartModalOpen = false;
     this.lastRestartPromptKey = null;
     this.lastWinnerNotice = null;
+    this.handledFlipAt = null;
 
     if (mode === 'online' && roomId) {
       this.setData({
@@ -188,6 +191,11 @@
           wx.setNavigationBarTitle({ title: `房间：${room.name}` });
         }
 
+        // 进房时若本局已被掀翻，标记为已处理，避免回放旧的掀桌动画
+        if (room.lastActionType === 'flip' && room.flippedAt) {
+          this.handledFlipAt = String(new Date(room.flippedAt).getTime());
+        }
+
         this.handlePendingUndo(room);
 
         if (this.data.inviteJoin) {
@@ -262,7 +270,7 @@
     const sub = moveCount ? `共落子 ${moveCount} 步` : '';
 
     if (winner === 'draw') {
-      this.setData({ showResult: true, resultTitle: '平局', resultSub: sub, resultIsWin: false });
+      this.setData({ showResult: true, resultTitle: '平局', resultSub: sub, resultIsWin: false, resultIcon: '' });
       return;
     }
 
@@ -284,7 +292,7 @@
       title = `${winner === 'black' ? this.data.blackName : this.data.whiteName} 获胜`;
     }
 
-    this.setData({ showResult: true, resultTitle: title, resultSub: sub, resultIsWin: isWin });
+    this.setData({ showResult: true, resultTitle: title, resultSub: sub, resultIsWin: isWin, resultIcon: '' });
   },
 
   findWinCells(board, winner) {
@@ -850,6 +858,24 @@
       wx.showToast({ title: '新一局开始，黑棋先行', icon: 'none' });
     }
 
+    // 掀桌同步：对方掀了桌，这边也播动画并展示"本局作废"
+    const flipKey = room.lastActionType === 'flip' && room.flippedAt
+      ? String(new Date(room.flippedAt).getTime()) : null;
+    if (flipKey && this.handledFlipAt !== flipKey && this.hasRoomReady && !this.data.isFlipping) {
+      this.handledFlipAt = flipKey;
+      const byMe = room.flippedBy === this.data.myOpenid;
+      this.playFlipAnimation(() => {
+        this.setData({
+          canPlay: false,
+          showResult: true,
+          resultTitle: '本局作废',
+          resultSub: byMe ? '你掀翻了棋盘 ┻━┻' : '对方掀翻了棋盘 ┻━┻',
+          resultIsWin: false,
+          resultIcon: '🫳'
+        });
+      });
+    }
+
     this.handlePendingUndo(room);
     this.updateUndoLoading(room);
     this.handlePendingRestart(room);
@@ -1116,6 +1142,123 @@
     return false;
   },
 
+  // ── 掀翻棋盘 ──────────────────────────────────────────
+  onFlipTable() {
+    if (this.data.isFlipping) return;
+    if (this.data.winner) {
+      wx.showToast({ title: '对局已结束', icon: 'none' });
+      return;
+    }
+    if (this.data.mode === 'online') {
+      const room = this.data.roomInfo;
+      if (!room || room.status !== 'playing') {
+        wx.showToast({ title: '对局未开始', icon: 'none' });
+        return;
+      }
+    }
+    wx.showModal({
+      title: '掀翻棋盘',
+      content: '(╯°□°)╯ 确定掀翻棋盘吗？本局作废、不计胜负',
+      confirmText: '掀了！',
+      cancelText: '冷静一下',
+      success: (res) => {
+        if (!res.confirm) return;
+        if (this.data.mode === 'online') {
+          this.flipOnline();
+        } else {
+          this.flipLocal();
+        }
+      }
+    });
+  },
+
+  flipLocal() {
+    // 立即锁定对局，防止 AI 在动画期间继续落子
+    this.setData({ winner: 'flipped', canPlay: false, canUndo: false });
+    this.playFlipAnimation(() => {
+      this.setData({
+        showResult: true,
+        resultTitle: '本局作废',
+        resultSub: '你掀翻了棋盘 ┻━┻',
+        resultIsWin: false,
+        resultIcon: '🫳'
+      });
+    });
+  },
+
+  async flipOnline() {
+    try {
+      const result = await wx.cloud.callFunction({
+        name: 'quickstartFunctions',
+        data: {
+          type: 'flipTable',
+          roomId: this.data.roomId
+        }
+      });
+      const res = result.result || {};
+      if (!res.success) {
+        wx.showToast({ title: res.errMsg || '掀桌失败', icon: 'none' });
+        return;
+      }
+      // 先标记已处理，避免轮询/监听回来重复播动画
+      if (res.room && res.room.flippedAt) {
+        this.handledFlipAt = String(new Date(res.room.flippedAt).getTime());
+      }
+      if (res.room) {
+        this.setData({ roomInfo: res.room, status: 'finished' });
+      }
+      this.playFlipAnimation(() => {
+        this.setData({
+          canPlay: false,
+          showResult: true,
+          resultTitle: '本局作废',
+          resultSub: '你掀翻了棋盘 ┻━┻',
+          resultIsWin: false,
+          resultIcon: '🫳'
+        });
+      });
+    } catch (e) {
+      wx.showToast({ title: '网络错误', icon: 'none' });
+    }
+  },
+
+  playFlipAnimation(done) {
+    this.setData({ isFlipping: true });
+    try { wx.vibrateLong(); } catch (e) {}
+    this.playFlipSound();
+    setTimeout(() => {
+      this.setData({ isFlipping: false });
+      if (done) done();
+    }, 1150);
+  },
+
+  // 低频"哐当"两声（Web Audio 合成，不支持时静默降级）
+  playFlipSound() {
+    try {
+      const ac = wx.createWebAudioContext ? wx.createWebAudioContext() : null;
+      if (!ac) return;
+      const now = ac.currentTime;
+      [90, 55].forEach((f, i) => {
+        const osc = ac.createOscillator();
+        const g = ac.createGain();
+        osc.connect(g);
+        g.connect(ac.destination);
+        osc.type = 'square';
+        osc.frequency.setValueAtTime(f, now + i * 0.09);
+        osc.frequency.exponentialRampToValueAtTime(Math.max(28, f * 0.45), now + i * 0.09 + 0.26);
+        g.gain.setValueAtTime(0.5, now + i * 0.09);
+        g.gain.exponentialRampToValueAtTime(0.001, now + i * 0.09 + 0.3);
+        osc.start(now + i * 0.09);
+        osc.stop(now + i * 0.09 + 0.32);
+      });
+      this._flipAc = ac;
+      setTimeout(() => {
+        try { ac.close(); } catch (e) {}
+        this._flipAc = null;
+      }, 1500);
+    } catch (e) {}
+  },
+
   onRestart() {
     if (this.data.mode === 'online') {
       const room = this.data.roomInfo;
@@ -1217,6 +1360,12 @@
           }
         }
       });
+      return;
+    }
+
+    // 掀翻作废的对局不允许悔棋复活（悔掉制胜一手的正常终局除外）
+    if (this.data.winner === 'flipped') {
+      wx.showToast({ title: '本局已作废', icon: 'none' });
       return;
     }
 

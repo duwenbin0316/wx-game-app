@@ -325,6 +325,58 @@ page {
 
 .restart-btn:active { opacity: 0.75; }
 
+.flip-btn {
+  border-radius: 0;
+  font-size: 26rpx;
+  font-weight: 600;
+  padding: 18rpx 32rpx;
+  user-select: none;
+  letter-spacing: 1rpx;
+  font-family: monospace;
+  box-shadow: 3rpx 3rpx 0 #0E0E22;
+  background: #1E1E38;
+  color: #FF6B6B;
+  border: 2rpx solid #6B3A4A;
+}
+
+.flip-btn:active { opacity: 0.75; }
+
+/* ── 掀桌动画 ── */
+.game-board.flipping {
+  animation: table-flip 1.1s cubic-bezier(0.5, -0.2, 0.9, 0.6) forwards;
+  pointer-events: none;
+}
+
+@keyframes table-flip {
+  0%   { transform: none; opacity: 1; }
+  15%  { transform: translateY(10rpx) rotate(2deg); }
+  35%  { transform: translateY(-80rpx) rotate(-10deg); }
+  100% { transform: translateY(-1800rpx) rotate(-500deg) scale(0.7); opacity: 0; }
+}
+
+.flip-banner {
+  position: fixed;
+  left: 0; right: 0;
+  top: 38%;
+  text-align: center;
+  font-size: 60rpx;
+  font-weight: 700;
+  color: #FFFFFF;
+  font-family: monospace;
+  text-shadow: 4rpx 4rpx 0 #0E0E22;
+  z-index: 90;
+  pointer-events: none;
+  animation: flip-banner-pop 1.1s ease-out forwards;
+}
+
+@keyframes flip-banner-pop {
+  0%   { opacity: 0; transform: scale(0.3) rotate(-8deg); }
+  25%  { opacity: 1; transform: scale(1.15) rotate(3deg); }
+  40%  { transform: scale(1) rotate(0deg); }
+  85%  { opacity: 1; }
+  100% { opacity: 0; transform: scale(1) translateY(-30rpx); }
+}
+
 .undo-btn {
   background: #1E1E38;
   color: #4A6FA5;

@@ -500,6 +500,45 @@ const requestRestart = async (event) => {
   }
 };
 
+// 掀翻棋盘：本局作废、无胜负（仅对局进行中可掀）
+const flipTable = async (event) => {
+  try {
+    const wxContext = cloud.getWXContext();
+    const { roomId } = event;
+    if (!roomId) {
+      return { success: false, errMsg: 'roomId is required' };
+    }
+
+    const room = await db.collection('gameRooms').doc(roomId).get();
+    if (!room.data) {
+      return { success: false, errMsg: 'Room not found' };
+    }
+
+    const data = room.data;
+    if (data.blackPlayer !== wxContext.OPENID && data.whitePlayer !== wxContext.OPENID) {
+      return { success: false, errMsg: 'Not a player of this room' };
+    }
+    if (data.status !== 'playing') {
+      return { success: false, errMsg: 'Game not in playing status' };
+    }
+
+    const flipData = {
+      status: 'finished',
+      winner: null,
+      pendingUndo: {},
+      pendingRestart: {},
+      flippedBy: wxContext.OPENID,
+      flippedAt: new Date(),
+      lastActionType: 'flip',
+      lastActionAt: new Date()
+    };
+    await db.collection('gameRooms').doc(roomId).update({ data: flipData });
+    return { success: true, room: { ...data, ...flipData } };
+  } catch (e) {
+    return { success: false, errMsg: e.message };
+  }
+};
+
 // 响应重新开始申请
 const respondRestart = async (event) => {
   try {
@@ -1179,6 +1218,8 @@ exports.main = async (event, context) => {
       return await requestRestart(event);
     case "respondRestart":
       return await respondRestart(event);
+    case "flipTable":
+      return await flipTable(event);
     case "makeMove":
       return await makeMove(event);
     case "getRoomInfo":
