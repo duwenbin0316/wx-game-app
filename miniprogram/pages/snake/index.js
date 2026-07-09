@@ -158,12 +158,6 @@ Page({
     this._queueDir(dir);
   },
 
-  // 方向键
-  onDirUp()    { this._queueDir('up'); },
-  onDirDown()  { this._queueDir('down'); },
-  onDirLeft()  { this._queueDir('left'); },
-  onDirRight() { this._queueDir('right'); },
-
   // 方向队列：最多缓存 2 步，禁止 180° 掉头
   _queueDir(dir) {
     if (this.data.gameState !== 'playing' || !this._dirQueue) return;

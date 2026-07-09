@@ -44,45 +44,6 @@
   width: 100vw;
 }
 
-/* ── 方向键 ── */
-.dpad {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 16rpx 0 40rpx;
-  gap: 10rpx;
-}
-
-.dpad-row {
-  display: flex;
-  align-items: center;
-  gap: 10rpx;
-}
-
-.dpad-btn {
-  width: 130rpx;
-  height: 96rpx;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: #1E1E38;
-  border: 2rpx solid #2E3A5C;
-  color: #D97757;
-  font-size: 36rpx;
-  box-shadow: 3rpx 3rpx 0 #0E0E22;
-  user-select: none;
-}
-
-.dpad-btn:active {
-  background: #2A2A4A;
-  border-color: #D97757;
-}
-
-.dpad-spacer {
-  width: 130rpx;
-  height: 96rpx;
-}
-
 /* ── 覆盖层 ── */
 .overlay {
   position: fixed;
