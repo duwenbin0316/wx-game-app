@@ -4,7 +4,7 @@
 const { drawClawd, GRID_COLS, GRID_ROWS } = require('../../utils/clawd');
 
 const COLS = 17;              // 横向格数（纵向按画布高度自适应）
-const TICK_START = 200;       // 初始每步毫秒
+const TICK_START = 230;       // 初始每步毫秒（起步慢一点，方便熟悉操作）
 const TICK_MIN = 95;          // 最快每步毫秒
 const TICK_STEP = 4;          // 每吃一个 Bug 提速毫秒
 const GOLD_EVERY = 5;         // 每吃 N 个红 Bug 出一个金 Bug
@@ -124,14 +124,33 @@ Page({
     const t = e.touches[0];
     this._tx = t.clientX;
     this._ty = t.clientY;
+    this._swiped = false;
   },
 
-  onTouchEnd(e) {
+  // 滑动实时响应：越过阈值立即转向并重置起点，一次按住可连续转向
+  onTouchMove(e) {
     if (this.data.gameState !== 'playing') return;
+    const t = e.touches[0];
+    const dx = t.clientX - this._tx;
+    const dy = t.clientY - this._ty;
+    const MIN = 30;
+    if (Math.abs(dx) < MIN && Math.abs(dy) < MIN) return;
+    const dir = Math.abs(dx) >= Math.abs(dy)
+      ? (dx > 0 ? 'right' : 'left')
+      : (dy > 0 ? 'down' : 'up');
+    this._queueDir(dir);
+    this._swiped = true;
+    this._tx = t.clientX;
+    this._ty = t.clientY;
+  },
+
+  // 快速轻扫可能没触发 touchmove 阈值，抬手时兜底
+  onTouchEnd(e) {
+    if (this.data.gameState !== 'playing' || this._swiped) return;
     const t = e.changedTouches[0];
     const dx = t.clientX - this._tx;
     const dy = t.clientY - this._ty;
-    const MIN = 24;
+    const MIN = 18;
     if (Math.abs(dx) < MIN && Math.abs(dy) < MIN) return;
     const dir = Math.abs(dx) >= Math.abs(dy)
       ? (dx > 0 ? 'right' : 'left')
@@ -139,8 +158,15 @@ Page({
     this._queueDir(dir);
   },
 
+  // 方向键
+  onDirUp()    { this._queueDir('up'); },
+  onDirDown()  { this._queueDir('down'); },
+  onDirLeft()  { this._queueDir('left'); },
+  onDirRight() { this._queueDir('right'); },
+
   // 方向队列：最多缓存 2 步，禁止 180° 掉头
   _queueDir(dir) {
+    if (this.data.gameState !== 'playing' || !this._dirQueue) return;
     const q = this._dirQueue;
     const last = q.length ? q[q.length - 1] : this._dir;
     if (dir === last || dir === OPPOSITE[last]) return;

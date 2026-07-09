@@ -1,4 +1,4 @@
-<view class="snake-container" bindtouchstart="onTouchStart" bindtouchend="onTouchEnd">
+<view class="snake-container" bindtouchstart="onTouchStart" bindtouchmove="onTouchMove" bindtouchend="onTouchEnd">
   <!-- 顶部计分栏 -->
   <view class="stats-bar">
     <view class="stat-block">
@@ -17,13 +17,28 @@
 
   <canvas id="snake-canvas" type="2d" class="snake-canvas"></canvas>
 
+  <!-- 方向键 -->
+  <view class="dpad">
+    <view class="dpad-row">
+      <view class="dpad-btn" catchtouchstart="onDirUp">▲</view>
+    </view>
+    <view class="dpad-row">
+      <view class="dpad-btn" catchtouchstart="onDirLeft">◀</view>
+      <view class="dpad-spacer"></view>
+      <view class="dpad-btn" catchtouchstart="onDirRight">▶</view>
+    </view>
+    <view class="dpad-row">
+      <view class="dpad-btn" catchtouchstart="onDirDown">▼</view>
+    </view>
+  </view>
+
   <!-- 开始画面 -->
   <view class="overlay" wx:if="{{gameState === 'idle'}}">
     <view class="overlay-card">
       <text class="overlay-title">Clawd 贪吃蛇</text>
       <text class="overlay-sub">吃掉 BUG · 越吃越长</text>
       <view class="hint-row">
-        <text class="hint-text">滑动屏幕控制方向</text>
+        <text class="hint-text">滑动屏幕或点按方向键拐弯</text>
       </view>
       <text class="hint-small">金色 BUG 限时出现，+5 分</text>
       <view class="start-btn" catchtouchstart="onStart">开始游戏</view>
