@@ -6,6 +6,7 @@
     "pages/runner/index",
     "pages/sokoban/index",
     "pages/tetris/index",
+    "pages/snake/index",
     "pages/pet/index"
   ],
   "window": {

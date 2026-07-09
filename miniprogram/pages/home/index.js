@@ -29,6 +29,12 @@ Page({
         url: '/pages/tetris/index'
       },
       {
+        id: 'snake',
+        name: 'Clawd 贪吃蛇',
+        desc: '吃掉 Bug 越吃越长，小心别咬到自己',
+        url: '/pages/snake/index'
+      },
+      {
         id: 'pet',
         name: '电子宠物',
         desc: '橙色小家伙 Clawd，需要你的照顾',
