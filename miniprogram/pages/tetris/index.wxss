@@ -298,7 +298,7 @@ page {
   flex-direction: row;
   justify-content: space-between;
   align-items: center;
-  padding: 16rpx 44rpx 52rpx;
+  padding: 16rpx 20rpx 48rpx;
   background: #1E1E38;
   border-top: 2rpx solid #2E3A5C;
   box-shadow: 0 -6rpx 0 #0A0A1A;
@@ -309,13 +309,13 @@ page {
 .ctrl-dpad {
   display: flex;
   flex-direction: row;
-  gap: 14rpx;
+  gap: 12rpx;
   align-items: center;
 }
 
 .dpad-btn {
-  width: 154rpx;
-  height: 154rpx;
+  width: 170rpx;
+  height: 170rpx;
 }
 
 .dpad-down {
@@ -326,16 +326,16 @@ page {
 .ctrl-ab {
   display: flex;
   flex-direction: column;
-  gap: 14rpx;
+  gap: 12rpx;
   align-items: center;
 }
 
 .ab-btn {
   display: flex;
-  width: 154rpx;
-  height: 154rpx;
+  width: 170rpx;
+  height: 170rpx;
   flex-direction: column;
-  gap: 4rpx;
+  gap: 6rpx;
 }
 
 .btn-a {
@@ -357,7 +357,7 @@ page {
 }
 
 .ab-label {
-  font-size: 30rpx;
+  font-size: 38rpx;
   font-weight: 700;
   font-family: monospace;
   color: #C0C0E8;
@@ -365,7 +365,7 @@ page {
 }
 
 .ab-hint {
-  font-size: 16rpx;
+  font-size: 18rpx;
   color: #4A6FA5;
   letter-spacing: 1rpx;
   font-family: monospace;
@@ -419,27 +419,27 @@ page {
 }
 
 .arr-up {
-  border-left: 16rpx solid transparent;
-  border-right: 16rpx solid transparent;
-  border-bottom: 24rpx solid #4A6FA5;
+  border-left: 20rpx solid transparent;
+  border-right: 20rpx solid transparent;
+  border-bottom: 30rpx solid #4A6FA5;
 }
 
 .arr-left {
-  border-top: 16rpx solid transparent;
-  border-bottom: 16rpx solid transparent;
-  border-right: 24rpx solid #4A6FA5;
+  border-top: 20rpx solid transparent;
+  border-bottom: 20rpx solid transparent;
+  border-right: 30rpx solid #4A6FA5;
 }
 
 .arr-right {
-  border-top: 16rpx solid transparent;
-  border-bottom: 16rpx solid transparent;
-  border-left: 24rpx solid #4A6FA5;
+  border-top: 20rpx solid transparent;
+  border-bottom: 20rpx solid transparent;
+  border-left: 30rpx solid #4A6FA5;
 }
 
 .arr-down {
-  border-left: 16rpx solid transparent;
-  border-right: 16rpx solid transparent;
-  border-top: 24rpx solid #4A6FA5;
+  border-left: 20rpx solid transparent;
+  border-right: 20rpx solid transparent;
+  border-top: 30rpx solid #4A6FA5;
 }
 
 /* ── 覆盖层（保留） ───────────────────────────── */
