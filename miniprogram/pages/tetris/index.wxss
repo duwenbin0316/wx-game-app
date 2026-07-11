@@ -307,8 +307,8 @@ page {
 
 /* ── ◀ ▼ ▶ 三块等大主键 ───────────────────────── */
 .big-btn {
-  width: 168rpx;
-  height: 224rpx;
+  width: 156rpx;
+  height: 156rpx;
 }
 
 .soft-btn {
@@ -324,10 +324,10 @@ page {
 
 .act-btn {
   display: flex;
-  width: 168rpx;
-  height: 106rpx;
+  width: 156rpx;
+  height: 72rpx;
   flex-direction: column;
-  gap: 4rpx;
+  gap: 2rpx;
 }
 
 .act-rot {
@@ -340,7 +340,7 @@ page {
 }
 
 .act-glyph {
-  font-size: 46rpx;
+  font-size: 34rpx;
   font-weight: 700;
   color: #C0A0F0;
   line-height: 1;
@@ -364,14 +364,14 @@ page {
 
 /* 用后代选择器提高优先级，避免被文件后部的 .arr-down 通用规则覆盖 */
 .drop-glyph .drop-arr {
-  border-left: 16rpx solid transparent;
-  border-right: 16rpx solid transparent;
-  border-top: 24rpx solid #E8916E;
+  border-left: 12rpx solid transparent;
+  border-right: 12rpx solid transparent;
+  border-top: 18rpx solid #E8916E;
 }
 
 .drop-bar {
-  width: 44rpx;
-  height: 6rpx;
+  width: 34rpx;
+  height: 4rpx;
   background: #E8916E;
 }
 
@@ -432,27 +432,27 @@ page {
 }
 
 .arr-up {
-  border-left: 26rpx solid transparent;
-  border-right: 26rpx solid transparent;
-  border-bottom: 40rpx solid #4A6FA5;
+  border-left: 20rpx solid transparent;
+  border-right: 20rpx solid transparent;
+  border-bottom: 30rpx solid #4A6FA5;
 }
 
 .arr-left {
-  border-top: 26rpx solid transparent;
-  border-bottom: 26rpx solid transparent;
-  border-right: 40rpx solid #4A6FA5;
+  border-top: 20rpx solid transparent;
+  border-bottom: 20rpx solid transparent;
+  border-right: 30rpx solid #4A6FA5;
 }
 
 .arr-right {
-  border-top: 26rpx solid transparent;
-  border-bottom: 26rpx solid transparent;
-  border-left: 40rpx solid #4A6FA5;
+  border-top: 20rpx solid transparent;
+  border-bottom: 20rpx solid transparent;
+  border-left: 30rpx solid #4A6FA5;
 }
 
 .arr-down {
-  border-left: 26rpx solid transparent;
-  border-right: 26rpx solid transparent;
-  border-top: 40rpx solid #4A6FA5;
+  border-left: 20rpx solid transparent;
+  border-right: 20rpx solid transparent;
+  border-top: 30rpx solid #4A6FA5;
 }
 
 /* ── 覆盖层（保留） ───────────────────────────── */
