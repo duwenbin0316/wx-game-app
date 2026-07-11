@@ -57,22 +57,18 @@
   </view>
 
   <view class="controls" wx:if="{{gameState === 'playing'}}" catchtouchend="noop">
-    <!-- 左：移动（最高频，通高大键） -->
-    <view class="ctrl-move">
-      <view class="control-btn move-btn" catchtouchstart="onLeft" catchtouchend="onMoveEnd">
-        <view class="arr arr-left"></view>
-      </view>
-      <view class="control-btn move-btn" catchtouchstart="onRight" catchtouchend="onMoveEnd">
-        <view class="arr arr-right"></view>
-      </view>
+    <!-- ◀ ▼ ▶ 三块等大主键，▼ 居中隔开左右键，避免倒换误触 -->
+    <view class="control-btn big-btn" catchtouchstart="onLeft" catchtouchend="onMoveEnd">
+      <view class="arr arr-left"></view>
     </view>
-
-    <!-- 中：软降（低频窄条） -->
-    <view class="control-btn soft-btn" catchtouchstart="onDown" catchtouchend="onMoveEnd">
+    <view class="control-btn big-btn soft-btn" catchtouchstart="onDown" catchtouchend="onMoveEnd">
       <view class="arr arr-down"></view>
     </view>
+    <view class="control-btn big-btn" catchtouchstart="onRight" catchtouchend="onMoveEnd">
+      <view class="arr arr-right"></view>
+    </view>
 
-    <!-- 右：旋转在上、硬降在下 -->
+    <!-- 第四列：旋转在上、硬降在下 -->
     <view class="ctrl-actions">
       <view class="control-btn act-btn act-rot" catchtouchstart="onRotate">
         <text class="act-glyph">⟳</text>

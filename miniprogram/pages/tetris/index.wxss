@@ -297,34 +297,25 @@ page {
   display: flex;
   flex-direction: row;
   justify-content: space-between;
-  align-items: stretch;
-  padding: 16rpx 16rpx 44rpx;
+  align-items: center;
+  padding: 16rpx 20rpx 44rpx;
   background: #1E1E38;
   border-top: 2rpx solid #2E3A5C;
   box-shadow: 0 -6rpx 0 #0A0A1A;
   flex-shrink: 0;
 }
 
-/* ── 左：移动键（通高大键，最高频操作给最大面积） ── */
-.ctrl-move {
-  display: flex;
-  flex-direction: row;
-  gap: 12rpx;
+/* ── ◀ ▼ ▶ 三块等大主键 ───────────────────────── */
+.big-btn {
+  width: 168rpx;
+  height: 224rpx;
 }
 
-.move-btn {
-  width: 180rpx;
-  height: 292rpx;
-}
-
-/* ── 中：软降窄条 ──────────────────────────────── */
 .soft-btn {
-  width: 110rpx;
-  height: 292rpx;
   border-color: #4A6FA5;
 }
 
-/* ── 右：旋转 / 硬降 ───────────────────────────── */
+/* ── 第四列：旋转 / 硬降 ───────────────────────── */
 .ctrl-actions {
   display: flex;
   flex-direction: column;
@@ -333,10 +324,10 @@ page {
 
 .act-btn {
   display: flex;
-  width: 190rpx;
-  height: 140rpx;
+  width: 168rpx;
+  height: 106rpx;
   flex-direction: column;
-  gap: 6rpx;
+  gap: 4rpx;
 }
 
 .act-rot {
@@ -349,7 +340,7 @@ page {
 }
 
 .act-glyph {
-  font-size: 60rpx;
+  font-size: 46rpx;
   font-weight: 700;
   color: #C0A0F0;
   line-height: 1;
