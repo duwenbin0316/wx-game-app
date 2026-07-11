@@ -341,6 +341,77 @@ Page({
     this._lockCurrentPiece();
   },
 
+  // ── 棋盘手势 ──────────────────────────────────────────
+  // 轻点=旋转；横向拖动=每格宽移一列；下拖=每格软降一行；
+  // 快速下滑=硬降；上滑=暂存（HOLD）
+  onBoardTouchStart(e) {
+    if (this.data.gameState !== 'playing') return;
+    const t = e.touches[0];
+    this._boardTouch = {
+      x: t.clientX, y: t.clientY,        // 步进累计基准点
+      sx: t.clientX, sy: t.clientY,      // 起始点
+      time: Date.now(),
+      moved: false
+    };
+  },
+
+  onBoardTouchMove(e) {
+    const bt = this._boardTouch;
+    if (!bt || this.data.gameState !== 'playing') return;
+    const t = e.touches[0];
+    const cellPx = this._boardRect ? this._boardRect.cell : 24;
+
+    // 快速下滑手势交给 touchend 判定硬降，避免拖动期间提前软降到底
+    const dt = Date.now() - bt.time;
+    const flickCandidate = dt < 250 && (t.clientY - bt.sy) > cellPx * 1.5 &&
+      Math.abs(t.clientX - bt.sx) < (t.clientY - bt.sy) * 0.6;
+    if (flickCandidate) return;
+
+    // 横向拖动：每滑过一格宽移动一列
+    let dx = t.clientX - bt.x;
+    while (Math.abs(dx) >= cellPx) {
+      const dir = dx > 0 ? 1 : -1;
+      if (this._tryMove(0, dir)) this._renderAll();
+      bt.x += dir * cellPx;
+      bt.moved = true;
+      dx = t.clientX - bt.x;
+    }
+
+    // 向下拖动：每滑过一格高软降一行
+    let dy = t.clientY - bt.y;
+    while (dy >= cellPx) {
+      this._stepDown(true);
+      bt.y += cellPx;
+      bt.moved = true;
+      dy = t.clientY - bt.y;
+    }
+  },
+
+  onBoardTouchEnd(e) {
+    const bt = this._boardTouch;
+    this._boardTouch = null;
+    if (!bt || this.data.gameState !== 'playing') return;
+    const t = e.changedTouches[0];
+    const totalX = t.clientX - bt.sx;
+    const totalY = t.clientY - bt.sy;
+    const dt = Date.now() - bt.time;
+
+    // 快速下滑 → 硬降
+    if (dt < 250 && totalY > 50 && Math.abs(totalX) < totalY * 0.6) {
+      this.onDrop();
+      return;
+    }
+    // 上滑 → 暂存
+    if (totalY < -40 && Math.abs(totalX) < Math.abs(totalY)) {
+      this.onHold();
+      return;
+    }
+    // 原地轻点 → 旋转
+    if (!bt.moved && dt < 300 && Math.abs(totalX) < 12 && Math.abs(totalY) < 12) {
+      this.onRotate();
+    }
+  },
+
   onHold() {
     if (this.data.gameState !== 'playing' || !this._current || this._holdUsed) return;
 
@@ -750,8 +821,9 @@ Page({
         this._current.row + ghostDistance,
         this._current.col
       );
+      // 投影用描边空心块，与已落定的实心块明确区分
       ghostCells.forEach(cell => {
-        this._drawBlock(ctx, cell.row, cell.col, this._current.color, 0.35);
+        this._drawGhostBlock(ctx, cell.row, cell.col, this._current.color);
       });
 
       const lockAlpha = this._lockDelayTimer ? 0.75 : 1;
@@ -815,6 +887,24 @@ Page({
     const px = x + col * cell;
     const py = y + row * cell;
     this._drawBlockRect(ctx, px, py, cell, color, alpha);
+  },
+
+  _drawGhostBlock(ctx, row, col, color) {
+    if (row < 0 || row >= BOARD_ROWS || col < 0 || col >= BOARD_COLS) return;
+
+    const { x, y, cell } = this._boardRect;
+    const inset = 2;
+    ctx.save();
+    ctx.globalAlpha = 0.55;
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 2;
+    ctx.strokeRect(
+      x + col * cell + inset + 0.5,
+      y + row * cell + inset + 0.5,
+      cell - inset * 2 - 1,
+      cell - inset * 2 - 1
+    );
+    ctx.restore();
   },
 
   _drawBlockRect(ctx, x, y, size, color, alpha) {

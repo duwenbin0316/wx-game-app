@@ -2,5 +2,6 @@
   "navigationBarTitleText": "俄罗斯方块",
   "navigationBarBackgroundColor": "#1A1A2E",
   "navigationBarTextStyle": "white",
-  "backgroundColor": "#1A1A2E"
+  "backgroundColor": "#1A1A2E",
+  "disableScroll": true
 }

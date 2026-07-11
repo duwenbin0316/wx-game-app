@@ -20,7 +20,10 @@
   </view>
 
   <view class="main-area">
-    <view class="board-wrap">
+    <view class="board-wrap"
+          bindtouchstart="onBoardTouchStart"
+          bindtouchmove="onBoardTouchMove"
+          bindtouchend="onBoardTouchEnd">
       <canvas id="tetris-canvas" type="2d" class="board-canvas"></canvas>
     </view>
 
@@ -32,7 +35,7 @@
 
       <view class="side-section">
         <text class="side-label">HOLD</text>
-        <view class="hold-box">
+        <view class="hold-box" bindtap="onHold">
           <view class="hold-piece {{holdClass}}">
             <text>{{holdPiece}}</text>
           </view>
