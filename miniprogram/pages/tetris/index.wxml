@@ -57,26 +57,33 @@
   </view>
 
   <view class="controls" wx:if="{{gameState === 'playing'}}" catchtouchend="noop">
-    <view class="ctrl-dpad">
-      <view class="control-btn dpad-btn" catchtouchstart="onLeft" catchtouchend="onMoveEnd">
+    <!-- 左：移动（最高频，通高大键） -->
+    <view class="ctrl-move">
+      <view class="control-btn move-btn" catchtouchstart="onLeft" catchtouchend="onMoveEnd">
         <view class="arr arr-left"></view>
       </view>
-      <view class="control-btn dpad-btn dpad-down" catchtouchstart="onDown" catchtouchend="onMoveEnd">
-        <view class="arr arr-down"></view>
-      </view>
-      <view class="control-btn dpad-btn" catchtouchstart="onRight" catchtouchend="onMoveEnd">
+      <view class="control-btn move-btn" catchtouchstart="onRight" catchtouchend="onMoveEnd">
         <view class="arr arr-right"></view>
       </view>
     </view>
 
-    <view class="ctrl-ab">
-      <view class="control-btn ab-btn btn-a" catchtouchstart="onRotate">
-        <text class="ab-label">A</text>
-        <text class="ab-hint">ROT</text>
+    <!-- 中：软降（低频窄条） -->
+    <view class="control-btn soft-btn" catchtouchstart="onDown" catchtouchend="onMoveEnd">
+      <view class="arr arr-down"></view>
+    </view>
+
+    <!-- 右：旋转在上、硬降在下 -->
+    <view class="ctrl-actions">
+      <view class="control-btn act-btn act-rot" catchtouchstart="onRotate">
+        <text class="act-glyph">⟳</text>
+        <text class="act-hint">ROT</text>
       </view>
-      <view class="control-btn ab-btn btn-b" catchtouchstart="onDrop">
-        <text class="ab-label">B</text>
-        <text class="ab-hint">DROP</text>
+      <view class="control-btn act-btn act-drop" catchtouchstart="onDrop">
+        <view class="drop-glyph">
+          <view class="arr arr-down drop-arr"></view>
+          <view class="drop-bar"></view>
+        </view>
+        <text class="act-hint">DROP</text>
       </view>
     </view>
   </view>

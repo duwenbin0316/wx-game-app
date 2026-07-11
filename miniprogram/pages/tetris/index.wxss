@@ -297,74 +297,94 @@ page {
   display: flex;
   flex-direction: row;
   justify-content: space-between;
-  align-items: center;
-  padding: 16rpx 20rpx 48rpx;
+  align-items: stretch;
+  padding: 16rpx 16rpx 44rpx;
   background: #1E1E38;
   border-top: 2rpx solid #2E3A5C;
   box-shadow: 0 -6rpx 0 #0A0A1A;
   flex-shrink: 0;
 }
 
-/* ── D-Pad ─────────────────────────────────────── */
-.ctrl-dpad {
+/* ── 左：移动键（通高大键，最高频操作给最大面积） ── */
+.ctrl-move {
   display: flex;
   flex-direction: row;
   gap: 12rpx;
-  align-items: center;
 }
 
-.dpad-btn {
-  width: 170rpx;
-  height: 170rpx;
+.move-btn {
+  width: 180rpx;
+  height: 292rpx;
 }
 
-.dpad-down {
+/* ── 中：软降窄条 ──────────────────────────────── */
+.soft-btn {
+  width: 110rpx;
+  height: 292rpx;
   border-color: #4A6FA5;
 }
 
-/* ── AB 键 ─────────────────────────────────────── */
-.ctrl-ab {
+/* ── 右：旋转 / 硬降 ───────────────────────────── */
+.ctrl-actions {
   display: flex;
   flex-direction: column;
   gap: 12rpx;
-  align-items: center;
 }
 
-.ab-btn {
+.act-btn {
   display: flex;
-  width: 170rpx;
-  height: 170rpx;
+  width: 190rpx;
+  height: 140rpx;
   flex-direction: column;
   gap: 6rpx;
 }
 
-.btn-a {
+.act-rot {
   border-color: #A855F7;
 }
 
-.btn-a:active {
+.act-rot:active {
   border-color: #A855F7 !important;
   background: rgba(168, 85, 247, 0.15) !important;
 }
 
-.btn-b {
+.act-glyph {
+  font-size: 60rpx;
+  font-weight: 700;
+  color: #C0A0F0;
+  line-height: 1;
+}
+
+.act-drop {
   border-color: #D97757;
 }
 
-.btn-b:active {
+.act-drop:active {
   border-color: #D97757 !important;
   background: rgba(217, 119, 87, 0.2) !important;
 }
 
-.ab-label {
-  font-size: 38rpx;
-  font-weight: 700;
-  font-family: monospace;
-  color: #C0C0E8;
-  line-height: 1;
+.drop-glyph {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4rpx;
 }
 
-.ab-hint {
+/* 用后代选择器提高优先级，避免被文件后部的 .arr-down 通用规则覆盖 */
+.drop-glyph .drop-arr {
+  border-left: 16rpx solid transparent;
+  border-right: 16rpx solid transparent;
+  border-top: 24rpx solid #E8916E;
+}
+
+.drop-bar {
+  width: 44rpx;
+  height: 6rpx;
+  background: #E8916E;
+}
+
+.act-hint {
   font-size: 18rpx;
   color: #4A6FA5;
   letter-spacing: 1rpx;
@@ -393,6 +413,8 @@ page {
   border-color: #D97757;
   color: #D97757;
   background: rgba(217, 119, 87, 0.12);
+  transform: translate(3rpx, 3rpx);
+  box-shadow: 0 0 0 #0A0A1A;
 }
 
 .control-btn:active .arr-up {
@@ -419,27 +441,27 @@ page {
 }
 
 .arr-up {
-  border-left: 20rpx solid transparent;
-  border-right: 20rpx solid transparent;
-  border-bottom: 30rpx solid #4A6FA5;
+  border-left: 26rpx solid transparent;
+  border-right: 26rpx solid transparent;
+  border-bottom: 40rpx solid #4A6FA5;
 }
 
 .arr-left {
-  border-top: 20rpx solid transparent;
-  border-bottom: 20rpx solid transparent;
-  border-right: 30rpx solid #4A6FA5;
+  border-top: 26rpx solid transparent;
+  border-bottom: 26rpx solid transparent;
+  border-right: 40rpx solid #4A6FA5;
 }
 
 .arr-right {
-  border-top: 20rpx solid transparent;
-  border-bottom: 20rpx solid transparent;
-  border-left: 30rpx solid #4A6FA5;
+  border-top: 26rpx solid transparent;
+  border-bottom: 26rpx solid transparent;
+  border-left: 40rpx solid #4A6FA5;
 }
 
 .arr-down {
-  border-left: 20rpx solid transparent;
-  border-right: 20rpx solid transparent;
-  border-top: 30rpx solid #4A6FA5;
+  border-left: 26rpx solid transparent;
+  border-right: 26rpx solid transparent;
+  border-top: 40rpx solid #4A6FA5;
 }
 
 /* ── 覆盖层（保留） ───────────────────────────── */
