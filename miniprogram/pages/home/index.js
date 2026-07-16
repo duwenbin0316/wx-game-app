@@ -19,7 +19,7 @@ Page({
       {
         id: 'sokoban',
         name: '像素推箱子',
-        desc: '把箱子推到目标位置，共 8 关',
+        desc: '10 关烧脑谜题，把箱子推到目标位置',
         url: '/pages/sokoban/index'
       },
       {

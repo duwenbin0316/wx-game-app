@@ -22,6 +22,12 @@ page {
   flex-shrink: 0;
 }
 
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 14rpx;
+}
+
 .header-level {
   font-size: 26rpx;
   font-weight: 700;
@@ -30,11 +36,31 @@ page {
   font-family: monospace;
 }
 
-.header-steps {
-  font-size: 24rpx;
-  color: #D97757;
-  letter-spacing: 2rpx;
+.header-name {
+  font-size: 22rpx;
+  color: #4A6FA5;
   font-family: monospace;
+}
+
+.header-steps {
+  font-size: 22rpx;
+  color: #D97757;
+  letter-spacing: 1rpx;
+  font-family: monospace;
+}
+
+.header-select {
+  font-size: 22rpx;
+  color: #4A6FA5;
+  font-family: monospace;
+  background: #16162E;
+  border: 2rpx solid #2E3A5C;
+  padding: 8rpx 20rpx;
+  box-shadow: 3rpx 3rpx 0 #0A0A1A;
+}
+
+.header-select:active {
+  background: rgba(74, 111, 165, 0.2);
 }
 
 /* ── 游戏画布 ── */
@@ -102,7 +128,13 @@ page {
   height: 96rpx;
 }
 
-/* ── 撤销按钮 ── */
+/* ── 撤销/重开按钮 ── */
+.side-btns {
+  display: flex;
+  flex-direction: column;
+  gap: 20rpx;
+}
+
 .undo-btn {
   padding: 22rpx 40rpx;
   background: #16162E;
@@ -164,7 +196,14 @@ page {
   color: #4A6FA5;
   letter-spacing: 2rpx;
   font-family: monospace;
-  margin-bottom: 48rpx;
+  margin-bottom: 12rpx;
+}
+
+.win-best {
+  font-size: 22rpx;
+  color: #F5C842;
+  font-family: monospace;
+  margin-bottom: 36rpx;
 }
 
 .win-btns {
@@ -197,3 +236,87 @@ page {
 }
 
 .next-btn:active { opacity: 0.8; }
+
+/* ── 选关面板 ── */
+.select-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 44rpx 36rpx 36rpx;
+  background: rgba(30, 30, 60, 0.97);
+  border: 2rpx solid #4A6FA5;
+  border-radius: 0;
+  width: 640rpx;
+  box-sizing: border-box;
+  box-shadow: 6rpx 6rpx 0 #0E0E22;
+}
+
+.select-title {
+  font-size: 34rpx;
+  font-weight: 700;
+  color: #C0C0E8;
+  font-family: monospace;
+  letter-spacing: 4rpx;
+  margin-bottom: 32rpx;
+}
+
+.select-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16rpx;
+  justify-content: center;
+  margin-bottom: 32rpx;
+}
+
+.select-item {
+  width: 104rpx;
+  height: 116rpx;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4rpx;
+  background: #16162E;
+  border: 2rpx solid #2E3A5C;
+  box-shadow: 3rpx 3rpx 0 #0A0A1A;
+}
+
+.select-item:active { opacity: 0.7; }
+
+.item-locked { opacity: 0.4; }
+
+.item-current {
+  border-color: #D97757;
+  background: rgba(217, 119, 87, 0.10);
+}
+
+.select-num {
+  font-size: 32rpx;
+  font-weight: 700;
+  color: #D97757;
+  font-family: monospace;
+}
+
+.select-name {
+  font-size: 17rpx;
+  color: #4A6FA5;
+  font-family: monospace;
+}
+
+.select-best {
+  font-size: 16rpx;
+  color: #F5C842;
+  font-family: monospace;
+}
+
+.select-close {
+  padding: 16rpx 56rpx;
+  background: #1E1E38;
+  border: 2rpx solid #2E3A5C;
+  color: #4A6FA5;
+  font-size: 26rpx;
+  font-family: monospace;
+  box-shadow: 3rpx 3rpx 0 #0E0E22;
+}
+
+.select-close:active { opacity: 0.7; }

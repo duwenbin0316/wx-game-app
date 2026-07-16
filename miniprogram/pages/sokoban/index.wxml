@@ -2,13 +2,17 @@
 
   <!-- 顶部信息栏 -->
   <view class="game-header">
-    <text class="header-level">第 {{levelIndex + 1}} 关</text>
-    <text class="header-steps">{{steps}} 步</text>
+    <view class="header-left">
+      <text class="header-level">{{levelIndex + 1}}/{{levelCount}}</text>
+      <text class="header-name">{{levelName}}</text>
+    </view>
+    <text class="header-steps">{{steps}} 步 · 最优 {{par}}</text>
+    <view class="header-select" catchtouchend="onSelectShow">选关</view>
   </view>
 
   <canvas id="sokoban-canvas" type="2d" class="sokoban-canvas"></canvas>
 
-  <!-- 方向控制键 + 撤销 -->
+  <!-- 方向控制键 + 撤销/重开 -->
   <view class="controls" wx:if="{{gameState === 'playing'}}" catchtouchend="noop">
     <view class="dpad">
       <view class="dpad-up"   catchtouchstart="onUp"><view class="arr arr-up"></view></view>
@@ -19,19 +23,44 @@
       </view>
       <view class="dpad-down"  catchtouchstart="onDown"><view class="arr arr-down"></view></view>
     </view>
-    <view class="undo-btn" catchtouchstart="onUndo">↩ 撤销</view>
+    <view class="side-btns">
+      <view class="undo-btn" catchtouchstart="onUndo">↩ 撤销</view>
+      <view class="undo-btn" catchtouchstart="onRestartLevel">↻ 重开</view>
+    </view>
   </view>
 
   <!-- 通关 overlay -->
   <view class="overlay" wx:if="{{gameState === 'win'}}">
     <view class="win-card">
-      <text class="win-emoji">★</text>
-      <text class="win-title">{{isAllDone ? '全部完成！' : '通关！'}}</text>
-      <text class="win-sub">第 {{levelIndex + 1}} 关 · 用了 {{steps}} 步</text>
+      <text class="win-emoji">{{isPerfect ? '⭐' : '★'}}</text>
+      <text class="win-title">{{isAllDone ? '全部完成！' : (isPerfect ? '完美通关！' : '通关！')}}</text>
+      <text class="win-sub">{{levelName}} · 用了 {{steps}} 步（最优 {{par}} 步）</text>
+      <text class="win-best" wx:if="{{best > 0}}">个人纪录 {{best}} 步</text>
       <view class="win-btns">
         <view class="win-btn retry-btn" catchtouchstart="onRestart">{{isAllDone ? '再来一遍' : '重玩'}}</view>
         <view class="win-btn next-btn" catchtouchstart="onNext" wx:if="{{!isAllDone}}">下一关 ›</view>
       </view>
+    </view>
+  </view>
+
+  <!-- 选关面板 -->
+  <view class="overlay" wx:if="{{showSelect}}" catchtouchend="onSelectClose">
+    <view class="select-card" catchtouchend="noop">
+      <text class="select-title">选择关卡</text>
+      <view class="select-grid">
+        <view
+          wx:for="{{levelList}}"
+          wx:key="index"
+          class="select-item {{item.locked ? 'item-locked' : ''}} {{item.current ? 'item-current' : ''}}"
+          data-index="{{item.index}}"
+          catchtouchend="onSelectLevel"
+        >
+          <text class="select-num">{{item.locked ? '🔒' : item.index + 1}}</text>
+          <text class="select-name">{{item.name}}</text>
+          <text class="select-best" wx:if="{{item.best > 0}}">{{item.best}}步</text>
+        </view>
+      </view>
+      <view class="select-close" catchtouchend="onSelectClose">关闭</view>
     </view>
   </view>
 </view>
