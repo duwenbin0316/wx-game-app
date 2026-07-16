@@ -10,7 +10,7 @@
       </view>
     </view>
 
-    <canvas id="pet-canvas" type="2d" class="pet-canvas" bindtap="onTapPet"></canvas>
+    <canvas id="pet-canvas" type="2d" class="pet-canvas" bindtouchstart="onCanvasTouch"></canvas>
 
     <block wx:if="{{loadError}}">
       <text class="error-text">加载失败：{{loadError}}</text>
@@ -58,17 +58,17 @@
     </view>
 
     <view class="actions">
-      <view class="action-btn {{pet.isSleeping ? 'btn-disabled' : ''}}" bindtap="onFeed">
+      <view class="action-btn {{pet.isSleeping || gamePlaying ? 'btn-disabled' : ''}}" bindtap="onFeed">
         <text class="action-icon">🍖</text>
         <text class="action-label">喂食</text>
         <text class="btn-effect">+35 饱食</text>
       </view>
-      <view class="action-btn {{pet.isSleeping ? 'btn-disabled' : ''}}" bindtap="onPlay">
-        <text class="action-icon">🎮</text>
-        <text class="action-label">玩耍</text>
-        <text class="btn-effect">+35 心情</text>
+      <view class="action-btn {{pet.isSleeping || gamePlaying ? 'btn-disabled' : ''}}" bindtap="onPlay">
+        <text class="action-icon">🐛</text>
+        <text class="action-label">抓 Bug</text>
+        <text class="btn-effect">小游戏 +35 心情</text>
       </view>
-      <view class="action-btn" bindtap="onToggleSleep">
+      <view class="action-btn {{gamePlaying ? 'btn-disabled' : ''}}" bindtap="onToggleSleep">
         <text class="action-icon">{{pet.isSleeping ? '☀️' : '💤'}}</text>
         <text class="action-label">{{pet.isSleeping ? '唤醒' : '睡觉'}}</text>
         <text class="btn-effect">{{pet.isSleeping ? '恢复精神' : '恢复体力'}}</text>

@@ -55,8 +55,8 @@
 }
 
 .pet-canvas {
-  width: 420rpx;
-  height: 420rpx;
+  width: 660rpx;
+  height: 480rpx;
   display: block;
   border: 4rpx solid #2E3A5C;
   box-shadow: 6rpx 6rpx 0 #0E0E22;

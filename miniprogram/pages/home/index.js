@@ -43,7 +43,7 @@ Page({
       {
         id: 'pet',
         name: '电子宠物',
-        desc: '橙色小家伙 Clawd，需要你的照顾',
+        desc: '陪 Clawd 散步、喂食，一起抓 Bug',
         url: '/pages/pet/index'
       }
     ]
