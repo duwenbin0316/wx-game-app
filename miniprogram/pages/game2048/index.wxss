@@ -1,0 +1,224 @@
+.g2048-container {
+  width: 100vw;
+  height: 100vh;
+  background: #1A1A2E;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* ── 计分栏 ── */
+.stats-bar {
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  padding: 20rpx 40rpx 16rpx;
+}
+
+.stat-block {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.stat-label {
+  font-size: 20rpx;
+  color: #5A5A8A;
+  font-family: monospace;
+  letter-spacing: 3rpx;
+}
+
+.stat-value {
+  font-size: 44rpx;
+  font-weight: 700;
+  color: #D97757;
+  font-family: monospace;
+}
+
+.stat-value.best {
+  color: #F5C842;
+}
+
+.restart-btn {
+  width: 64rpx;
+  height: 64rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 40rpx;
+  font-weight: 700;
+  color: #4A6FA5;
+  background: #1E1E38;
+  border: 2rpx solid #2E3A5C;
+  box-shadow: 4rpx 4rpx 0 #0E0E22;
+}
+
+.restart-btn:active { opacity: 0.75; }
+
+/* ── 画布 ── */
+.game-canvas {
+  flex: 1;
+  width: 100vw;
+}
+
+/* ── 覆盖层 ── */
+.overlay {
+  position: fixed;
+  left: 0; top: 0; right: 0; bottom: 0;
+  background: rgba(10, 10, 30, 0.78);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 50;
+}
+
+.overlay-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 60rpx 70rpx;
+  background: rgba(30, 30, 60, 0.96);
+  border: 2rpx solid #4A6FA5;
+  box-shadow: 6rpx 6rpx 0 #0E0E22;
+}
+
+.overlay-title {
+  font-size: 64rpx;
+  font-weight: 700;
+  color: #F5C842;
+  font-family: monospace;
+  letter-spacing: 8rpx;
+  margin-bottom: 14rpx;
+}
+
+.overlay-sub {
+  font-size: 24rpx;
+  color: #6A6A9A;
+  font-family: monospace;
+  letter-spacing: 2rpx;
+  margin-bottom: 36rpx;
+}
+
+.hint-row {
+  margin-bottom: 10rpx;
+}
+
+.hint-text {
+  font-size: 28rpx;
+  color: #B8CCE8;
+}
+
+.hint-small {
+  font-size: 22rpx;
+  color: #F5C842;
+  margin-bottom: 40rpx;
+}
+
+.start-btn {
+  background: #D97757;
+  color: #1A1A2E;
+  font-size: 30rpx;
+  font-weight: 700;
+  font-family: monospace;
+  letter-spacing: 2rpx;
+  padding: 20rpx 64rpx;
+  box-shadow: 4rpx 4rpx 0 #0E0E22;
+}
+
+.start-btn:active { opacity: 0.75; }
+
+/* ── 通关画面 ── */
+.win-title {
+  font-size: 72rpx;
+  font-weight: 700;
+  color: #F5C842;
+  font-family: monospace;
+  letter-spacing: 6rpx;
+  margin-bottom: 8rpx;
+}
+
+/* ── 结束画面 ── */
+.over-title {
+  font-size: 48rpx;
+  font-weight: 700;
+  color: #FF6B6B;
+  font-family: monospace;
+  letter-spacing: 6rpx;
+  margin-bottom: 8rpx;
+}
+
+.over-sub {
+  font-size: 24rpx;
+  color: #6A6A9A;
+  margin-bottom: 30rpx;
+}
+
+.score-block, .best-block {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 20rpx;
+}
+
+.score-label, .best-label {
+  font-size: 20rpx;
+  color: #5A5A8A;
+  font-family: monospace;
+  letter-spacing: 3rpx;
+}
+
+.score-value {
+  font-size: 72rpx;
+  font-weight: 700;
+  color: #D97757;
+  font-family: monospace;
+}
+
+.score-value.gold {
+  color: #F5C842;
+}
+
+.best-value {
+  font-size: 40rpx;
+  font-weight: 700;
+  color: #F5C842;
+  font-family: monospace;
+}
+
+.action-row {
+  display: flex;
+  align-items: center;
+  gap: 24rpx;
+  margin-top: 16rpx;
+}
+
+.retry-btn {
+  background: #D97757;
+  color: #1A1A2E;
+  font-size: 28rpx;
+  font-weight: 700;
+  font-family: monospace;
+  padding: 18rpx 44rpx;
+  box-shadow: 4rpx 4rpx 0 #0E0E22;
+}
+
+.retry-btn:active { opacity: 0.75; }
+
+.retry-text {
+  color: #1A1A2E;
+}
+
+.g2048-share-btn {
+  background: #1E1E38;
+  color: #4A6FA5;
+  border: 2rpx solid #2E3A5C;
+  font-size: 28rpx;
+  font-weight: 700;
+  font-family: monospace;
+  padding: 14rpx 44rpx;
+  border-radius: 0;
+  box-shadow: 4rpx 4rpx 0 #0E0E22;
+  line-height: 1.6;
+}
+
+.g2048-share-btn::after { border: none; }

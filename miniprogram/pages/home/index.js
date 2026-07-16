@@ -35,6 +35,12 @@ Page({
         url: '/pages/snake/index'
       },
       {
+        id: 'game2048',
+        name: '2048',
+        desc: '滑动合并数字，拼出 2048！',
+        url: '/pages/game2048/index'
+      },
+      {
         id: 'pet',
         name: '电子宠物',
         desc: '橙色小家伙 Clawd，需要你的照顾',
