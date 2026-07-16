@@ -1,0 +1,73 @@
+<view class="g2048-container" bindtouchstart="onTouchStart" bindtouchmove="onTouchMove" bindtouchend="onTouchEnd">
+  <!-- 顶部计分栏 -->
+  <view class="stats-bar">
+    <view class="stat-block">
+      <text class="stat-label">SCORE</text>
+      <text class="stat-value">{{score}}</text>
+    </view>
+    <view class="stat-block">
+      <text class="stat-label">BEST</text>
+      <text class="stat-value best">{{bestScore}}</text>
+    </view>
+    <view class="stat-block">
+      <text class="stat-label">MAX</text>
+      <text class="stat-value">{{maxTile}}</text>
+    </view>
+    <view class="restart-btn" catchtap="onRestartTap">↻</view>
+  </view>
+
+  <canvas id="game-canvas" type="2d" class="game-canvas"></canvas>
+
+  <!-- 开始画面 -->
+  <view class="overlay" wx:if="{{gameState === 'idle'}}">
+    <view class="overlay-card">
+      <text class="overlay-title">2048</text>
+      <text class="overlay-sub">滑动 · 合并 · 翻倍</text>
+      <view class="hint-row">
+        <text class="hint-text">往任意方向滑动，相同数字合并</text>
+      </view>
+      <text class="hint-small">拼出 2048 就算通关，还能继续冲更高</text>
+      <view class="start-btn" catchtouchstart="onStart">开始游戏</view>
+    </view>
+  </view>
+
+  <!-- 通关画面 -->
+  <view class="overlay win-overlay" wx:if="{{gameState === 'win'}}">
+    <view class="overlay-card">
+      <text class="win-title">2048!</text>
+      <text class="over-sub">你拼出来了！</text>
+      <view class="score-block">
+        <text class="score-label">SCORE</text>
+        <text class="score-value gold">{{score}}</text>
+      </view>
+      <view class="action-row">
+        <view class="retry-btn" catchtouchstart="onContinue">
+          <text class="retry-text">继续冲</text>
+        </view>
+        <button class="g2048-share-btn" open-type="share" catchtouchstart="">分享</button>
+      </view>
+    </view>
+  </view>
+
+  <!-- 结束画面 -->
+  <view class="overlay over-overlay" wx:if="{{gameState === 'over'}}">
+    <view class="overlay-card over-card">
+      <text class="over-title">GAME OVER</text>
+      <text class="over-sub">格子满了，无路可走</text>
+      <view class="score-block">
+        <text class="score-label">SCORE</text>
+        <text class="score-value">{{score}}</text>
+      </view>
+      <view class="best-block">
+        <text class="best-label">BEST</text>
+        <text class="best-value">{{bestScore}}</text>
+      </view>
+      <view class="action-row">
+        <view class="retry-btn" catchtouchstart="onRetry">
+          <text class="retry-text">再来一次</text>
+        </view>
+        <button class="g2048-share-btn" open-type="share" catchtouchstart="">分享</button>
+      </view>
+    </view>
+  </view>
+</view>
