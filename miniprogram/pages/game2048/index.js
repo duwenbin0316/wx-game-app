@@ -22,6 +22,14 @@ const TILE_COLORS = {
 };
 const TILE_SUPER = ['#FFF6C9', '#1A1A2E'];  // 4096 及以上
 
+// 还没玩过时分享卡上的演示排布（展示色阶递进）
+const SHARE_DEMO_GRID = [
+  [2, 4, 8, 16],
+  [256, 128, 64, 32],
+  [512, 1024, 2048, 0],
+  [0, 0, 0, 0],
+];
+
 // 各方向的读取顺序与落位规则
 const DIRS = {
   left:  { read: t => t,     line: 'row' },
@@ -85,15 +93,29 @@ Page({
     if (this.data.gameState === 'playing' && this._canvas) this._loop();
   },
 
+  // 分享：文案按当前状态挑不尴尬的说法，配图用离屏画布现画的
+  // 分享卡（干净的棋盘 + 分数，不受结算弹层遮挡影响）
   onShareAppMessage() {
+    const base = { title: this._shareTitle(), path: '/pages/game2048/index' };
+    return {
+      ...base,
+      promise: this._buildShareImage()
+        .then(img => (img ? { ...base, imageUrl: img } : base))
+        .catch(() => base),
+    };
+  },
+
+  _shareTitle() {
     const score = this.data.score || 0;
     const max = this.data.maxTile || 0;
-    return {
-      title: max >= 2048
+    const best = this.data.bestScore || 0;
+    if (score > 0) {
+      return max >= 2048
         ? `我拼出了 2048，拿下 ${score} 分！来挑战我～`
-        : `我在 2048 拿了 ${score} 分，最大拼到 ${max}，来挑战我～`,
-      path: '/pages/game2048/index'
-    };
+        : `我在 2048 拿了 ${score} 分，最大拼到 ${max}，来挑战我～`;
+    }
+    if (best > 0) return `我的 2048 最高分 ${best}，敢来超越吗？`;
+    return '超解压的像素 2048，滑动合并数字，一起来玩！';
   },
 
   // ─── 交互 ──────────────────────────────────────────────
@@ -388,7 +410,10 @@ Page({
 
   _drawTile(ctx, cx, cy, v, scale) {
     if (scale <= 0) return;
-    const s = this._cell * scale;
+    this._paintTile(ctx, cx, cy, this._cell * scale, v);
+  },
+
+  _paintTile(ctx, cx, cy, s, v) {
     const [bg, fg] = TILE_COLORS[v] || TILE_SUPER;
     const x = cx - s / 2, y = cy - s / 2;
 
@@ -423,6 +448,103 @@ Page({
       ctx.fillText(f.text, f.x, f.y);
     }
     ctx.globalAlpha = 1;
+    ctx.textAlign = 'left';
+  },
+
+  // ─── 分享卡（500×400，微信分享图 5:4）──────────────────
+
+  // 生成失败或超时则返回 null，分享降级为默认页面截图
+  _buildShareImage() {
+    return new Promise(resolve => {
+      let settled = false;
+      const done = v => { if (!settled) { settled = true; resolve(v); } };
+      setTimeout(() => done(null), 1500);
+      try {
+        const W = 500, H = 400, SCALE = 2;
+        const canvas = wx.createOffscreenCanvas({ type: '2d', width: W * SCALE, height: H * SCALE });
+        const ctx = canvas.getContext('2d');
+        ctx.scale(SCALE, SCALE);
+        this._drawShareCard(ctx, W, H);
+        wx.canvasToTempFilePath({
+          canvas,
+          fileType: 'png',
+          success: res => done(res.tempFilePath),
+          fail: () => done(null),
+        });
+      } catch (e) {
+        done(null);
+      }
+    });
+  },
+
+  _drawShareCard(ctx, W, H) {
+    // 背景 + 弱棋盘格
+    ctx.fillStyle = '#1A1A2E';
+    ctx.fillRect(0, 0, W, H);
+    ctx.fillStyle = '#1E1E38';
+    const bg = 40;
+    for (let col = 0; col < Math.ceil(W / bg); col++) {
+      for (let row = 0; row < Math.ceil(H / bg); row++) {
+        if ((col + row) % 2 === 0) ctx.fillRect(col * bg, row * bg, bg, bg);
+      }
+    }
+
+    // 左侧：棋盘（有对局画真实棋盘，否则画演示排布）
+    const grid = (this._grid && (this.data.score > 0 || this.data.gameState !== 'idle'))
+      ? this._grid
+      : SHARE_DEMO_GRID;
+    const side = 320, bx = 40, by = 40, gap = 10;
+    const cell = (side - gap * (SIZE + 1)) / SIZE;
+    ctx.fillStyle = '#0E0E22';
+    ctx.fillRect(bx + 5, by + 5, side, side);
+    ctx.fillStyle = '#252547';
+    ctx.fillRect(bx, by, side, side);
+    for (let r = 0; r < SIZE; r++) {
+      for (let c = 0; c < SIZE; c++) {
+        const x = bx + gap + c * (cell + gap);
+        const y = by + gap + r * (cell + gap);
+        ctx.fillStyle = '#1E1E38';
+        ctx.fillRect(x, y, cell, cell);
+        if (grid[r][c]) this._paintTile(ctx, x + cell / 2, y + cell / 2, cell, grid[r][c]);
+      }
+    }
+
+    // 右侧：标题 + 分数
+    const rx = 430;
+    ctx.textAlign = 'center';
+    ctx.fillStyle = '#F5C842';
+    ctx.font = 'bold 42px monospace';
+    ctx.fillText('2048', rx, 100);
+
+    const score = this.data.score || 0;
+    const best = this.data.bestScore || 0;
+    const label = (text, y) => {
+      ctx.fillStyle = '#5A5A8A';
+      ctx.font = 'bold 15px monospace';
+      ctx.fillText(text, rx, y);
+    };
+    const value = (text, y, color) => {
+      ctx.fillStyle = color;
+      ctx.font = 'bold 30px monospace';
+      ctx.fillText(text, rx, y);
+    };
+    if (score > 0) {
+      label('SCORE', 175);
+      value(String(score), 208, '#D97757');
+      label('BEST', 265);
+      value(String(best), 298, '#F5C842');
+    } else if (best > 0) {
+      label('BEST', 195);
+      value(String(best), 230, '#F5C842');
+    } else {
+      ctx.fillStyle = '#4A6FA5';
+      ctx.font = 'bold 20px monospace';
+      ctx.fillText('滑动合并', rx, 190);
+      ctx.fillText('数字翻倍', rx, 220);
+    }
+    ctx.fillStyle = '#6A6A9A';
+    ctx.font = '14px monospace';
+    ctx.fillText('来挑战我', rx, 356);
     ctx.textAlign = 'left';
   },
 
