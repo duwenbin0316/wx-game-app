@@ -105,16 +105,15 @@ Page({
     };
   },
 
+  // 只有本局真打出成绩才报分数，否则一律纯邀请文案，避免误导
   _shareTitle() {
     const score = this.data.score || 0;
     const max = this.data.maxTile || 0;
-    const best = this.data.bestScore || 0;
     if (score > 0) {
       return max >= 2048
         ? `我拼出了 2048，拿下 ${score} 分！来挑战我～`
         : `我在 2048 拿了 ${score} 分，最大拼到 ${max}，来挑战我～`;
     }
-    if (best > 0) return `我的 2048 最高分 ${best}，敢来超越吗？`;
     return '超解压的像素 2048，滑动合并数字，一起来玩！';
   },
 
@@ -533,9 +532,6 @@ Page({
       value(String(score), 208, '#D97757');
       label('BEST', 265);
       value(String(best), 298, '#F5C842');
-    } else if (best > 0) {
-      label('BEST', 195);
-      value(String(best), 230, '#F5C842');
     } else {
       ctx.fillStyle = '#4A6FA5';
       ctx.font = 'bold 20px monospace';
