@@ -1,4 +1,5 @@
 <view class="tetris-page">
+  <!-- 顶部信息栏 -->
   <view class="game-header">
     <view class="header-left">
       <text class="header-lv-label">LV.</text><text class="header-lv-num">{{level}}</text>
@@ -19,6 +20,7 @@
     </view>
   </view>
 
+  <!-- 棋盘 + 侧栏 -->
   <view class="main-area">
     <view class="board-wrap"
           bindtouchstart="onBoardTouchStart"
@@ -28,19 +30,14 @@
     </view>
 
     <view class="side-panel">
-      <view class="side-section">
-        <text class="side-label">NEXT</text>
-        <canvas id="next-canvas" type="2d" class="next-canvas"></canvas>
+      <view class="side-section" catchtouchend="onHold">
+        <text class="side-label">HOLD</text>
+        <canvas id="hold-canvas" type="2d" class="hold-canvas"></canvas>
       </view>
 
       <view class="side-section">
-        <text class="side-label">HOLD</text>
-        <view class="hold-box" bindtap="onHold">
-          <view class="hold-piece {{holdClass}}">
-            <text>{{holdPiece}}</text>
-          </view>
-          <text class="hold-hint">HOLD</text>
-        </view>
+        <text class="side-label">NEXT</text>
+        <canvas id="next-canvas" type="2d" class="next-canvas"></canvas>
       </view>
 
       <view class="stats">
@@ -56,43 +53,57 @@
     </view>
   </view>
 
+  <!-- 操作区:左移动/软降,右旋转/硬降 -->
   <view class="controls" wx:if="{{gameState === 'playing'}}" catchtouchend="noop">
-    <!-- ◀ ▶ 相邻（左手拇指区），▼ 软降靠右手侧 -->
-    <view class="control-btn big-btn" catchtouchstart="onLeft" catchtouchend="onMoveEnd">
-      <view class="arr arr-left"></view>
-    </view>
-    <view class="control-btn big-btn" catchtouchstart="onRight" catchtouchend="onMoveEnd">
-      <view class="arr arr-right"></view>
-    </view>
-    <view class="control-btn big-btn soft-btn" catchtouchstart="onDown" catchtouchend="onMoveEnd">
-      <view class="arr arr-down"></view>
+    <view class="ctrl-cluster">
+      <view class="ctrl-row">
+        <view class="cbtn" catchtouchstart="onLeft" catchtouchend="onMoveEnd" catchtouchcancel="onMoveEnd">
+          <view class="arr arr-left"></view>
+        </view>
+        <view class="cbtn" catchtouchstart="onRight" catchtouchend="onMoveEnd" catchtouchcancel="onMoveEnd">
+          <view class="arr arr-right"></view>
+        </view>
+      </view>
+      <view class="ctrl-row">
+        <view class="cbtn cbtn-wide" catchtouchstart="onDown" catchtouchend="onDownEnd" catchtouchcancel="onDownEnd">
+          <view class="arr arr-down"></view>
+          <text class="cbtn-hint">软降</text>
+        </view>
+      </view>
     </view>
 
-    <!-- 第四列：旋转在上、硬降在下 -->
-    <view class="ctrl-actions">
-      <view class="control-btn act-btn act-rot" catchtouchstart="onRotate">
-        <text class="act-glyph">⟳</text>
-        <text class="act-hint">ROT</text>
-      </view>
-      <view class="control-btn act-btn act-drop" catchtouchstart="onDrop">
-        <view class="drop-glyph">
-          <view class="arr arr-down drop-arr"></view>
-          <view class="drop-bar"></view>
+    <view class="ctrl-cluster">
+      <view class="ctrl-row">
+        <view class="cbtn" catchtouchstart="onRotCCW">
+          <text class="rot-glyph">⟲</text>
         </view>
-        <text class="act-hint">DROP</text>
+        <view class="cbtn cbtn-rot" catchtouchstart="onRotCW">
+          <text class="rot-glyph rot-main">⟳</text>
+        </view>
+      </view>
+      <view class="ctrl-row">
+        <view class="cbtn cbtn-wide cbtn-drop" catchtouchstart="onDrop">
+          <view class="drop-glyph">
+            <view class="arr arr-down drop-arr"></view>
+            <view class="drop-bar"></view>
+          </view>
+          <text class="cbtn-hint hint-drop">硬降</text>
+        </view>
       </view>
     </view>
   </view>
 
+  <!-- 暂停 -->
   <view class="overlay" wx:if="{{gameState === 'paused'}}">
     <view class="over-card">
       <text class="over-title">暂停</text>
       <text class="over-best">当前得分 {{score}}</text>
       <view class="restart-btn" catchtouchstart="onResume">继续游戏</view>
-      <view class="pause-restart-btn" catchtouchstart="onRestart">重新开始</view>
+      <view class="ghost-btn" catchtouchstart="onRestart">重新开始</view>
     </view>
   </view>
 
+  <!-- 结束 -->
   <view class="overlay" wx:if="{{gameState === 'over'}}">
     <view class="over-card">
       <text class="over-title">游戏结束</text>
@@ -101,8 +112,9 @@
       </view>
       <text class="over-score-num">{{score}}</text>
       <text class="over-score-label">本局得分</text>
-      <text class="over-best">最高 {{best}}</text>
+      <text class="over-best">等级 {{level}} · 消行 {{lines}} · 最高 {{best}}</text>
       <view class="restart-btn" catchtouchstart="onRestart">再来一局</view>
+      <button class="share-btn" open-type="share">分享战绩</button>
     </view>
   </view>
 </view>

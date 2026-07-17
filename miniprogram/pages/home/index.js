@@ -25,7 +25,7 @@ Page({
       {
         id: 'tetris',
         name: '俄罗斯方块',
-        desc: '消除方块，挑战最高分！',
+        desc: '重制手感，T-Spin 连击冲高分！',
         url: '/pages/tetris/index'
       },
       {
