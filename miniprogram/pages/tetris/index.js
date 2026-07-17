@@ -97,6 +97,64 @@ function spawnCol(type) {
   return Math.floor((COLS - BOX_SIZE[type]) / 2);
 }
 
+// ── BGM 乐谱:8-bit 合成《Korobeiniki》(俄罗斯民歌,公有领域)──
+// 用 Web Audio 现场合成,方波主旋律 + 三角波贝斯 + 噪声踩镲,
+// 不依赖 mp3 资源。音符记法 [midi, 八分音符数],0 为休止。
+const BGM_BPM = 146;
+const BGM_MELODY = [
+  // A 段
+  [76, 2], [71, 1], [72, 1], [74, 2], [72, 1], [71, 1],
+  [69, 2], [69, 1], [72, 1], [76, 2], [74, 1], [72, 1],
+  [71, 3], [72, 1], [74, 2], [76, 2],
+  [72, 2], [69, 2], [69, 4],
+  [0, 1], [74, 2], [77, 1], [81, 2], [79, 1], [77, 1],
+  [76, 3], [72, 1], [76, 2], [74, 1], [72, 1],
+  [71, 2], [71, 1], [72, 1], [74, 2], [76, 2],
+  [72, 2], [69, 2], [69, 3], [0, 1],
+  // B 段(长音,情绪缓下来再推上去)
+  [76, 4], [72, 4],
+  [74, 4], [71, 4],
+  [72, 4], [69, 4],
+  [68, 8],
+  [76, 4], [72, 4],
+  [74, 4], [71, 4],
+  [72, 2], [76, 2], [81, 4],
+  [80, 8],
+];
+// 每小节的贝斯根音(低八度/高八度交替走八分)
+const BGM_BASS_ROOTS = [
+  40, 45, 47, 45, 38, 36, 47, 45,   // A 段:Em Am B7 Am Dm C B7 Am
+  45, 44, 45, 40, 45, 44, 45, 40,   // B 段:Am G# Am E …
+];
+
+function midiFreq(m) {
+  return 440 * Math.pow(2, (m - 69) / 12);
+}
+
+function buildBgmScore() {
+  const eighth = 60 / BGM_BPM / 2;
+  const events = [];
+  let t = 0;
+  BGM_MELODY.forEach(([m, n]) => {
+    if (m) events.push({ t, d: n * eighth * 0.9, f: midiFreq(m), w: 'square', v: 0.05 });
+    t += n * eighth;
+  });
+  const dur = t;
+  const measures = Math.round(dur / (eighth * 8));
+  for (let i = 0; i < measures; i++) {
+    const root = BGM_BASS_ROOTS[i % BGM_BASS_ROOTS.length];
+    for (let e = 0; e < 8; e++) {
+      const bt = (i * 8 + e) * eighth;
+      events.push({ t: bt, d: eighth * 0.85, f: midiFreq(e % 2 ? root + 12 : root), w: 'triangle', v: 0.075 });
+      events.push({ t: bt, hat: true, v: e % 2 ? 0.012 : 0.024 });
+    }
+  }
+  events.sort((a, b) => a.t - b.t);
+  return { events, dur };
+}
+
+const BGM_SCORE = buildBgmScore();
+
 function clampChannel(v) {
   return Math.max(0, Math.min(255, Math.round(v)));
 }
@@ -265,7 +323,11 @@ Page({
   onToggleMute() {
     const muted = !this.data.muted;
     this.setData({ muted });
-    if (this._audio) this._audio.bgm.volume = muted ? 0 : 0.45;
+    if (muted) {
+      this._pauseBgm();
+    } else if (this._state === 'play' || this._state === 'clearing') {
+      this._playBgm();
+    }
   },
 
   // ── 发牌 ────────────────────────────────────────────────
@@ -1000,12 +1062,6 @@ Page({
 
   // ── 音频 ────────────────────────────────────────────────
   _initAudio() {
-    const bgm = wx.createInnerAudioContext();
-    bgm.src = '/assets/sounds/tetris-bgm.mp3';
-    bgm.loop = true;
-    bgm.volume = 0.45;
-    bgm.obeyMuteSwitch = false;
-
     const mkSfx = (src, vol) => {
       const ctx = wx.createInnerAudioContext();
       ctx.src = src;
@@ -1015,7 +1071,6 @@ Page({
     };
 
     this._audio = {
-      bgm,
       drop:     mkSfx('/assets/sounds/tetris-drop.mp3',     0.7),
       clear:    mkSfx('/assets/sounds/tetris-clear.mp3',    0.9),
       tetris:   mkSfx('/assets/sounds/tetris-tetris.mp3',   1.0),
@@ -1031,6 +1086,7 @@ Page({
   },
 
   _destroyAudio() {
+    this._pauseBgm();
     if (this._audio) {
       Object.values(this._audio).forEach(ctx => {
         try { ctx.stop(); ctx.destroy(); } catch (e) {}
@@ -1043,14 +1099,77 @@ Page({
     }
   },
 
+  // ── BGM:合成序列器 ─────────────────────────────────────
+  // 每 90ms 往前预排 0.35s 内的音符,循环整首乐谱;
+  // 速率随等级微升(最多 +25%),越到后面越紧张。
   _playBgm() {
-    if (!this._audio || this.data.muted) return;
-    this._audio.bgm.play();
+    if (!this._wac || this.data.muted || this._bgmTimer) return;
+    this._bgmIdx = 0;
+    this._bgmLoopStart = this._wac.currentTime + 0.1;
+    this._bgmTimer = setInterval(() => this._scheduleBgm(), 90);
+    this._scheduleBgm();
   },
 
   _pauseBgm() {
-    if (!this._audio) return;
-    try { this._audio.bgm.pause(); } catch (e) {}
+    if (this._bgmTimer) {
+      clearInterval(this._bgmTimer);
+      this._bgmTimer = null;
+    }
+  },
+
+  _scheduleBgm() {
+    const wac = this._wac;
+    if (!wac) return;
+    const horizon = wac.currentTime + 0.35;
+    const rate = Math.min(1.25, 1 + ((this._level || 1) - 1) * 0.02);
+    let guard = 0;
+    while (guard++ < 64) {
+      const ev = BGM_SCORE.events[this._bgmIdx];
+      const at = this._bgmLoopStart + ev.t / rate;
+      if (at > horizon) break;
+      this._bgmNote(ev, at, rate);
+      this._bgmIdx++;
+      if (this._bgmIdx >= BGM_SCORE.events.length) {
+        this._bgmIdx = 0;
+        this._bgmLoopStart += BGM_SCORE.dur / rate;
+      }
+    }
+  },
+
+  _bgmNote(ev, at, rate) {
+    const wac = this._wac;
+    try {
+      if (ev.hat) {
+        if (this._hatOk === false) return;
+        if (!this._hatBuf) {
+          const len = Math.floor(wac.sampleRate * 0.03);
+          this._hatBuf = wac.createBuffer(1, len, wac.sampleRate);
+          const ch = this._hatBuf.getChannelData(0);
+          for (let i = 0; i < len; i++) ch[i] = (Math.random() * 2 - 1) * (1 - i / len);
+        }
+        const src = wac.createBufferSource();
+        src.buffer = this._hatBuf;
+        const gain = wac.createGain();
+        gain.gain.setValueAtTime(ev.v, at);
+        src.connect(gain);
+        gain.connect(wac.destination);
+        src.start(at);
+        return;
+      }
+      const osc = wac.createOscillator();
+      const gain = wac.createGain();
+      osc.type = ev.w;
+      osc.frequency.value = ev.f;
+      const d = ev.d / rate;
+      gain.gain.setValueAtTime(ev.v, at);
+      gain.gain.exponentialRampToValueAtTime(0.001, at + d);
+      osc.connect(gain);
+      gain.connect(wac.destination);
+      osc.start(at);
+      osc.stop(at + d);
+    } catch (e) {
+      if (ev.hat) this._hatOk = false;
+    }
   },
 
   _playSfx(name) {
