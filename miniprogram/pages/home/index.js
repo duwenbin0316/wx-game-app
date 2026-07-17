@@ -13,7 +13,7 @@ Page({
       {
         id: 'runner',
         name: 'Claude 快跑',
-        desc: '躲避 Bug，坚持跑得最远！',
+        desc: '躲 Bug 吃金币，咖啡护盾冲纪录！',
         url: '/pages/runner/index'
       },
       {

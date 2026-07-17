@@ -11,6 +11,7 @@
         <text class="hint-text">点击屏幕开始</text>
       </view>
       <text class="hint-small">空中再点 → 二段跳</text>
+      <text class="hint-small">吃 ◆ 加分连击 · 接 ☕ 护盾挡一次</text>
     </view>
   </view>
 

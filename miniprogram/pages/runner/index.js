@@ -25,6 +25,12 @@ const BUG_PIXELS = [
 ];
 const BUG_EYES = [[1,2],[1,3]];
 
+// ─── 收集物与反馈 ────────────────────────────────────────
+const COIN_SCORE    = 5;     // 单个金币加分
+const COMBO_WINDOW  = 90;    // 连击维持帧数
+const MILESTONE     = 250;   // 里程碑分数间隔
+const INVULN_FRAMES = 60;    // 护盾破碎后的无敌帧
+
 // ────────────────────────────────────────────────────────
 
 Page({
@@ -97,7 +103,7 @@ Page({
     const state = this.data.gameState;
     if (state === 'idle') {
       this._startGame();
-    } else if (state === 'playing') {
+    } else if (state === 'playing' && !this._dying) {
       this._jump();
     }
   },
@@ -138,6 +144,25 @@ Page({
     this._nextObstIn  = 90;
     this._scoreVal    = 0;
 
+    // 收集物 / 反馈系统
+    this._coins      = [];
+    this._items      = [];
+    this._parts      = [];
+    this._labels     = [];
+    this._bonus      = 0;
+    this._combo      = 0;
+    this._comboTimer = 0;
+    this._shield     = false;
+    this._invuln     = 0;
+    this._milestone  = MILESTONE;
+    this._nextCoinIn = 130;
+    this._nextItemIn = 650;
+    this._dying      = false;
+    this._dieFrame   = 0;
+    this._shake      = 0;
+    this._flash      = 0;
+    this._bgmBar     = 0;
+
     this.setData({ gameState: 'playing', score: 0 });
     this._startBGM();
     this._loop();
@@ -171,13 +196,25 @@ Page({
   // ─── 物理与逻辑更新 ────────────────────────────────────
 
   _update() {
+    if (this._dying) {
+      this._updateDying();
+      return;
+    }
+
     this._frame++;
     this._speed     = Math.min(SPEED_MAX, SPEED_INIT + this._frame * 0.005);
     this._bgOffset  = (this._bgOffset + this._speed) % 80;
-    this._scoreVal  = Math.floor(this._frame / 8);
+    this._scoreVal  = Math.floor(this._frame / 8) + this._bonus;
 
     if (this._frame % 10 === 0) {
       this.setData({ score: this._scoreVal });
+    }
+
+    // 里程碑激励
+    if (this._scoreVal >= this._milestone) {
+      this._addLabel(`${this._milestone} 分!`, '#F5C842', true);
+      this._sfxMilestone();
+      this._milestone += MILESTONE;
     }
 
     // 玩家物理
@@ -185,35 +222,35 @@ Page({
     p.vy += GRAVITY;
     p.y  += p.vy;
     if (p.y >= this._groundY - PH) {
+      // 从空中落地扬起尘土
+      if (p.jumps > 0 && p.vy > 3) {
+        this._burst(p.x + PW / 2, this._groundY - 2, '#5A5A7A', 6, 3);
+      }
       p.y    = this._groundY - PH;
       p.vy   = 0;
       p.jumps = 0;
     }
+    // 奔跑时脚下偶尔带起小尘点
+    if (p.jumps === 0 && this._frame % 9 === 0) {
+      this._burst(p.x + 4, this._groundY - 2, '#44445F', 1, 1.2);
+    }
 
-    // 生成障碍
+    // 生成障碍(带组合模式)
     this._nextObstIn--;
     if (this._nextObstIn <= 0) {
-      const r = Math.random();
-      if (r < 0.22) {
-        // 飞行 Bug：悬浮在空中，玩家需要选择跳过或低头躲
-        const h = 16, w = 22;
-        this._obstacles.push({
-          x: this._W + 10,
-          y: this._groundY - PH - 28,
-          w, h, tall: false, flying: true
-        });
-      } else {
-        const tall = r < 0.55;
-        const h = tall ? 38 : 20;
-        const w = tall ? 22 : 28;
-        this._obstacles.push({
-          x: this._W + 10,
-          y: this._groundY - h,
-          w, h, tall, flying: false
-        });
-      }
-      const gap = Math.max(38, 80 - this._frame * 0.018);
+      this._spawnObstacles();
+      const gap = Math.max(45, 90 - this._frame * 0.018);
       this._nextObstIn = gap + Math.random() * 40;
+    }
+
+    // 生成金币与咖啡
+    if (--this._nextCoinIn <= 0) {
+      this._spawnCoins();
+      this._nextCoinIn = 150 + Math.random() * 160;
+    }
+    if (--this._nextItemIn <= 0) {
+      this._items.push({ x: this._W + 20, y: this._groundY - 64 });
+      this._nextItemIn = 900 + Math.random() * 700;
     }
 
     // 移动云朵（速度比地面慢，营造视差效果）
@@ -260,16 +297,196 @@ Page({
       return ob.x + ob.w > -10;
     });
 
-    // 碰撞检测（留有宽容边距）
-    const hx = p.x + 5, hy = p.y + 4, hr = p.x + PW - 5, hb = p.y + PH - 4;
-    for (const ob of this._obstacles) {
-      if (hx < ob.x + ob.w - 4 &&
-          hr > ob.x + 4 &&
-          hy < ob.y + ob.h - 2 &&
-          hb > ob.y + 2) {
-        this._gameOver();
-        return;
+    // 金币:移动 + 拾取
+    const pcx = p.x + PW / 2, pcy = p.y + PH / 2;
+    this._coins = this._coins.filter(c => {
+      c.x -= this._speed;
+      if (c.x < -20) return false;
+      if (Math.abs(c.x - pcx) < 18 && Math.abs(c.y - pcy) < 24) {
+        this._collectCoin(c);
+        return false;
       }
+      return true;
+    });
+
+    // 咖啡:移动 + 拾取
+    this._items = this._items.filter(it => {
+      it.x -= this._speed;
+      if (it.x < -24) return false;
+      if (Math.abs(it.x - pcx) < 22 && Math.abs(it.y - pcy) < 26) {
+        this._collectItem(it);
+        return false;
+      }
+      return true;
+    });
+
+    // 连击窗口倒计时
+    if (this._comboTimer > 0 && --this._comboTimer === 0) {
+      this._combo = 0;
+    }
+    if (this._invuln > 0) this._invuln--;
+
+    this._updateParticles();
+    this._updateLabels();
+
+    // 碰撞检测(留有宽容边距;护盾破碎后短暂无敌)
+    if (this._invuln <= 0) {
+      const hx = p.x + 5, hy = p.y + 4, hr = p.x + PW - 5, hb = p.y + PH - 4;
+      for (const ob of this._obstacles) {
+        if (hx < ob.x + ob.w - 4 &&
+            hr > ob.x + 4 &&
+            hy < ob.y + ob.h - 2 &&
+            hb > ob.y + 2) {
+          if (this._shield) {
+            this._shield = false;
+            this._invuln = INVULN_FRAMES;
+            this._shake  = 4;
+            this._burst(pcx, pcy, '#60C0FF', 12, 4);
+            this._addLabel('护盾抵挡!', '#60C0FF', true);
+            this._sfxShieldBreak();
+          } else {
+            this._startDying();
+            return;
+          }
+          break;
+        }
+      }
+    }
+  },
+
+  // ─── 障碍与收集物生成 ─────────────────────────────────
+
+  _spawnObstacles() {
+    const gY = this._groundY;
+    const baseX = this._W + 10;
+    const push = (x, y, w, h, tall, flying) =>
+      this._obstacles.push({ x, y, w, h, tall, flying });
+    const r = Math.random();
+
+    if (r < 0.18) {
+      // 飞行 Bug:悬空,起跳时才有威胁
+      push(baseX, gY - PH - 28, 22, 16, false, true);
+    } else if (r < 0.48) {
+      push(baseX, gY - 38, 22, 38, true, false);     // 高 Bug
+    } else if (r < 0.74) {
+      push(baseX, gY - 20, 28, 20, false, false);    // 矮 Bug
+    } else if (r < 0.9 && this._frame > 700) {
+      // 双矮 Bug:间距允许落地再跳,也可二段跳一口气跨过
+      push(baseX,       gY - 20, 28, 20, false, false);
+      push(baseX + 116, gY - 20, 28, 20, false, false);
+    } else {
+      // 高 Bug + 后随飞行 Bug:跳早了会撞上后面那只
+      push(baseX, gY - 38, 22, 38, true, false);
+      if (this._frame > 500) push(baseX + 150, gY - PH - 28, 22, 16, false, true);
+    }
+  },
+
+  _spawnCoins() {
+    const gY = this._groundY;
+    const baseX = this._W + 20;
+    const kind = Math.random();
+    if (kind < 0.4) {
+      // 贴地一排,顺路就能吃
+      for (let i = 0; i < 5; i++) this._coins.push({ x: baseX + i * 26, y: gY - 22 });
+    } else if (kind < 0.75) {
+      // 单跳弧线
+      for (let i = 0; i < 5; i++) {
+        this._coins.push({ x: baseX + i * 26, y: gY - 30 - Math.sin((i / 4) * Math.PI) * 55 });
+      }
+    } else {
+      // 高空一排,要二段跳才够得着
+      for (let i = 0; i < 4; i++) this._coins.push({ x: baseX + i * 26, y: gY - 100 });
+    }
+  },
+
+  _collectCoin(c) {
+    this._combo = this._comboTimer > 0 ? this._combo + 1 : 1;
+    this._comboTimer = COMBO_WINDOW;
+    this._bonus += COIN_SCORE;
+    this._burst(c.x, c.y, '#F5C842', 5, 2.5);
+    this._addLabel(`+${COIN_SCORE}`, '#F5C842', false, c.x, c.y - 12);
+    this._sfxCoin(this._combo);
+  },
+
+  _collectItem(it) {
+    this._burst(it.x, it.y, '#60C0FF', 10, 3);
+    if (this._shield) {
+      this._bonus += 50;
+      this._addLabel('+50', '#60C0FF', false, it.x, it.y - 14);
+    } else {
+      this._shield = true;
+      this._addLabel('咖啡护盾!', '#60C0FF', true);
+    }
+    this._sfxShield();
+  },
+
+  // ─── 粒子 / 浮字 ──────────────────────────────────────
+
+  _burst(x, y, color, n, spread) {
+    for (let i = 0; i < n; i++) {
+      this._parts.push({
+        x, y,
+        vx: (Math.random() - 0.5) * spread * 2,
+        vy: -Math.random() * 2.5 - 0.5,
+        life: 18 + Math.random() * 14,
+        color,
+        sz: 2 + Math.floor(Math.random() * 2),
+      });
+    }
+  },
+
+  _updateParticles() {
+    this._parts = this._parts.filter(pt => {
+      pt.x += pt.vx - this._speed * 0.4;
+      pt.y += pt.vy;
+      pt.vy += 0.12;
+      return --pt.life > 0;
+    });
+  },
+
+  _addLabel(text, color, big, x, y) {
+    this._labels.push({
+      text, color, big,
+      x: x === undefined ? this._W / 2 : x,
+      y: y === undefined ? this._H * 0.28 : y,
+      f: 0,
+    });
+    if (this._labels.length > 5) this._labels.shift();
+  },
+
+  _updateLabels() {
+    this._labels = this._labels.filter(lb => {
+      lb.f++;
+      lb.y -= 0.7;
+      return lb.f < 55;
+    });
+  },
+
+  // ─── 死亡演出 ─────────────────────────────────────────
+
+  _startDying() {
+    this._dying = true;
+    this._dieFrame = 0;
+    this._player.vy = -9;
+    this._player.jumps = 2;
+    this._shake = 6;
+    this._flash = 0.45;
+    this._combo = 0;
+    this._comboTimer = 0;
+    this._burst(this._player.x + PW / 2, this._player.y + PH / 2, '#FF6B6B', 10, 4);
+    this._stopBGM();
+    this._sfxGameOver();
+  },
+
+  _updateDying() {
+    this._dieFrame++;
+    const p = this._player;
+    p.vy += GRAVITY;
+    p.y  += p.vy;
+    this._updateParticles();
+    this._updateLabels();
+    if (this._dieFrame > 60 || p.y > this._H + 40) {
+      this._gameOver();
     }
   },
 
@@ -277,6 +494,15 @@ Page({
 
   _draw() {
     const { _ctx: ctx, _W: W, _H: H, _groundY: gY } = this;
+
+    ctx.save();
+    // 震屏(死亡/护盾破碎)
+    if (this._shake > 0.3) {
+      ctx.translate((Math.random() * 2 - 1) * this._shake, (Math.random() * 2 - 1) * this._shake);
+      this._shake *= 0.86;
+    } else {
+      this._shake = 0;
+    }
 
     // 背景
     this._drawBg();
@@ -287,19 +513,115 @@ Page({
       ctx.fillRect(x, gY + 6, 36, 2);
     }
 
+    // 金币与咖啡
+    for (const c of this._coins) this._drawCoin(c);
+    for (const it of this._items) this._drawCup(it.x, it.y);
+
     // 障碍（Bug）
     for (const ob of this._obstacles) {
       this._drawObstacle(ob);
     }
 
-    // 玩家
-    this._drawPlayer();
+    // 玩家(无敌帧闪烁;护盾光环)
+    const blink = this._invuln > 0 && Math.floor(this._frame / 4) % 2 === 0;
+    if (!blink) this._drawPlayer();
+    if (this._shield && !this._dying) {
+      const p = this._player;
+      const pulse = 0.35 + 0.2 * Math.sin(this._frame / 8);
+      ctx.strokeStyle = `rgba(96, 192, 255, ${pulse})`;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(p.x + PW / 2, p.y + PH / 2, 26, 0, Math.PI * 2);
+      ctx.stroke();
+    }
 
-    // 分数（左侧，避免与右上角月亮重叠）
+    // 粒子
+    for (const pt of this._parts) {
+      ctx.fillStyle = pt.color;
+      ctx.globalAlpha = Math.min(1, pt.life / 12);
+      ctx.fillRect(Math.round(pt.x), Math.round(pt.y), pt.sz, pt.sz);
+    }
+    ctx.globalAlpha = 1;
+
+    // 浮字
+    for (const lb of this._labels) {
+      const a = lb.f < 8 ? lb.f / 8 : 1 - Math.max(0, lb.f - 30) / 25;
+      ctx.globalAlpha = Math.max(0, a);
+      ctx.fillStyle = lb.color;
+      ctx.font = lb.big ? 'bold 22px monospace' : 'bold 13px monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText(lb.text, lb.x, lb.y);
+    }
+    ctx.globalAlpha = 1;
+
+    // HUD:分数 + 护盾 + 连击
     ctx.fillStyle = 'rgba(255,255,255,0.5)';
     ctx.font = 'bold 15px monospace';
     ctx.textAlign = 'left';
     ctx.fillText(String(this._scoreVal).padStart(5, '0'), 16, 32);
+    if (this._shield) {
+      ctx.fillText('☕', 88, 32);
+    }
+    if (this._combo >= 2) {
+      ctx.fillStyle = 'rgba(245, 200, 66, 0.85)';
+      ctx.font = 'bold 12px monospace';
+      ctx.fillText(`COMBO ×${this._combo}`, 16, 52);
+    }
+
+    // 死亡红闪
+    if (this._flash > 0.02) {
+      ctx.fillStyle = `rgba(255, 80, 80, ${this._flash})`;
+      ctx.fillRect(-10, -10, W + 20, H + 20);
+      this._flash *= 0.88;
+    }
+
+    ctx.restore();
+  },
+
+  // 金币:旋转的金色菱形晶体
+  _drawCoin(c) {
+    const ctx = this._ctx;
+    // 相位按 x 错开,一排金币像波浪一样转
+    const ph = Math.abs(Math.sin(this._frame / 7 + c.x * 0.03));
+    const hw = 7 * (0.25 + 0.75 * ph);
+    ctx.fillStyle = '#F5C842';
+    ctx.beginPath();
+    ctx.moveTo(c.x, c.y - 9);
+    ctx.lineTo(c.x + hw, c.y);
+    ctx.lineTo(c.x, c.y + 9);
+    ctx.lineTo(c.x - hw, c.y);
+    ctx.closePath();
+    ctx.fill();
+    ctx.fillStyle = '#FFEB8A';
+    ctx.beginPath();
+    ctx.moveTo(c.x, c.y - 4);
+    ctx.lineTo(c.x + hw * 0.4, c.y);
+    ctx.lineTo(c.x, c.y + 4);
+    ctx.lineTo(c.x - hw * 0.4, c.y);
+    ctx.closePath();
+    ctx.fill();
+  },
+
+  // 咖啡杯:杯体 + 把手 + 碟子 + 飘动热气
+  _drawCup(x, y) {
+    const ctx = this._ctx;
+    const s = 2;
+    const px = x - 7 * s / 2;
+    const py = y - 8;
+    ctx.fillStyle = '#F0F0F5';
+    ctx.fillRect(px, py + 3 * s, 6 * s, 4 * s);            // 杯体
+    ctx.fillRect(px + 6 * s, py + 3 * s, s, s);            // 把手上
+    ctx.fillRect(px + 7 * s, py + 4 * s, s, s);            // 把手外
+    ctx.fillRect(px + 6 * s, py + 5 * s, s, s);            // 把手下
+    ctx.fillStyle = '#8A5A3A';
+    ctx.fillRect(px + s, py + 3 * s, 4 * s, s);            // 咖啡面
+    ctx.fillStyle = '#C8C8D8';
+    ctx.fillRect(px - s, py + 7 * s, 8 * s, s);            // 碟子
+    // 热气(两缕,左右摆)
+    const sway = Math.floor(this._frame / 12) % 2 === 0 ? 0 : s;
+    ctx.fillStyle = 'rgba(192, 200, 232, 0.6)';
+    ctx.fillRect(px + s + sway, py, s, s);
+    ctx.fillRect(px + 3 * s + (s - sway), py + s, s, s);
   },
 
   // 编排背景各层绘制顺序（从远到近）
@@ -315,7 +637,7 @@ Page({
   _drawSky() {
     const { _ctx: ctx, _W: W, _H: H } = this;
     ctx.fillStyle = '#1A1A2E';
-    ctx.fillRect(0, 0, W, H);
+    ctx.fillRect(-10, -10, W + 20, H + 20);
     ctx.fillStyle = '#5A5A8A';
     for (const s of (this._stars || [])) {
       ctx.fillRect(s.x, s.y, s.sz, s.sz);
@@ -481,9 +803,8 @@ Page({
 
   _gameOver() {
     this._dead = true;
+    this._dying = false;
     this._stopLoop();
-    this._stopBGM();
-    this._sfxGameOver();
 
     if (this._scoreVal > this.bestScore) {
       this.bestScore = this._scoreVal;
@@ -713,15 +1034,20 @@ Page({
     osc.stop(startTime + dur);
   },
 
-  // BGM：8-bit 风格小循环（16拍，C大调五声音阶）
+  // BGM：8-bit 风格循环(两段 16 拍乐句交替,C大调五声音阶)
   _scheduleBGM() {
     if (!this._ac || !this._bgmPlaying) return;
     const ac  = this._ac;
     const now = ac.currentTime + 0.05;
     const S   = 60 / 138 * 0.5;
 
-    const mel = [523,659,784,659, 523,659,784,880, 784,659,523,440, 523,587,659,0];
-    const bas = [262,0,262,0, 294,0,294,0, 262,0,262,0, 330,0,330,0];
+    const phraseB = (this._bgmBar = (this._bgmBar || 0) + 1) % 2 === 0;
+    const mel = phraseB
+      ? [659,784,880,1046, 880,784,659,523, 587,659,784,880, 784,659,587,0]
+      : [523,659,784,659, 523,659,784,880, 784,659,523,440, 523,587,659,0];
+    const bas = phraseB
+      ? [349,0,349,0, 330,0,330,0, 294,0,294,0, 262,0,330,0]
+      : [262,0,262,0, 294,0,294,0, 262,0,262,0, 330,0,330,0];
     const drm = [1,0,0,0, 1,0,1,0, 1,0,0,0, 1,0,1,0];
 
     mel.forEach((f, i) => this._note(f, now + i*S, S*0.78, 0.14, 'square',   true));
@@ -782,5 +1108,45 @@ Page({
     [392, 330, 294, 220].forEach((f, i) => {
       this._note(f, now + i * 0.14, 0.16, 0.22);
     });
+  },
+
+  // 金币:随连击升调的双音
+  _sfxCoin(combo) {
+    if (!this._ac) return;
+    const now = this._ac.currentTime;
+    const f = 660 * Math.pow(2, Math.min(combo - 1, 12) / 12);
+    this._note(f, now, 0.06, 0.14);
+    this._note(f * 1.5, now + 0.05, 0.06, 0.10);
+  },
+
+  // 咖啡入手:上行琶音
+  _sfxShield() {
+    if (!this._ac) return;
+    const now = this._ac.currentTime;
+    [523, 784, 1046].forEach((f, i) => this._note(f, now + i * 0.06, 0.08, 0.16));
+  },
+
+  // 护盾破碎:低频下扫
+  _sfxShieldBreak() {
+    if (!this._ac) return;
+    const ac = this._ac;
+    const osc = ac.createOscillator();
+    const g = ac.createGain();
+    osc.connect(g); g.connect(ac.destination);
+    osc.type = 'square';
+    const now = ac.currentTime;
+    osc.frequency.setValueAtTime(360, now);
+    osc.frequency.exponentialRampToValueAtTime(90, now + 0.18);
+    g.gain.setValueAtTime(0.22, now);
+    g.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
+    osc.start(now);
+    osc.stop(now + 0.2);
+  },
+
+  // 里程碑:小号三连音
+  _sfxMilestone() {
+    if (!this._ac) return;
+    const now = this._ac.currentTime;
+    [784, 988, 1175].forEach((f, i) => this._note(f, now + i * 0.07, 0.09, 0.15));
   }
 });
