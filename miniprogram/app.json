@@ -9,6 +9,7 @@
     "pages/snake/index",
     "pages/game2048/index",
     "pages/stack/index",
+    "pages/adventure/index",
     "pages/pet/index"
   ],
   "window": {

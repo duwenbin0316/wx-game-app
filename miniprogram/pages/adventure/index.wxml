@@ -1,0 +1,74 @@
+<view class="adv-container">
+  <canvas id="game-canvas" type="2d" class="game-canvas"></canvas>
+
+  <!-- 虚拟按键:左下移动,右下跳跃 -->
+  <view class="ctrl-left" wx:if="{{gameState === 'playing'}}">
+    <view class="ctrl-btn"
+          catchtouchstart="onLeftStart" catchtouchend="onLeftEnd" catchtouchcancel="onLeftEnd">
+      <view class="arr arr-left"></view>
+    </view>
+    <view class="ctrl-btn"
+          catchtouchstart="onRightStart" catchtouchend="onRightEnd" catchtouchcancel="onRightEnd">
+      <view class="arr arr-right"></view>
+    </view>
+  </view>
+  <view class="ctrl-right" wx:if="{{gameState === 'playing'}}">
+    <view class="ctrl-btn jump-btn"
+          catchtouchstart="onJumpStart" catchtouchend="onJumpEnd" catchtouchcancel="onJumpEnd">
+      <text class="jump-text">跳</text>
+    </view>
+  </view>
+
+  <!-- 开始画面 -->
+  <view class="overlay" wx:if="{{gameState === 'idle'}}">
+    <view class="overlay-card">
+      <text class="overlay-logo">▶▶</text>
+      <text class="overlay-title">Clawd 大冒险</text>
+      <text class="overlay-sub">PIXEL PLATFORMER · 3 LEVELS</text>
+      <view class="hint-row" catchtouchstart="onStart">
+        <text class="hint-text">开始冒险</text>
+      </view>
+      <text class="hint-small">◀ ▶ 移动 · 按住跳跃键跳得更高</text>
+      <text class="hint-small">踩扁 Bug · 顶 ? 块吃金币 · ☕ 护盾能顶碎砖</text>
+      <text class="hint-best" wx:if="{{best > 0}}">最高分 {{best}}</text>
+    </view>
+  </view>
+
+  <!-- 游戏结束 -->
+  <view class="overlay" wx:if="{{gameState === 'over'}}">
+    <view class="overlay-card over-card" catchtouchstart="noop">
+      <text class="over-title">GAME OVER</text>
+      <view class="newbest-badge" wx:if="{{isNewBest}}">
+        <text class="newbest-text">★ 新纪录 ★</text>
+      </view>
+      <text class="over-score-num">{{score}}</text>
+      <text class="over-score-label">本次得分</text>
+      <text class="over-best">最高 {{best}}</text>
+      <view class="action-row">
+        <view class="retry-btn" catchtouchstart="onRetry">
+          <text class="retry-text">再闯一次</text>
+        </view>
+        <button class="adv-share-btn" open-type="share" catchtouchstart="">分享</button>
+      </view>
+    </view>
+  </view>
+
+  <!-- 通关 -->
+  <view class="overlay" wx:if="{{gameState === 'clear'}}">
+    <view class="overlay-card clear-card" catchtouchstart="noop">
+      <text class="clear-title">🎉 通关!</text>
+      <view class="newbest-badge" wx:if="{{isNewBest}}">
+        <text class="newbest-text">★ 新纪录 ★</text>
+      </view>
+      <text class="over-score-num">{{score}}</text>
+      <text class="over-score-label">通关总分(含 2000 通关奖励)</text>
+      <text class="over-best">最高 {{best}}</text>
+      <view class="action-row">
+        <view class="retry-btn" catchtouchstart="onRetry">
+          <text class="retry-text">再玩一遍</text>
+        </view>
+        <button class="adv-share-btn" open-type="share" catchtouchstart="">分享</button>
+      </view>
+    </view>
+  </view>
+</view>

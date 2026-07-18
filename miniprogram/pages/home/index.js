@@ -41,6 +41,12 @@ Page({
         url: '/pages/game2048/index'
       },
       {
+        id: 'adventure',
+        name: 'Clawd 大冒险',
+        desc: '横版闯关！踩扁 Bug，顶砖块吃金币',
+        url: '/pages/adventure/index'
+      },
+      {
         id: 'stack',
         name: '像素盖楼',
         desc: '看准时机点一下，盖出最高像素塔！',
