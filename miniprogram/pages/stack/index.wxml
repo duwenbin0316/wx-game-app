@@ -1,0 +1,37 @@
+<view class="stack-container" bindtouchstart="onTap">
+  <canvas id="game-canvas" type="2d" class="game-canvas"></canvas>
+
+  <!-- 开始画面 -->
+  <view class="overlay" wx:if="{{gameState === 'idle'}}">
+    <view class="overlay-card">
+      <text class="overlay-logo">▟█▙</text>
+      <text class="overlay-title">像素盖楼</text>
+      <text class="overlay-sub">STACK THE TOWER</text>
+      <view class="hint-row">
+        <text class="hint-text">点击屏幕开始</text>
+      </view>
+      <text class="hint-small">看准时机点一下,楼层对齐才不掉块</text>
+      <text class="hint-small">连续 PERFECT 能把楼层宽度长回来</text>
+      <text class="hint-best" wx:if="{{best > 0}}">最高纪录 {{best}} 层</text>
+    </view>
+  </view>
+
+  <!-- 结束画面 -->
+  <view class="overlay" wx:if="{{gameState === 'over'}}">
+    <view class="overlay-card over-card" catchtouchstart="noop">
+      <text class="over-title">封顶!</text>
+      <view class="newbest-badge" wx:if="{{isNewBest}}">
+        <text class="newbest-text">★ 新纪录 ★</text>
+      </view>
+      <text class="over-score-num">{{score}}F</text>
+      <text class="over-score-label">本次盖到</text>
+      <text class="over-best">最高 {{best}} 层</text>
+      <view class="action-row">
+        <view class="retry-btn" catchtouchstart="onRetry">
+          <text class="retry-text">再盖一栋</text>
+        </view>
+        <button class="stack-share-btn" open-type="share" catchtouchstart="">分享</button>
+      </view>
+    </view>
+  </view>
+</view>

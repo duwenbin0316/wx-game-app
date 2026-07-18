@@ -41,6 +41,12 @@ Page({
         url: '/pages/game2048/index'
       },
       {
+        id: 'stack',
+        name: '像素盖楼',
+        desc: '看准时机点一下，盖出最高像素塔！',
+        url: '/pages/stack/index'
+      },
+      {
         id: 'pet',
         name: '电子宠物',
         desc: '陪 Clawd 散步、喂食，一起抓 Bug',

@@ -8,6 +8,7 @@
     "pages/tetris/index",
     "pages/snake/index",
     "pages/game2048/index",
+    "pages/stack/index",
     "pages/pet/index"
   ],
   "window": {

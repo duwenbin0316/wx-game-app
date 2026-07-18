@@ -1,0 +1,186 @@
+.stack-container {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: #1A1A2E;
+  overflow: hidden;
+  touch-action: manipulation;
+}
+
+.game-canvas {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+/* ── 覆盖层 ── */
+.overlay {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(10, 10, 30, 0.75);
+  z-index: 10;
+}
+
+.overlay-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 60rpx 56rpx 48rpx;
+  background: rgba(30, 30, 60, 0.96);
+  border: 2rpx solid #4A6FA5;
+  border-radius: 0;
+  min-width: 520rpx;
+  box-shadow: 6rpx 6rpx 0 #0E0E22;
+}
+
+.overlay-logo {
+  font-size: 56rpx;
+  color: #D97757;
+  font-family: monospace;
+  margin-bottom: 16rpx;
+  line-height: 1;
+}
+
+.overlay-title {
+  font-size: 44rpx;
+  font-weight: 700;
+  color: #FFFFFF;
+  letter-spacing: 8rpx;
+  font-family: monospace;
+  margin-bottom: 10rpx;
+}
+
+.overlay-sub {
+  font-size: 20rpx;
+  color: #A78BFA;
+  letter-spacing: 4rpx;
+  font-family: monospace;
+  margin-bottom: 44rpx;
+}
+
+.hint-row {
+  background: #D97757;
+  padding: 16rpx 48rpx;
+  margin-bottom: 20rpx;
+  box-shadow: 3rpx 3rpx 0 #0E0E22;
+}
+
+.hint-text {
+  font-size: 28rpx;
+  color: #1A1A2E;
+  font-weight: 700;
+  letter-spacing: 2rpx;
+  font-family: monospace;
+}
+
+.hint-small {
+  font-size: 20rpx;
+  color: #6A6A9A;
+  letter-spacing: 1rpx;
+  font-family: monospace;
+  margin-bottom: 6rpx;
+}
+
+.hint-best {
+  margin-top: 16rpx;
+  font-size: 22rpx;
+  color: #F5C842;
+  font-family: monospace;
+}
+
+/* ── 结束卡片 ── */
+.over-card {
+  border-color: #F5C842;
+}
+
+.over-title {
+  font-size: 48rpx;
+  font-weight: 700;
+  color: #F5C842;
+  letter-spacing: 10rpx;
+  font-family: monospace;
+  margin-bottom: 20rpx;
+}
+
+.newbest-badge {
+  padding: 6rpx 24rpx;
+  background: rgba(245, 200, 66, 0.12);
+  border: 2rpx solid #F5C842;
+  margin-bottom: 14rpx;
+}
+
+.newbest-text {
+  font-size: 24rpx;
+  color: #F5C842;
+  font-family: monospace;
+  letter-spacing: 2rpx;
+}
+
+.over-score-num {
+  font-size: 80rpx;
+  font-weight: 700;
+  color: #D97757;
+  font-family: monospace;
+  line-height: 1.1;
+}
+
+.over-score-label {
+  font-size: 22rpx;
+  color: #6A6A9A;
+  font-family: monospace;
+  margin-bottom: 10rpx;
+}
+
+.over-best {
+  font-size: 24rpx;
+  color: #C0C0E8;
+  font-family: monospace;
+  margin-bottom: 40rpx;
+}
+
+.action-row {
+  display: flex;
+  align-items: center;
+  gap: 20rpx;
+  width: 100%;
+}
+
+.retry-btn {
+  flex: 1;
+  background: #D97757;
+  padding: 20rpx 0;
+  text-align: center;
+  user-select: none;
+  box-shadow: 3rpx 3rpx 0 #0E0E22;
+}
+
+.retry-btn:active { opacity: 0.75; }
+
+.retry-text {
+  font-size: 30rpx;
+  font-weight: 700;
+  color: #1A1A2E;
+  letter-spacing: 4rpx;
+  font-family: monospace;
+}
+
+.stack-share-btn {
+  flex: 1;
+  padding: 18rpx 0;
+  background: transparent;
+  border: 2rpx solid #4A6FA5;
+  border-radius: 0;
+  font-size: 30rpx;
+  font-weight: 700;
+  color: #4A6FA5;
+  letter-spacing: 4rpx;
+  font-family: monospace;
+  line-height: 1.4;
+  box-shadow: 3rpx 3rpx 0 #0E0E22;
+}
+
+.stack-share-btn::after { border: none; }
+
+.stack-share-btn:active { opacity: 0.75; }
