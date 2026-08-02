@@ -12,6 +12,31 @@
   display: block;
 }
 
+/* ── 暂停键 ── */
+.pause-btn {
+  position: fixed;
+  top: 16rpx;
+  right: 20rpx;
+  width: 64rpx;
+  height: 64rpx;
+  background: rgba(22, 22, 46, 0.7);
+  border: 2rpx solid rgba(74, 111, 165, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8rpx;
+  z-index: 6;
+  box-shadow: 3rpx 3rpx 0 rgba(10, 10, 26, 0.6);
+}
+
+.pause-btn:active { background: rgba(217, 119, 87, 0.25); }
+
+.pause-bar {
+  width: 8rpx;
+  height: 28rpx;
+  background: #4A6FA5;
+}
+
 /* ── 操作按键 ── */
 .ctrl-left {
   position: fixed;
@@ -67,15 +92,35 @@
 .nitro-btn {
   width: 148rpx;
   height: 104rpx;
-  border-color: rgba(96, 192, 255, 0.7);
+  flex-direction: column;
+  gap: 2rpx;
+}
+
+/* 有氮气可用时高亮,用完变灰 */
+.nitro-on {
+  border-color: rgba(96, 192, 255, 0.85);
+  background: rgba(96, 192, 255, 0.16);
+}
+
+.nitro-off {
+  border-color: rgba(96, 192, 255, 0.25);
+  opacity: 0.45;
 }
 
 .nitro-text {
-  font-size: 30rpx;
+  font-size: 28rpx;
   font-weight: 700;
   color: #60C0FF;
   font-family: monospace;
   letter-spacing: 2rpx;
+  line-height: 1.1;
+}
+
+.nitro-num {
+  font-size: 20rpx;
+  color: #60C0FF;
+  font-family: monospace;
+  line-height: 1;
 }
 
 .arr { display: block; width: 0; height: 0; }
@@ -157,6 +202,38 @@
   margin-top: 14rpx;
   font-size: 22rpx;
   color: #F5C842;
+  font-family: monospace;
+}
+
+/* ── 暂停面板 ── */
+.pause-card { border-color: #4A6FA5; }
+
+.pause-title {
+  font-size: 44rpx;
+  font-weight: 700;
+  color: #C0C0E8;
+  letter-spacing: 10rpx;
+  font-family: monospace;
+  margin-bottom: 18rpx;
+}
+
+.ghost-btn {
+  flex: 1;
+  background: #1E1E38;
+  border: 2rpx solid #2E3A5C;
+  padding: 18rpx 0;
+  text-align: center;
+  user-select: none;
+  box-shadow: 3rpx 3rpx 0 #0E0E22;
+}
+
+.ghost-btn:active { opacity: 0.7; }
+
+.ghost-text {
+  font-size: 28rpx;
+  font-weight: 700;
+  color: #4A6FA5;
+  letter-spacing: 3rpx;
   font-family: monospace;
 }
 

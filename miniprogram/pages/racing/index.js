@@ -89,11 +89,14 @@ function lerp(a, b, p)      { return a + (b - a) * p; }
 
 Page({
   data: {
-    gameState: 'idle',   // 'idle' | 'playing' | 'over'
+    gameState: 'idle',   // 'idle' | 'playing' | 'paused' | 'over'
     best: 0,
     isNewBest: false,
     dist: 0,
     topSpeed: 0,
+    timeLeft: 0,
+    nitroCount: 0,
+    nitroReady: false,
   },
 
   onLoad() {
@@ -134,10 +137,11 @@ Page({
 
   onShow() {
     if (this._canvas) this._startLoop();
-    if (this.data.gameState === 'playing') this._startEngine();
   },
 
+  // 切后台自动暂停,回来不会一睁眼就撞车
   onHide() {
+    if (this.data.gameState === 'playing') this.onPause();
     this._stopLoop();
     this._stopEngine();
   },
@@ -155,12 +159,14 @@ Page({
 
   onShareAppMessage() {
     const d = this.data.dist || 0;
-    return {
+    const res = {
       title: d > 0
         ? `我在 Clawd 夜行赛车跑了 ${d} 米,来飙一把～`
         : '伪 3D 夜景赛车!压弯、氮气冲刺,一起来跑～',
       path: '/pages/racing/index',
     };
+    if (this._shareImg) res.imageUrl = this._shareImg;
+    return res;
   },
 
   // ── 赛道构建 ────────────────────────────────────────────
@@ -260,6 +266,10 @@ Page({
     this._parts = [];
     this._frame = 0;
     this._crashT = 0;
+    this._countdown = 0;
+    this._dragActive = false;
+    this._dragDx = 0;
+    this._skidT = 0;
     this._resetTraffic();
     this._nitroSprites.forEach(n => { n.sp.taken = 0; });
   },
@@ -271,8 +281,10 @@ Page({
     for (let i = 0; i < TRAFFIC_N; i++) {
       // 起跑前 40 段不放车,免得一开局就撞
       const idx = 40 + Math.floor(Math.random() * (count - 60));
+      const offset = (Math.random() * 1.6 - 0.8);
       const car = {
-        offset: (Math.random() * 1.6 - 0.8),
+        offset,
+        pref: offset,          // 习惯车道:没有避让需求时会慢慢回来
         z: idx * SEG_LEN,
         speed: MAX_SPEED * (0.28 + Math.random() * 0.3),
         color: i % CAR_COLORS.length,
@@ -284,12 +296,37 @@ Page({
 
   onStart() {
     this._resetRun();
-    this.setData({ gameState: 'playing', isNewBest: false, dist: 0, topSpeed: 0 });
+    this._shareImg = null;
+    this._countdown = 3.2;    // 3 · 2 · 1 · GO
+    this.setData({
+      gameState: 'playing', isNewBest: false, dist: 0, topSpeed: 0,
+      nitroCount: this._nitro, nitroReady: false,
+    });
     this._startLoop();
-    this._startEngine();
+    this._startEngine();      // 倒计时期间是怠速声
   },
 
   onRetry() { this.onStart(); },
+
+  onPause() {
+    if (this.data.gameState !== 'playing') return;
+    this._keys.left = this._keys.right = this._keys.brake = false;
+    this._dragActive = false;
+    this._dragDx = 0;
+    this._stopEngine();
+    this.setData({
+      gameState: 'paused',
+      dist: Math.round(this._dist * M_PER_UNIT),
+      timeLeft: Math.max(0, Math.ceil(this._time)),
+    });
+  },
+
+  onResume() {
+    if (this.data.gameState !== 'paused') return;
+    this._countdown = 2.2;    // 回到赛道给两秒缓冲
+    this.setData({ gameState: 'playing' });
+    this._startEngine();
+  },
 
   // ── 输入 ────────────────────────────────────────────────
   onLeftStart()  { this._keys.left = true; },
@@ -299,13 +336,37 @@ Page({
   onBrakeStart() { this._keys.brake = true; },
   onBrakeEnd()   { this._keys.brake = false; },
 
+  // 画面上左右拖动也能转向(按钮 catch 掉了自己的 touchstart,
+  // 所以按按钮时不会误触发拖动)
+  onTouchStart(e) {
+    if (this.data.gameState !== 'playing' || this._countdown > 0) return;
+    this._dragActive = true;
+    this._dragLastX = e.touches[0].clientX;
+  },
+
+  onTouchMove(e) {
+    if (!this._dragActive) return;
+    const x = e.touches[0].clientX;
+    this._dragDx += (x - this._dragLastX) / (this._W * 0.45);
+    this._dragLastX = x;
+  },
+
+  onTouchEnd() {
+    this._dragActive = false;
+  },
+
   onNitro() {
-    if (this.data.gameState !== 'playing') return;
+    if (this.data.gameState !== 'playing' || this._countdown > 0) return;
     if (this._nitro <= 0 || this._nitroT > 0) return;
     this._nitro--;
     this._nitroT = NITRO_TIME;
     this._addLabel('氮气冲刺!', '#60C0FF');
+    this._vibrate('medium');
     this._sfxNitro();
+  },
+
+  _vibrate(type) {
+    try { wx.vibrateShort({ type }); } catch (e) {}
   },
 
   // ── 主循环 ──────────────────────────────────────────────
@@ -337,20 +398,40 @@ Page({
     });
     if (this.data.gameState !== 'playing') return;
 
+    // ── 发车 / 恢复倒计时:画面照常渲染,但不计时不前进 ──
+    if (this._countdown > 0) {
+      const prev = Math.ceil(this._countdown);
+      this._countdown -= dt;
+      const now = Math.ceil(this._countdown);
+      if (now !== prev && now > 0) this._sfxBeep(false);
+      if (this._countdown <= 0) {
+        this._countdown = 0;
+        this._addLabel('GO!', '#4CAF50');
+        this._sfxBeep(true);
+        this._vibrate('light');
+      }
+      return;
+    }
+
     const playerSeg = this._segmentAt(this._position + PLAYER_Z);
     const boost = this._nitroT > 0 ? NITRO_MULT : 1;
     const topSpeed = MAX_SPEED * boost;
     const speedPct = this._speed / MAX_SPEED;
 
-    // ── 转向:转向量与车速挂钩,弯道给离心力 ──
+    // ── 转向:按钮与拖动并存,转向量与车速挂钩,弯道给离心力 ──
     const dx = dt * 2.4 * speedPct;
     let steer = 0;
     if (this._keys.left)  steer -= 1;
     if (this._keys.right) steer += 1;
     this._playerX += dx * steer;
+    if (this._dragDx !== 0) {
+      this._playerX += this._dragDx * (0.45 + 0.55 * speedPct);
+      steer += Math.max(-1, Math.min(1, this._dragDx * 14));
+      this._dragDx = 0;
+    }
     this._playerX -= dx * speedPct * playerSeg.curve * CENTRIFUGAL;
     this._playerX = Math.max(-2.2, Math.min(2.2, this._playerX));
-    this._steerVis += (steer - this._steerVis) * 0.2;
+    this._steerVis += (Math.max(-1, Math.min(1, steer)) - this._steerVis) * 0.2;
 
     // ── 油门 / 刹车 ──
     if (this._crashT > 0) {
@@ -358,6 +439,16 @@ Page({
       this._speed += DECEL * dt;
     } else if (this._keys.brake) {
       this._speed += BRAKING * dt;
+      // 高速刹车:拖胎声 + 轮胎烟
+      if (this._speed > MAX_SPEED * 0.35) {
+        this._skidT -= dt;
+        if (this._skidT <= 0) { this._sfxSkid(); this._skidT = 0.3; }
+        if (this._frame % 3 === 0) {
+          const wy = this._H - 52;
+          this._burst(this._W / 2 - 30, wy, '#2E2E4A', 1, 2);
+          this._burst(this._W / 2 + 30, wy, '#2E2E4A', 1, 2);
+        }
+      }
     } else {
       this._speed += ACCEL * boost * dt;
     }
@@ -381,8 +472,9 @@ Page({
     const kmh = Math.round(this._speed * KMH_PER_UNIT);
     if (kmh > this._topSpeed) this._topSpeed = kmh;
 
-    // ── 对手车前进(跨段时迁移到新段的车列表)──
+    // ── 对手车:先走位再前进(跨段时迁移到新段的车列表)──
     for (const car of this._cars) {
+      this._steerRival(car, dt);
       const oldSeg = this._segmentAt(car.z);
       car.z = (car.z + car.speed * dt) % this._trackLen;
       const newSeg = this._segmentAt(car.z);
@@ -429,6 +521,7 @@ Page({
       this._time += CP_BONUS;
       this._nextCP += CP_METERS;
       this._addLabel(`检查点! +${CP_BONUS}s`, '#4CAF50');
+      this._vibrate('light');
       this._sfxCheckpoint();
     }
     if (this._time <= 0) {
@@ -437,6 +530,36 @@ Page({
     }
 
     if (this._flash > 0.02) this._flash *= 0.9;
+
+    // 氮气按钮可用态(只在变化时同步,避免每帧 setData)
+    const ready = this._nitro > 0 && this._nitroT <= 0;
+    if (ready !== this.data.nitroReady || this._nitro !== this.data.nitroCount) {
+      this.setData({ nitroReady: ready, nitroCount: this._nitro });
+    }
+  },
+
+  // 对手车走位:避让前方慢车,平时慢慢回到习惯车道
+  _steerRival(car, dt) {
+    if (car.pref === undefined) car.pref = car.offset;   // 兜底,避免 offset 变 NaN
+    const segs = this._segments;
+    const count = segs.length;
+    const base = this._segmentAt(car.z).index;
+    let dir = 0;
+    let gap = 1;
+    for (let i = 1; i <= 6 && dir === 0; i++) {
+      const ahead = segs[(base + i) % count];
+      for (const other of ahead.cars) {
+        if (other === car) continue;
+        if (car.speed > other.speed && Math.abs(car.offset - other.offset) < 0.42) {
+          dir = car.offset > other.offset ? 1 : -1;
+          gap = i;
+          break;
+        }
+      }
+    }
+    if (dir !== 0) car.offset += dir * dt * 1.4 / gap;
+    else car.offset += (car.pref - car.offset) * dt * 0.6;
+    car.offset = Math.max(-0.9, Math.min(0.9, car.offset));
   },
 
   _crash(car) {
@@ -449,6 +572,7 @@ Page({
     car.offset = Math.max(-0.85, Math.min(0.85, car.offset));
     this._addLabel('撞车!', '#FF6B6B');
     this._burst(this._W / 2, this._H - 96, '#FF6B6B', 12, 5);
+    this._vibrate('heavy');
     this._sfxCrash();
   },
 
@@ -461,6 +585,7 @@ Page({
     }
     this._stopEngine();
     this._sfxFinish();
+    this._makeShareCard(meters, this._topSpeed);
     this.setData({
       gameState: 'over',
       dist: meters,
@@ -468,6 +593,76 @@ Page({
       best: this._best,
       isNewBest,
     });
+  },
+
+  // 离屏画一张 5:4 成绩卡,分享时带图(失败就退回纯文字分享)
+  _makeShareCard(meters, topSpeed) {
+    try {
+      const dpr = 2, cw = 500, ch = 400;
+      const off = wx.createOffscreenCanvas({
+        type: '2d', width: cw * dpr, height: ch * dpr,
+      });
+      const ctx = off.getContext('2d');
+      ctx.scale(dpr, dpr);
+
+      ctx.fillStyle = '#1A1A2E';
+      ctx.fillRect(0, 0, cw, ch);
+      // 星空
+      ctx.fillStyle = '#5A5A8A';
+      for (let i = 0; i < 40; i++) {
+        ctx.fillRect(Math.random() * cw, Math.random() * ch * 0.5, 2, 2);
+      }
+      // 月亮
+      ctx.fillStyle = 'rgba(184, 204, 232, 0.9)';
+      ctx.beginPath(); ctx.arc(cw - 74, 58, 24, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#1A1A2E';
+      ctx.beginPath(); ctx.arc(cw - 64, 52, 20, 0, Math.PI * 2); ctx.fill();
+      // 透视赛道
+      const hz = ch * 0.52;
+      ctx.fillStyle = '#22243E';
+      ctx.fillRect(0, hz, cw, ch - hz);
+      ctx.fillStyle = '#3C3C56';
+      ctx.beginPath();
+      ctx.moveTo(cw / 2 - 26, hz);
+      ctx.lineTo(cw / 2 + 26, hz);
+      ctx.lineTo(cw / 2 + 210, ch);
+      ctx.lineTo(cw / 2 - 210, ch);
+      ctx.closePath();
+      ctx.fill();
+      ctx.fillStyle = '#C8CCE8';
+      for (let i = 0; i < 5; i++) {
+        const t0 = i / 5, t1 = t0 + 0.055;
+        const y0 = hz + (ch - hz) * t0 * t0, y1 = hz + (ch - hz) * t1 * t1;
+        const w0 = 2 + 6 * t0 * t0, w1 = 2 + 6 * t1 * t1;
+        ctx.beginPath();
+        ctx.moveTo(cw / 2 - w0, y0); ctx.lineTo(cw / 2 + w0, y0);
+        ctx.lineTo(cw / 2 + w1, y1); ctx.lineTo(cw / 2 - w1, y1);
+        ctx.closePath(); ctx.fill();
+      }
+
+      ctx.textAlign = 'center';
+      ctx.fillStyle = '#A78BFA';
+      ctx.font = '16px monospace';
+      ctx.fillText('CLAWD NIGHT RACER', cw / 2, 44);
+      ctx.fillStyle = '#F5C842';
+      ctx.font = 'bold 78px monospace';
+      ctx.fillText(`${meters}m`, cw / 2, 130);
+      ctx.fillStyle = '#C0C0E8';
+      ctx.font = '18px monospace';
+      ctx.fillText(`最高时速 ${topSpeed} km/h`, cw / 2, 164);
+      ctx.fillStyle = '#D97757';
+      ctx.font = 'bold 20px monospace';
+      ctx.fillText('来挑战我的里程', cw / 2, ch - 22);
+
+      wx.canvasToTempFilePath({
+        canvas: off,
+        fileType: 'png',
+        success: r => { this._shareImg = r.tempFilePath; },
+        fail: () => { this._shareImg = null; },
+      });
+    } catch (e) {
+      this._shareImg = null;
+    }
   },
 
   _addLabel(text, color) {
@@ -594,6 +789,7 @@ Page({
     }
 
     this._drawHUD(ctx, W, H);
+    this._drawCountdown(ctx, W, H);
 
     // 浮字
     for (let i = 0; i < this._labels.length; i++) {
@@ -871,21 +1067,20 @@ Page({
   },
 
   _drawHUD(ctx, W, H) {
+    if (this.data.gameState === 'idle') return;
     const meters = Math.round(this._dist * M_PER_UNIT);
     const kmh = Math.round(this._speed * KMH_PER_UNIT);
 
-    if (this.data.gameState === 'playing') {
-      // 剩余时间
-      const t = Math.max(0, this._time);
-      const urgent = t <= 10;
-      ctx.fillStyle = urgent && Math.floor(this._frame / 8) % 2 === 0 ? '#FF6B6B' : '#FFFFFF';
-      ctx.font = 'bold 40px monospace';
-      ctx.textAlign = 'center';
-      ctx.fillText(t.toFixed(1), W / 2, 46);
-      ctx.fillStyle = 'rgba(160,160,200,0.8)';
-      ctx.font = '12px monospace';
-      ctx.fillText('TIME', W / 2, 62);
-    }
+    // 剩余时间(≤10 秒开始闪红)
+    const t = Math.max(0, this._time);
+    const urgent = t <= 10;
+    ctx.fillStyle = urgent && Math.floor(this._frame / 8) % 2 === 0 ? '#FF6B6B' : '#FFFFFF';
+    ctx.font = 'bold 40px monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText(t.toFixed(1), W / 2, 46);
+    ctx.fillStyle = 'rgba(160,160,200,0.8)';
+    ctx.font = '12px monospace';
+    ctx.fillText('TIME', W / 2, 62);
 
     // 距离
     ctx.textAlign = 'left';
@@ -896,26 +1091,51 @@ Page({
     ctx.font = 'bold 22px monospace';
     ctx.fillText(`${meters}m`, 14, 48);
 
-    // 下一个检查点还差多少
+    // 检查点进度条:填满就是下一个检查点
+    const barW = 108, barH = 5, barY = 58;
+    const prog = Math.max(0, Math.min(1, 1 - (this._nextCP - meters) / CP_METERS));
+    ctx.fillStyle = 'rgba(120,200,140,0.22)';
+    ctx.fillRect(14, barY, barW, barH);
+    ctx.fillStyle = '#4CAF50';
+    ctx.fillRect(14, barY, barW * prog, barH);
     ctx.fillStyle = 'rgba(120,200,140,0.85)';
     ctx.font = '11px monospace';
-    ctx.fillText(`下个检查点 ${Math.max(0, Math.ceil(this._nextCP - meters))}m`, 14, 66);
+    ctx.fillText(`检查点 ${Math.max(0, Math.ceil(this._nextCP - meters))}m`, 14, barY + 18);
 
-    // 时速表
+    // 时速表(下移让开右上角的暂停键)
     ctx.textAlign = 'right';
     ctx.fillStyle = 'rgba(160,160,200,0.8)';
     ctx.font = '12px monospace';
-    ctx.fillText('KM/H', W - 14, 26);
+    ctx.fillText('KM/H', W - 14, 74);
     ctx.fillStyle = this._nitroT > 0 ? '#60C0FF' : '#FFFFFF';
-    ctx.font = 'bold 30px monospace';
-    ctx.fillText(String(kmh), W - 14, 52);
+    ctx.font = 'bold 32px monospace';
+    ctx.fillText(String(kmh), W - 14, 102);
 
     // 氮气存量
     for (let i = 0; i < MAX_NITRO; i++) {
       const bx = W - 20 - i * 16;
       ctx.fillStyle = i < this._nitro ? '#60C0FF' : 'rgba(96,192,255,0.2)';
-      ctx.fillRect(bx, 62, 12, 6);
+      ctx.fillRect(bx, 110, 12, 6);
     }
+  },
+
+  // 发车 / 恢复倒计时的大字
+  _drawCountdown(ctx, W, H) {
+    if (this._countdown <= 0) return;
+    const n = Math.ceil(this._countdown);
+    const frac = this._countdown - Math.floor(this._countdown);  // 1 → 0
+    const size = Math.round(62 + (1 - frac) * 30);
+    ctx.save();
+    ctx.globalAlpha = Math.max(0, Math.min(1, frac * 1.8));
+    ctx.textAlign = 'center';
+    ctx.fillStyle = n <= 1 ? '#4CAF50' : '#F5C842';
+    ctx.font = `bold ${size}px monospace`;
+    ctx.fillText(String(n), W / 2, H * 0.42);
+    ctx.restore();
+    ctx.fillStyle = 'rgba(200,200,232,0.75)';
+    ctx.font = '14px monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText('准 备', W / 2, H * 0.42 + 28);
   },
 
   _initStars() {
@@ -1037,6 +1257,39 @@ Page({
     if (!this._wac) return;
     const now = this._wac.currentTime;
     [392, 523, 659, 880].forEach((f, i) => this._note(f, now + i * 0.05, 0.1, 0.14, 'sawtooth'));
+  },
+
+  // 发车倒计时提示音:前三声低,GO 那声高
+  _sfxBeep(final) {
+    if (!this._wac) return;
+    const now = this._wac.currentTime;
+    if (final) {
+      this._note(880, now, 0.3, 0.2);
+      this._note(1320, now + 0.02, 0.28, 0.12);
+    } else {
+      this._note(440, now, 0.14, 0.18);
+    }
+  },
+
+  // 拖胎:短促噪声
+  _sfxSkid() {
+    if (!this._wac) return;
+    try {
+      const now = this._wac.currentTime;
+      const len = Math.floor(this._wac.sampleRate * 0.18);
+      const buf = this._wac.createBuffer(1, len, this._wac.sampleRate);
+      const ch = buf.getChannelData(0);
+      for (let i = 0; i < len; i++) {
+        ch[i] = (Math.random() * 2 - 1) * 0.5 * (1 - i / len);
+      }
+      const src = this._wac.createBufferSource();
+      const g = this._wac.createGain();
+      src.buffer = buf;
+      g.gain.setValueAtTime(0.12, now);
+      src.connect(g);
+      g.connect(this._wac.destination);
+      src.start(now);
+    } catch (e) {}
   },
 
   _sfxCheckpoint() {
