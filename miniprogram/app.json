@@ -10,6 +10,7 @@
     "pages/game2048/index",
     "pages/stack/index",
     "pages/adventure/index",
+    "pages/racing/index",
     "pages/pet/index"
   ],
   "window": {

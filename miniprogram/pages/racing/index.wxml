@@ -1,0 +1,58 @@
+<view class="racing-container">
+  <canvas id="game-canvas" type="2d" class="game-canvas"></canvas>
+
+  <!-- 操作:左下转向,右下刹车 + 氮气 -->
+  <view class="ctrl-left" wx:if="{{gameState === 'playing'}}">
+    <view class="ctrl-btn"
+          catchtouchstart="onLeftStart" catchtouchend="onLeftEnd" catchtouchcancel="onLeftEnd">
+      <view class="arr arr-left"></view>
+    </view>
+    <view class="ctrl-btn"
+          catchtouchstart="onRightStart" catchtouchend="onRightEnd" catchtouchcancel="onRightEnd">
+      <view class="arr arr-right"></view>
+    </view>
+  </view>
+  <view class="ctrl-right" wx:if="{{gameState === 'playing'}}">
+    <view class="ctrl-btn nitro-btn" catchtouchstart="onNitro">
+      <text class="nitro-text">N2O</text>
+    </view>
+    <view class="ctrl-btn brake-btn"
+          catchtouchstart="onBrakeStart" catchtouchend="onBrakeEnd" catchtouchcancel="onBrakeEnd">
+      <text class="brake-text">刹车</text>
+    </view>
+  </view>
+
+  <!-- 开始画面 -->
+  <view class="overlay" wx:if="{{gameState === 'idle'}}">
+    <view class="overlay-card">
+      <text class="overlay-logo">🏁</text>
+      <text class="overlay-title">夜行赛车</text>
+      <text class="overlay-sub">NIGHT RACER · 计时赛</text>
+      <view class="hint-row" catchtouchstart="onStart">
+        <text class="hint-text">发车</text>
+      </view>
+      <text class="hint-small">自动加速 · ◀ ▶ 转向 · 压弯别冲出路面</text>
+      <text class="hint-small">吃 ⚡ 攒氮气 · 冲过检查点续时间</text>
+      <text class="hint-best" wx:if="{{best > 0}}">最远纪录 {{best}} 米</text>
+    </view>
+  </view>
+
+  <!-- 结算 -->
+  <view class="overlay" wx:if="{{gameState === 'over'}}">
+    <view class="overlay-card over-card" catchtouchstart="noop">
+      <text class="over-title">时间到!</text>
+      <view class="newbest-badge" wx:if="{{isNewBest}}">
+        <text class="newbest-text">★ 新纪录 ★</text>
+      </view>
+      <text class="over-score-num">{{dist}}</text>
+      <text class="over-score-label">本次里程(米)</text>
+      <text class="over-best">最高时速 {{topSpeed}} km/h · 最远 {{best}} 米</text>
+      <view class="action-row">
+        <view class="retry-btn" catchtouchstart="onRetry">
+          <text class="retry-text">再跑一把</text>
+        </view>
+        <button class="racing-share-btn" open-type="share" catchtouchstart="">分享</button>
+      </view>
+    </view>
+  </view>
+</view>

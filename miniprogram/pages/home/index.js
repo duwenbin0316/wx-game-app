@@ -41,6 +41,12 @@ Page({
         url: '/pages/game2048/index'
       },
       {
+        id: 'racing',
+        name: 'Clawd 夜行赛车',
+        desc: '伪 3D 弯道竞速，氮气冲刺抢检查点',
+        url: '/pages/racing/index'
+      },
+      {
         id: 'adventure',
         name: 'Clawd 大冒险',
         desc: '横版闯关！踩扁 Bug，顶砖块吃金币',
