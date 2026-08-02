@@ -37,64 +37,94 @@
   background: #4A6FA5;
 }
 
-/* ── 操作按键 ── */
-.ctrl-left {
+/* ── 转向面板:一整块,拇指滑动即可换向 ── */
+/* 注意:left / width 与 index.js 里的 PAD_LEFT_RPX / PAD_W_RPX 对应 */
+.steer-pad {
   position: fixed;
-  left: 26rpx;
-  bottom: 40rpx;
+  left: 24rpx;
+  bottom: 36rpx;
+  width: 320rpx;
+  height: 168rpx;
   display: flex;
-  gap: 20rpx;
+  align-items: stretch;
+  background: rgba(22, 22, 46, 0.7);
+  border: 2rpx solid rgba(74, 111, 165, 0.6);
+  box-shadow: 3rpx 3rpx 0 rgba(10, 10, 26, 0.6);
+  user-select: none;
   z-index: 5;
 }
 
+.steer-half {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.steer-active {
+  background: rgba(217, 119, 87, 0.28);
+}
+
+.steer-split {
+  width: 2rpx;
+  background: rgba(74, 111, 165, 0.4);
+}
+
+/* ── 右侧:氮气 + 刹车 ── */
 .ctrl-right {
   position: fixed;
-  right: 26rpx;
-  bottom: 40rpx;
+  right: 24rpx;
+  bottom: 36rpx;
   display: flex;
   flex-direction: column;
-  gap: 18rpx;
+  gap: 16rpx;
   align-items: flex-end;
   z-index: 5;
 }
 
-.ctrl-btn {
-  width: 128rpx;
-  height: 128rpx;
+.brake-btn, .nitro-btn {
+  width: 196rpx;
   background: rgba(22, 22, 46, 0.72);
   border: 2rpx solid rgba(74, 111, 165, 0.6);
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
+  gap: 2rpx;
   user-select: none;
   box-shadow: 3rpx 3rpx 0 rgba(10, 10, 26, 0.6);
 }
 
-.ctrl-btn:active {
-  background: rgba(217, 119, 87, 0.25);
-  border-color: #D97757;
-}
-
 .brake-btn {
-  width: 148rpx;
-  height: 104rpx;
+  height: 108rpx;
   border-color: rgba(255, 107, 107, 0.65);
 }
 
+.brake-btn:active {
+  background: rgba(255, 107, 107, 0.28);
+  border-color: #FF6B6B;
+}
+
 .brake-text {
-  font-size: 30rpx;
+  font-size: 32rpx;
   font-weight: 700;
   color: #FF6B6B;
   font-family: monospace;
   letter-spacing: 2rpx;
+  line-height: 1.1;
+}
+
+.brake-hint {
+  font-size: 17rpx;
+  color: rgba(255, 107, 107, 0.6);
+  font-family: monospace;
 }
 
 .nitro-btn {
-  width: 148rpx;
-  height: 104rpx;
-  flex-direction: column;
-  gap: 2rpx;
+  height: 92rpx;
 }
+
+.nitro-btn:active { opacity: 0.75; }
 
 /* 有氮气可用时高亮,用完变灰 */
 .nitro-on {

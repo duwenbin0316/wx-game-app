@@ -11,25 +11,28 @@
     <view class="pause-bar"></view>
   </view>
 
-  <!-- 操作:左下转向,右下刹车 + 氮气 -->
-  <view class="ctrl-left" wx:if="{{gameState === 'playing'}}">
-    <view class="ctrl-btn"
-          catchtouchstart="onLeftStart" catchtouchend="onLeftEnd" catchtouchcancel="onLeftEnd">
+  <!-- 转向面板:整块可滑动,拇指在上面左右挪就换向 -->
+  <view class="steer-pad" wx:if="{{gameState === 'playing'}}"
+        catchtouchstart="onSteerTouch" catchtouchmove="onSteerTouch"
+        catchtouchend="onSteerEnd" catchtouchcancel="onSteerEnd">
+    <view class="steer-half {{steerDir === -1 ? 'steer-active' : ''}}">
       <view class="arr arr-left"></view>
     </view>
-    <view class="ctrl-btn"
-          catchtouchstart="onRightStart" catchtouchend="onRightEnd" catchtouchcancel="onRightEnd">
+    <view class="steer-split"></view>
+    <view class="steer-half {{steerDir === 1 ? 'steer-active' : ''}}">
       <view class="arr arr-right"></view>
     </view>
   </view>
+
   <view class="ctrl-right" wx:if="{{gameState === 'playing'}}">
-    <view class="ctrl-btn nitro-btn {{nitroReady ? 'nitro-on' : 'nitro-off'}}" catchtouchstart="onNitro">
+    <view class="nitro-btn {{nitroReady ? 'nitro-on' : 'nitro-off'}}" catchtouchstart="onNitro">
       <text class="nitro-text">N2O</text>
       <text class="nitro-num">×{{nitroCount}}</text>
     </view>
-    <view class="ctrl-btn brake-btn"
+    <view class="brake-btn"
           catchtouchstart="onBrakeStart" catchtouchend="onBrakeEnd" catchtouchcancel="onBrakeEnd">
       <text class="brake-text">刹车</text>
+      <text class="brake-hint">过弯点一下</text>
     </view>
   </view>
 
@@ -42,9 +45,10 @@
       <view class="hint-row" catchtouchstart="onStart">
         <text class="hint-text">发车</text>
       </view>
-      <text class="hint-small">自动加速 · ◀ ▶ 或直接左右拖动画面转向</text>
-      <text class="hint-small">压弯别冲出路面 · 吃 ⚡ 攒氮气冲刺</text>
-      <text class="hint-small">冲过检查点续时间,跑得越远越好</text>
+      <text class="hint-small">自动加速 · 左下面板按住转向(可滑动换向)</text>
+      <text class="hint-small">也能直接在画面上左右拖动来打方向</text>
+      <text class="hint-small">看到 ›› 箭头就是弯道,急弯点一下刹车更稳</text>
+      <text class="hint-small">吃 ⚡ 攒氮气 · 冲过检查点续时间</text>
       <text class="hint-best" wx:if="{{best > 0}}">最远纪录 {{best}} 米</text>
     </view>
   </view>

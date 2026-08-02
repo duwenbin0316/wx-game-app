@@ -18,16 +18,27 @@ const CAM_DEPTH = 1 / Math.tan((FOV / 2) * Math.PI / 180);
 const PLAYER_Z  = CAM_H * CAM_DEPTH;
 
 // ── 车辆动力学 ──
+// 调校原则:急弯必须"能靠打方向救回来",减速要是可选项而不是惩罚。
+// 满速最硬弯(曲率 6)的离心力 = CENTRIFUGAL×6 = 1.8/秒,
+// 小于满转向权限 STEER_RATE(2.6/秒),所以方向打死一定拉得回来。
 const MAX_SPEED  = SEG_LEN * 60;      // 世界单位/秒
-const ACCEL      = MAX_SPEED / 4.5;
-const BRAKING    = -MAX_SPEED / 1.6;
+const ACCEL      = MAX_SPEED / 3.4;   // 约 3.4 秒拉到极速
+const BRAKING    = -MAX_SPEED / 3.2;  // 刹车是收速度,不是急停
 const DECEL      = -MAX_SPEED / 6;
-const OFF_DECEL  = -MAX_SPEED / 1.8;  // 压草地掉速
-const OFF_LIMIT  = MAX_SPEED / 3.6;   // 草地上的限速
-const CENTRIFUGAL = 0.32;             // 弯道离心力
+const OFF_DECEL  = -MAX_SPEED / 3;    // 压草地掉速(可恢复)
+const OFF_THROTTLE = 0.25;            // 草地上只剩这点驱动力
+const OFF_LIMIT  = MAX_SPEED / 2.2;   // 草地上的限速
+const OFF_EDGE   = 1.06;              // 压到这里才算出界,给一点路肩宽容
+const STEER_RATE = 2.6;               // 满权限下每秒能横移的路宽比例
+const STEER_FLOOR = 0.4;              // 低速保留的转向权限(免得掉草地里出不来)
+const CENTRIFUGAL = 0.30;             // 离心力系数(按速度平方计)
 const NITRO_MULT = 1.38;
 const NITRO_TIME = 2.6;
-const CRASH_KEEP = 0.28;              // 撞车后保留的速度比例
+const CRASH_KEEP = 0.45;              // 撞车后保留的速度比例
+
+// 转向面板的位置(rpx,需与 wxss 保持一致),用于判断按到了哪半边
+const PAD_LEFT_RPX = 24;
+const PAD_W_RPX = 320;
 
 // ── 街机规则 ──
 const START_TIME = 62;
@@ -97,6 +108,7 @@ Page({
     timeLeft: 0,
     nitroCount: 0,
     nitroReady: false,
+    steerDir: 0,        // -1 左 / 0 松开 / 1 右,用于面板高亮
   },
 
   onLoad() {
@@ -315,6 +327,7 @@ Page({
     this._dragDx = 0;
     this._stopEngine();
     this.setData({
+      steerDir: 0,
       gameState: 'paused',
       dist: Math.round(this._dist * M_PER_UNIT),
       timeLeft: Math.max(0, Math.ceil(this._time)),
@@ -329,10 +342,25 @@ Page({
   },
 
   // ── 输入 ────────────────────────────────────────────────
-  onLeftStart()  { this._keys.left = true; },
-  onLeftEnd()    { this._keys.left = false; },
-  onRightStart() { this._keys.right = true; },
-  onRightEnd()   { this._keys.right = false; },
+  // 转向是一整块面板:按左半边左转、右半边右转,手指在面板上
+  // 滑动可以直接换向,不会像分开的两个按钮那样一滑就失效
+  onSteerTouch(e) {
+    if (this.data.gameState !== 'playing') return;
+    const t = e.touches && e.touches[0];
+    if (!t) return;
+    const mid = (PAD_LEFT_RPX + PAD_W_RPX / 2) * this._W / 750;
+    const dir = t.clientX < mid ? -1 : 1;
+    this._keys.left = dir < 0;
+    this._keys.right = dir > 0;
+    if (dir !== this.data.steerDir) this.setData({ steerDir: dir });
+  },
+
+  onSteerEnd() {
+    this._keys.left = false;
+    this._keys.right = false;
+    if (this.data.steerDir !== 0) this.setData({ steerDir: 0 });
+  },
+
   onBrakeStart() { this._keys.brake = true; },
   onBrakeEnd()   { this._keys.brake = false; },
 
@@ -418,22 +446,26 @@ Page({
     const topSpeed = MAX_SPEED * boost;
     const speedPct = this._speed / MAX_SPEED;
 
-    // ── 转向:按钮与拖动并存,转向量与车速挂钩,弯道给离心力 ──
-    const dx = dt * 2.4 * speedPct;
+    // ── 转向:按钮与拖动并存 ──
+    // 转向权限随速度提升但保留下限,低速也能把车从草地里拧回来
+    const steerRate = STEER_RATE * (STEER_FLOOR + (1 - STEER_FLOOR) * speedPct);
     let steer = 0;
     if (this._keys.left)  steer -= 1;
     if (this._keys.right) steer += 1;
-    this._playerX += dx * steer;
+    this._playerX += dt * steerRate * steer;
     if (this._dragDx !== 0) {
-      this._playerX += this._dragDx * (0.45 + 0.55 * speedPct);
+      this._playerX += this._dragDx * (0.5 + 0.5 * speedPct);
       steer += Math.max(-1, Math.min(1, this._dragDx * 14));
       this._dragDx = 0;
     }
-    this._playerX -= dx * speedPct * playerSeg.curve * CENTRIFUGAL;
+    // 离心力按速度平方算:慢速过弯轻松,高速才吃力
+    this._playerX -= dt * CENTRIFUGAL * speedPct * speedPct * playerSeg.curve;
     this._playerX = Math.max(-2.2, Math.min(2.2, this._playerX));
     this._steerVis += (Math.max(-1, Math.min(1, steer)) - this._steerVis) * 0.2;
 
     // ── 油门 / 刹车 ──
+    // 出界要同时收油门,否则驱动力会把掉速抵消掉,等于没惩罚
+    const offRoad = Math.abs(this._playerX) > OFF_EDGE;
     if (this._crashT > 0) {
       this._crashT -= dt;
       this._speed += DECEL * dt;
@@ -450,11 +482,10 @@ Page({
         }
       }
     } else {
-      this._speed += ACCEL * boost * dt;
+      this._speed += ACCEL * boost * dt * (offRoad ? OFF_THROTTLE : 1);
     }
 
     // ── 压草地 ──
-    const offRoad = Math.abs(this._playerX) > 1;
     if (offRoad) {
       if (this._speed > OFF_LIMIT) this._speed += OFF_DECEL * dt;
       if (this._frame % 4 === 0) {
@@ -788,6 +819,7 @@ Page({
       ctx.fillRect(-10, -10, W + 20, H + 20);
     }
 
+    this._drawCurveWarning(ctx, W, H);
     this._drawHUD(ctx, W, H);
     this._drawCountdown(ctx, W, H);
 
@@ -1117,6 +1149,55 @@ Page({
       ctx.fillStyle = i < this._nitro ? '#60C0FF' : 'rgba(96,192,255,0.2)';
       ctx.fillRect(bx, 110, 12, 6);
     }
+  },
+
+  // 前方弯道的平均曲率(用于预警)
+  _lookAheadCurve() {
+    const segs = this._segments;
+    const count = segs.length;
+    const base = this._segmentAt(this._position + PLAYER_Z).index;
+    let sum = 0;
+    for (let i = 6; i < 46; i++) sum += segs[(base + i) % count].curve;
+    return sum / 40;
+  },
+
+  // 弯道预警:提前用箭头告诉玩家往哪拐、有多急
+  _drawCurveWarning(ctx, W, H) {
+    if (this.data.gameState === 'idle') return;
+    const c = this._lookAheadCurve();
+    const mag = Math.abs(c);
+    if (mag < 0.8) return;
+
+    const dir = c > 0 ? 1 : -1;
+    const n = mag > 4 ? 3 : (mag > 2 ? 2 : 1);   // 越急箭头越多
+    const hard = mag > 4;
+    const y = this._horizon + 34;
+    const pulse = 0.55 + 0.45 * Math.sin(this._frame / 6);
+
+    ctx.save();
+    ctx.globalAlpha = Math.min(1, (mag - 0.6) / 2) * pulse;
+    ctx.fillStyle = hard ? '#FF6B6B' : '#F5C842';
+    for (let i = 0; i < n; i++) {
+      const x = W / 2 + dir * (26 + i * 20);
+      ctx.beginPath();
+      ctx.moveTo(x, y - 13);
+      ctx.lineTo(x + dir * 15, y);
+      ctx.lineTo(x, y + 13);
+      ctx.lineTo(x - dir * 5, y + 13);
+      ctx.lineTo(x + dir * 10, y);
+      ctx.lineTo(x - dir * 5, y - 13);
+      ctx.closePath();
+      ctx.fill();
+    }
+    // 急弯且车速过快时提示减速
+    if (hard && this._speed > MAX_SPEED * 0.72) {
+      ctx.globalAlpha = pulse;
+      ctx.fillStyle = '#FF6B6B';
+      ctx.font = 'bold 15px monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText('急弯 减速', W / 2, y + 38);
+    }
+    ctx.restore();
   },
 
   // 发车 / 恢复倒计时的大字
