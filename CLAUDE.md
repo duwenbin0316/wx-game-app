@@ -4,7 +4,7 @@ This file provides guidance for AI assistants (Claude and others) working in thi
 
 ## Project Overview
 
-A WeChat Mini Program game hub featuring four games (Gomoku/Five-in-a-Row, Tetris, Sokoban, Runner) with real-time multiplayer infrastructure powered by Tencent CloudBase (TCB). The app uses native WeChat APIs exclusively — no external UI libraries.
+A WeChat Mini Program game hub featuring ten entries — Gomoku (online + offline), Tetris, Sokoban, Runner, Snake, 2048, Racing, Adventure, Stack, and a virtual Pet — with real-time multiplayer and cloud-saved pet state powered by Tencent CloudBase (TCB). Most games share a pixel-art mascot, Clawd (`miniprogram/utils/clawd.js`). The app uses native WeChat APIs exclusively — no external UI libraries.
 
 - **AppID**: `wxe5b06e8c6ba926fc`
 - **Library Version**: 2.20.1
@@ -21,33 +21,51 @@ wx-game-app/
 │   ├── app.json                  # App manifest with page routes
 │   ├── app.wxss                  # Global styles
 │   ├── pages/
-│   │   ├── home/                 # Game launcher hub (pixel art logo)
-│   │   ├── gomoku/               # Five-in-a-row, online + offline (~1180 lines)
-│   │   ├── online/               # Multiplayer lobby, room list (~363 lines)
-│   │   ├── runner/               # Platformer game (~822 lines)
-│   │   ├── sokoban/              # Puzzle game, 8 levels (~480 lines)
-│   │   └── tetris/               # Tetris with SRS rotations (~807 lines)
+│   │   ├── home/                 # Game launcher hub (pixel art logo, game list)
+│   │   ├── online/               # Gomoku lobby: room list, create/join (~360 lines)
+│   │   ├── gomoku/               # Five-in-a-row, online + offline (~1560 lines)
+│   │   ├── tetris/               # SRS kicks, T-Spin/B2B/combo, chiptune BGM (~1200 lines)
+│   │   ├── runner/               # "Claude 快跑": coins combo, coffee shield (~1150 lines)
+│   │   ├── racing/               # Pseudo-3D night racing time trial (~1390 lines)
+│   │   ├── adventure/            # Side-scrolling platformer, 3 levels (~1050 lines)
+│   │   ├── sokoban/              # Puzzle game, 10 levels (~720 lines)
+│   │   ├── snake/                # Snake eating bugs (~620 lines)
+│   │   ├── game2048/             # Pixel 2048 with share card (~600 lines)
+│   │   ├── stack/                # Tap-to-drop tower stacking (~480 lines)
+│   │   └── pet/                  # Virtual pet Clawd + bug-catching minigame (~770 lines)
+│   ├── utils/
+│   │   └── clawd.js              # Shared Clawd sprite (COLORS, GRID_COLS/ROWS, buildSprite, drawClawd)
 │   ├── components/
 │   │   └── cloudTipModal/        # Reusable modal for cloud setup tips
-│   ├── assets/sounds/            # place.wav, place-opponent.wav
+│   ├── assets/sounds/            # Gomoku place sounds + Tetris SFX (mp3/wav)
 │   ├── images/icons/             # UI icons and sprites
 │   └── envList.js                # Cloud environment ID list
 │
 ├── cloudfunctions/
-│   └── quickstartFunctions/      # Single cloud function gateway (~882 lines)
-│       ├── index.js              # Switch-case on event.type, 15+ handlers
+│   └── quickstartFunctions/      # Single cloud function gateway (~1250 lines)
+│       ├── index.js              # Switch-case on event.type (rooms, pets, sample CRUD)
 │       └── package.json          # wx-server-sdk ~2.4.0
 │
 ├── .github/workflows/
 │   ├── deploy-cloud.yml          # Deploy cloud functions on cloudfunctions/** push
-│   └── upload.yml                # Upload mini program v1.3.0 on miniprogram/** push
+│   └── upload.yml                # Upload mini program on miniprogram/** push (version in APP_VERSION)
 │
+├── openspec/                     # OpenSpec specs (specs/) and change proposals (changes/)
+├── docs/superpowers/             # Design specs and implementation plans
 ├── .mini-wiki/wiki/              # Auto-generated architecture docs (mermaid diagrams)
 ├── project.config.json           # WeChat DevTools config (compiler, source maps)
-├── cloudbaserc.json              # Cloud DB environment and function list
+├── cloudbaserc.json              # Cloud env (cloud1-8gt2mwuq5b21c8ab) and function list
+├── uploadCloudFunction.sh        # CLI helper to deploy the cloud function
 ├── AGENTS.md                     # Developer guidelines (code style, patterns)
 └── README.md                     # Chinese quickstart guide
 ```
+
+### Adding a New Game
+
+1. Create `miniprogram/pages/<id>/` with the 4 standard files.
+2. Register the route in `miniprogram/app.json` → `pages`.
+3. Add an entry (`id`, `name`, `desc`, `url`) to the `games` array in `miniprogram/pages/home/index.js`.
+4. Reuse `utils/clawd.js` for the mascot sprite instead of redrawing it.
 
 Each page directory contains exactly 4 files: `index.js`, `index.json`, `index.wxml`, `index.wxss`.
 
@@ -67,11 +85,11 @@ Development, testing, and deployment are WeChat-tooling driven:
 
 Two automated workflows trigger on pushes to `master`:
 - **`deploy-cloud.yml`**: Fires when `cloudfunctions/**` changes → deploys to TCB via `@cloudbase/cli`
-- **`upload.yml`**: Fires when `miniprogram/**` changes → uploads v1.3.0 via `miniprogram-ci`
+- **`upload.yml`**: Fires when `miniprogram/**` changes → uploads via `miniprogram-ci`; version comes from `APP_VERSION` in the workflow (currently `1.3.0`) and is injected into `pages/online/index.js` (replacing `version: 'dev'`)
 
 ### Environment Configuration
 
-Cloud environment ID comes from `miniprogram/envList.js`. Local development uses `.env.local` (not committed, contains `ENV_ID`).
+Cloud environment ID comes from `miniprogram/envList.js` and `cloudbaserc.json` (`cloud1-8gt2mwuq5b21c8ab`). `.env.local` is tracked in the repo and holds `ENV_ID` / `AI_DEFAULT_AGENT`.
 
 ---
 
@@ -80,13 +98,13 @@ Cloud environment ID comes from `miniprogram/envList.js`. Local development uses
 | Layer | Technology |
 |-------|-----------|
 | Frontend | WeChat Mini Program (native WXML/WXSS/JS) |
-| Rendering | HTML5 Canvas 2D API (all games) |
+| Rendering | Canvas 2D (`<canvas type="2d">` node API) for all games except Gomoku, whose board is WXML views |
 | Audio | WeChat `InnerAudioContext` |
 | Backend | Serverless Node.js (Tencent CloudBase) |
-| Database | Cloud Database (MongoDB-compatible) |
+| Database | Cloud Database (MongoDB-compatible): `gameRooms`, `pets` |
 | Real-time | `db.watch()` with 2-second polling fallback |
 | Auth | WeChat's built-in `wxContext.OPENID` |
-| State | Page-local via `this.setData()`, Cloud DB for multiplayer |
+| State | Page-local via `this.setData()`; best scores in local storage; Cloud DB for multiplayer and pet |
 
 **No external UI libraries** — only `wx-server-sdk` in cloud functions.
 
@@ -107,7 +125,7 @@ Cloud environment ID comes from `miniprogram/envList.js`. Local development uses
 |------|-----------|---------|
 | Files | kebab-case | `cloud-tip-modal` |
 | Functions | camelCase | `onCreateRoom`, `getRoomList` |
-  | Variables | camelCase | `roomList`, `userInfo` |
+| Variables | camelCase | `roomList`, `userInfo` |
 | Constants (env IDs) | UPPER_SNAKE_CASE | `ENV_ID` |
 
 ### WXML Templates
@@ -191,20 +209,24 @@ const openid = wxContext.OPENID;  // Always use this
 
 ## Game Architecture
 
-### Board Games (Gomoku)
+### Gomoku (online + offline)
 
-- **Board**: 15×15 array of `'black'` | `'white'` | `''`
-- **Rendering**: Two canvas layers — grid lines (static) + intersection points (interactive)
-- **Win detection**: Check 4 directions from last move; 5+ consecutive pieces wins
-- **Undo system**: Max 3 undos per player; opponent must approve via `pendingUndo` field
-- **Online sync**: `db.watch()` on the room document + 2-second polling fallback
+- **Flow**: `home` → `online` (lobby: room list, create/join) → `gomoku` (board)
+- **Board**: 15×15 array of `'black'` | `'white'` | `''`, rendered as WXML views (not canvas)
+- **Win detection**: `checkWinner()` in the cloud function checks 4 directions from the last move; 5+ consecutive pieces wins
+- **Undo**: max 3 per player (`MAX_UNDO_COUNT`); opponent must approve via `pendingUndo`
+- **Rematch**: request/approve via `requestRestart` / `respondRestart` (`pendingRestart`); `restartRoom` is kept only for old clients. `flipTable` ends the game.
+- **Online sync**: `db.watch()` on the room document with auto-retry, plus a 2-second polling fallback
+- **Legacy data**: `repairRooms` / `normalizeRoomBoardIfNeeded` backfill missing `pendingUndo` / `undoCounts` and fix malformed boards
 
-### Cloud Database Schema (gameRooms collection)
+### Cloud Database Schema
+
+`gameRooms`:
 
 ```javascript
 {
   _id: string,
-  name: string,
+  name: string,                 // trimmed, max 20 chars; defaults to "<nickName>的房间"
   creatorOpenid: string,
   creatorInfo: { nickName, avatarUrl },
   status: 'waiting' | 'playing' | 'finished',
@@ -215,28 +237,52 @@ const openid = wxContext.OPENID;  // Always use this
   whitePlayerInfo: { nickName, avatarUrl },
   winner: string | null,
   moveHistory: [{ row, col, player, ts }],
-  pendingUndo: { byOpenid, byColor, move, at } | null,
-  undoCounts: { black: number, white: number },  // max 3 each
+  pendingUndo: { byOpenid, byColor, move, at } | {},   // {} when none
+  pendingRestart: { ... } | {},                        // {} when none
+  undoCounts: { black: number, white: number },         // max 3 each
+  lastActionType: string,       // create | join | move | flip | restart | restartRequest | restartRejected | undo | undo_request | undo_reject | undo_stale_clear
+  createdAt: Date,
   lastActionAt: Date
 }
 ```
 
-### Tetris
+`pets` (one per user, keyed by `openid`):
 
-- Implements SRS (Super Rotation System) spawn orientations
-- Game-controller style controls: left-hand movement, right-hand actions
-- Auto-repeat on held buttons
+```javascript
+{
+  _id: string,
+  openid: string,
+  name: string,                 // default '小可爱'
+  hunger: number,               // 0-100
+  happiness: number,            // 0-100
+  health: number,               // 0-100
+  isSleeping: boolean,
+  createdAt: Date,
+  lastUpdated: Date             // used by applyTimeDecay() (capped at 48h)
+}
+```
 
-### Sokoban
+Pet stats decay over time on the server (`applyTimeDecay`); handlers: `getPet`, `feedPet`, `playWithPet`, `toggleSleepPet`, `namePet`.
 
-- 8 levels with carefully designed puzzles
-- Leveldata stored inline in `index.js`
-- Player and box positions tracked as coordinate pairs
+### Single-Player Games
 
-### Runner
+All render on a `<canvas type="2d">` node (queried via `wx.createSelectorQuery().fields({ node: true, size: true })`, scaled by `pixelRatio`) and most drive the loop with `requestAnimationFrame`.
 
-- Canvas-based platformer with pixel art rendering
-- Double jump, enemy spawning, collision detection
+| Game | Notes | Local storage key |
+|------|-------|-------------------|
+| Tetris | SRS rotations + wall kicks, T-Spin / B2B / combo, hold/next, controller-style buttons with auto-repeat, chiptune BGM + SFX | `tetris_best` |
+| Runner | Endless runner: coin combos, coffee shield, death animation | `runner_best` |
+| Racing | Pseudo-3D curves, countdown, pause, nitro, checkpoints, drag steering | `racing_best` |
+| Adventure | Side-scrolling platformer, 3 levels, stomp bugs, bump bricks | `adventure_best` |
+| Sokoban | 10 verified levels, level data inline in `index.js` | `sokoban_best`, `sokoban_unlocked` |
+| Snake | Clawd eats bugs | `snake_best` |
+| 2048 | Swipe merge, off-screen canvas share card | `game2048_best` |
+| Stack | Tap to drop layers, PERFECT combo restores width | `stack_best` |
+| Pet | Walking Clawd, feed/play/sleep (cloud-synced), bug-catching minigame | — (cloud `pets`) |
+
+### Sharing
+
+Most game pages implement `onShareAppMessage` (not yet Pet or Sokoban). Share text reports the current run's result only after a game has started; otherwise it uses a plain invite message.
 
 ---
 
@@ -272,11 +318,11 @@ const openid = wxContext.OPENID;  // Always use this
 
 1. **`setData` with nested objects**: Always use dot-path notation (`'obj.key': value`) to update nested fields without overwriting siblings.
 
-2. **Canvas contexts**: `miniprogram/` uses `wx.createCanvasContext()` for compatibility; always call `ctx.draw()` after drawing operations.
+2. **Canvas**: Pages use the Canvas 2D node API (`<canvas type="2d" id="...">` + `node.getContext('2d')`), not the legacy `wx.createCanvasContext()`/`ctx.draw()`. Set `node.width/height` to CSS size × `pixelRatio` and `ctx.scale(dpr, dpr)`. Stop animation loops/timers in `onHide`/`onUnload`.
 
-3. **Cloud DB watches**: Call `watcher.close()` in `onUnload()` to prevent memory leaks on page navigation.
+3. **Cloud DB watches**: Call `watcher.close()` and clear retry/poll timers in `onUnload()` to prevent memory leaks on page navigation. Watch pushes deliver `Date` objects while polling returns ISO strings — normalize timestamps before comparing.
 
-4. **Room state race conditions**: Cloud functions use `db.runTransaction()` for atomic moves to prevent simultaneous-move corruption.
+4. **Room state race conditions**: `makeMove` does read → validate (status, turn owner, empty cell) → `update`, without `db.runTransaction()`. Server-side turn checks prevent most conflicts, but keep this in mind when adding concurrent actions.
 
 5. **`result.result`**: Cloud function results are double-wrapped — `callFunction()` returns `{ result: { success, data } }`.
 
@@ -296,6 +342,7 @@ No automated test suite exists. All testing is manual:
 - **Multiplayer**: Use "多账号调试" (multi-account simulator) in DevTools — opens two simultaneous instances
 - **Cloud functions**: Test via `wx.cloud.callFunction()` calls from the simulator console
 - **Cloud DB**: Inspect and edit records directly in WeChat Developer Tools cloud panel
+- **Syntax check** (outside DevTools): `node --check miniprogram/pages/<page>/index.js`
 
 ---
 
@@ -305,5 +352,7 @@ No automated test suite exists. All testing is manual:
   - `index.md` — Project overview
   - `architecture.md` — System design and data flow sequence diagrams
   - `getting-started.md` — Setup, deployment, troubleshooting
+- **`openspec/`** — Feature specs (`specs/`) and archived change proposals (`changes/archive/`)
+- **`docs/superpowers/`** — Design specs and implementation plans
 - **`AGENTS.md`** — Developer code style guidelines and common snippets
 - **`README.md`** — Chinese quickstart guide for WeChat developers
