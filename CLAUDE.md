@@ -26,7 +26,7 @@ wx-game-app/
 │   │   ├── gomoku/               # Five-in-a-row, online + offline (~1560 lines)
 │   │   ├── tetris/               # SRS kicks, T-Spin/B2B/combo, chiptune BGM (~1200 lines)
 │   │   ├── runner/               # "Claude 快跑": coins combo, coffee shield (~1150 lines)
-│   │   ├── racing/               # Pseudo-3D night racing time trial (~1390 lines)
+│   │   ├── racing/               # Pseudo-3D night racing: 4 zones, drift, near-miss (~1900 lines)
 │   │   ├── adventure/            # Side-scrolling platformer, 3 levels (~1050 lines)
 │   │   ├── sokoban/              # Puzzle game, 10 levels (~720 lines)
 │   │   ├── snake/                # Snake eating bugs (~620 lines)
@@ -34,7 +34,9 @@ wx-game-app/
 │   │   ├── stack/                # Tap-to-drop tower stacking (~480 lines)
 │   │   └── pet/                  # Virtual pet Clawd + bug-catching minigame (~770 lines)
 │   ├── utils/
-│   │   └── clawd.js              # Shared Clawd sprite (COLORS, GRID_COLS/ROWS, buildSprite, drawClawd)
+│   │   ├── clawd.js              # Shared Clawd sprite (COLORS, GRID_COLS/ROWS, buildSprite, drawClawd)
+│   │   ├── racing-art.js         # Racing pixel-art atlas (cars, scenery, glows, parallax tiles)
+│   │   └── racing-audio.js       # Racing WebAudio synth (engine w/ gears, tyre squeal, SFX)
 │   ├── components/
 │   │   └── cloudTipModal/        # Reusable modal for cloud setup tips
 │   ├── assets/sounds/            # Gomoku place sounds + Tetris SFX (mp3/wav)
@@ -272,7 +274,7 @@ All render on a `<canvas type="2d">` node (queried via `wx.createSelectorQuery()
 |------|-------|-------------------|
 | Tetris | SRS rotations + wall kicks, T-Spin / B2B / combo, hold/next, controller-style buttons with auto-repeat, chiptune BGM + SFX | `tetris_best` |
 | Runner | Endless runner: coin combos, coffee shield, death animation | `runner_best` |
-| Racing | Pseudo-3D curves, countdown, pause, nitro, checkpoints, drag steering | `racing_best` |
+| Racing | Pseudo-3D road; zones city → coast → tunnel → forest; drift (brake + steer) charges nitro, near-miss combos add time; sprite atlas built once on an offscreen canvas; auto quality downgrade on low FPS | `racing_best` |
 | Adventure | Side-scrolling platformer, 3 levels, stomp bugs, bump bricks | `adventure_best` |
 | Sokoban | 10 verified levels, level data inline in `index.js` | `sokoban_best`, `sokoban_unlocked` |
 | Snake | Clawd eats bugs | `snake_best` |

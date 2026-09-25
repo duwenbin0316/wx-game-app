@@ -105,6 +105,17 @@
   border-color: #FF6B6B;
 }
 
+/* 漂移中:按钮变成火花的蓝色 */
+.brake-drift {
+  background: rgba(96, 192, 255, 0.22);
+  border-color: #60C0FF;
+}
+
+.brake-drift .brake-text,
+.brake-drift .brake-hint {
+  color: #60C0FF;
+}
+
 .brake-text {
   font-size: 32rpx;
   font-weight: 700;
@@ -115,7 +126,7 @@
 }
 
 .brake-hint {
-  font-size: 17rpx;
+  font-size: 16rpx;
   color: rgba(255, 107, 107, 0.6);
   font-family: monospace;
 }
@@ -162,10 +173,54 @@
   position: fixed;
   top: 0; left: 0; right: 0; bottom: 0;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
-  background: rgba(10, 10, 30, 0.78);
+  background: rgba(10, 10, 30, 0.62);
   z-index: 10;
+}
+
+/* 开始画面:压暗得轻一些,露出背后自动巡航的赛道 */
+.overlay-idle {
+  justify-content: space-between;
+  padding: 150rpx 0 120rpx;
+  box-sizing: border-box;
+  background: linear-gradient(180deg, rgba(8, 6, 24, 0.72) 0%, rgba(8, 6, 24, 0.15) 40%, rgba(8, 6, 24, 0.2) 60%, rgba(8, 6, 24, 0.8) 100%);
+}
+
+.title-block {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.zone-row {
+  display: flex;
+  gap: 12rpx;
+  margin-top: 8rpx;
+}
+
+.zone-tag {
+  font-size: 20rpx;
+  font-family: monospace;
+  padding: 4rpx 12rpx;
+  border: 2rpx solid;
+  background: rgba(10, 10, 30, 0.6);
+}
+
+.zone-city   { color: #FF4FD8; border-color: #FF4FD8; }
+.zone-coast  { color: #6FC8FF; border-color: #6FC8FF; }
+.zone-tunnel { color: #F5C842; border-color: #F5C842; }
+.zone-forest { color: #4CFF8A; border-color: #4CFF8A; }
+
+.idle-card {
+  background: rgba(22, 18, 48, 0.82);
+}
+
+.tip-list {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
 }
 
 .overlay-card {
@@ -180,27 +235,23 @@
   box-shadow: 6rpx 6rpx 0 #0E0E22;
 }
 
-.overlay-logo {
-  font-size: 60rpx;
-  margin-bottom: 14rpx;
-  line-height: 1;
-}
-
 .overlay-title {
-  font-size: 46rpx;
+  font-size: 84rpx;
   font-weight: 700;
   color: #FFFFFF;
-  letter-spacing: 8rpx;
+  letter-spacing: 12rpx;
   font-family: monospace;
-  margin-bottom: 10rpx;
+  margin-bottom: 18rpx;
+  text-shadow: 0 0 16rpx #FF4FD8, 0 0 36rpx rgba(255, 79, 216, 0.6), 4rpx 4rpx 0 #6E2FB0;
 }
 
 .overlay-sub {
-  font-size: 20rpx;
-  color: #A78BFA;
-  letter-spacing: 3rpx;
+  font-size: 22rpx;
+  color: #6FC8FF;
+  letter-spacing: 6rpx;
   font-family: monospace;
-  margin-bottom: 42rpx;
+  margin-bottom: 12rpx;
+  text-shadow: 0 0 10rpx rgba(111, 200, 255, 0.8);
 }
 
 .hint-row {
@@ -213,7 +264,7 @@
 .hint-row:active { opacity: 0.8; }
 
 .hint-text {
-  font-size: 32rpx;
+  font-size: 34rpx;
   color: #1A1A2E;
   font-weight: 700;
   letter-spacing: 6rpx;
@@ -221,8 +272,8 @@
 }
 
 .hint-small {
-  font-size: 20rpx;
-  color: #6A6A9A;
+  font-size: 21rpx;
+  color: #9A9ACA;
   letter-spacing: 1rpx;
   font-family: monospace;
   margin-bottom: 6rpx;
@@ -293,6 +344,46 @@
   letter-spacing: 2rpx;
 }
 
+.score-row {
+  display: flex;
+  align-items: center;
+  gap: 28rpx;
+  margin-bottom: 24rpx;
+}
+
+.grade {
+  width: 120rpx;
+  height: 120rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 4rpx solid;
+  box-shadow: 4rpx 4rpx 0 #0E0E22;
+}
+
+.grade-text {
+  font-size: 80rpx;
+  font-weight: 700;
+  font-family: monospace;
+  line-height: 1;
+}
+
+.grade-S { border-color: #F5C842; background: rgba(245, 200, 66, 0.14); }
+.grade-S .grade-text { color: #F5C842; text-shadow: 0 0 18rpx rgba(245, 200, 66, 0.9); }
+.grade-A { border-color: #FF4FD8; background: rgba(255, 79, 216, 0.12); }
+.grade-A .grade-text { color: #FF4FD8; }
+.grade-B { border-color: #6FC8FF; background: rgba(111, 200, 255, 0.12); }
+.grade-B .grade-text { color: #6FC8FF; }
+.grade-C { border-color: #4CFF8A; background: rgba(76, 255, 138, 0.1); }
+.grade-C .grade-text { color: #4CFF8A; }
+.grade-D { border-color: #8A8AAA; background: rgba(138, 138, 170, 0.1); }
+.grade-D .grade-text { color: #8A8AAA; }
+
+.score-main {
+  display: flex;
+  flex-direction: column;
+}
+
 .over-score-num {
   font-size: 78rpx;
   font-weight: 700;
@@ -302,10 +393,42 @@
 }
 
 .over-score-label {
-  font-size: 22rpx;
-  color: #6A6A9A;
+  font-size: 20rpx;
+  color: #8A8ABA;
   font-family: monospace;
-  margin-bottom: 10rpx;
+}
+
+.stat-grid {
+  display: flex;
+  flex-wrap: wrap;
+  width: 100%;
+  margin-bottom: 34rpx;
+  border-top: 2rpx solid #2E3A5C;
+  border-left: 2rpx solid #2E3A5C;
+}
+
+.stat {
+  width: 33.33%;
+  box-sizing: border-box;
+  padding: 12rpx 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  border-right: 2rpx solid #2E3A5C;
+  border-bottom: 2rpx solid #2E3A5C;
+}
+
+.stat-num {
+  font-size: 30rpx;
+  font-weight: 700;
+  color: #FFFFFF;
+  font-family: monospace;
+}
+
+.stat-label {
+  font-size: 18rpx;
+  color: #8A8ABA;
+  font-family: monospace;
 }
 
 .over-best {

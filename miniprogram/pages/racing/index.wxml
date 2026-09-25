@@ -29,26 +29,36 @@
       <text class="nitro-text">N2O</text>
       <text class="nitro-num">×{{nitroCount}}</text>
     </view>
-    <view class="brake-btn"
+    <view class="brake-btn {{drifting ? 'brake-drift' : ''}}"
           catchtouchstart="onBrakeStart" catchtouchend="onBrakeEnd" catchtouchcancel="onBrakeEnd">
-      <text class="brake-text">刹车</text>
-      <text class="brake-hint">过弯点一下</text>
+      <text class="brake-text">{{drifting ? '漂移中' : '漂移'}}</text>
+      <text class="brake-hint">按住+转向 · 单按=刹车</text>
     </view>
   </view>
 
-  <!-- 开始画面 -->
-  <view class="overlay" wx:if="{{gameState === 'idle'}}">
-    <view class="overlay-card">
-      <text class="overlay-logo">🏁</text>
+  <!-- 开始画面(背后是自动巡航的实时画面) -->
+  <view class="overlay overlay-idle" wx:if="{{gameState === 'idle'}}">
+    <view class="title-block">
+      <text class="overlay-sub">CLAWD · NIGHT RACER</text>
       <text class="overlay-title">夜行赛车</text>
-      <text class="overlay-sub">NIGHT RACER · 计时赛</text>
-      <view class="hint-row" catchtouchstart="onStart">
-        <text class="hint-text">发车</text>
+      <view class="zone-row">
+        <text class="zone-tag zone-city">霓虹城区</text>
+        <text class="zone-tag zone-coast">海滨公路</text>
+        <text class="zone-tag zone-tunnel">山体隧道</text>
+        <text class="zone-tag zone-forest">月下山道</text>
       </view>
-      <text class="hint-small">自动加速 · 左下面板按住转向(可滑动换向)</text>
-      <text class="hint-small">也能直接在画面上左右拖动来打方向</text>
-      <text class="hint-small">看到 ›› 箭头就是弯道,急弯点一下刹车更稳</text>
-      <text class="hint-small">吃 ⚡ 攒氮气 · 冲过检查点续时间</text>
+    </view>
+    <view class="overlay-card idle-card">
+      <view class="hint-row" catchtouchstart="onStart">
+        <text class="hint-text">发 车</text>
+      </view>
+      <view class="tip-list">
+        <text class="hint-small">◀ ▶ 左下面板转向,也能在画面上左右拖</text>
+        <text class="hint-small">高速时按住「漂移」再打方向 → 漂移攒氮气</text>
+        <text class="hint-small">漂得越久火花越亮,松手有小加速</text>
+        <text class="hint-small">贴着车超过去算「擦肩」,连击加时间</text>
+        <text class="hint-small">冲过检查点续时间 · 时间归零结束</text>
+      </view>
       <text class="hint-best" wx:if="{{best > 0}}">最远纪录 {{best}} 米</text>
     </view>
   </view>
@@ -76,9 +86,23 @@
       <view class="newbest-badge" wx:if="{{isNewBest}}">
         <text class="newbest-text">★ 新纪录 ★</text>
       </view>
-      <text class="over-score-num">{{dist}}</text>
-      <text class="over-score-label">本次里程(米)</text>
-      <text class="over-best">最高时速 {{topSpeed}} km/h · 最远 {{best}} 米</text>
+      <view class="score-row">
+        <view class="grade grade-{{grade}}">
+          <text class="grade-text">{{grade}}</text>
+        </view>
+        <view class="score-main">
+          <text class="over-score-num">{{dist}}</text>
+          <text class="over-score-label">本次里程(米) · 最远 {{best}}</text>
+        </view>
+      </view>
+      <view class="stat-grid">
+        <view class="stat"><text class="stat-num">{{topSpeed}}</text><text class="stat-label">最高时速</text></view>
+        <view class="stat"><text class="stat-num">{{overtakes}}</text><text class="stat-label">超车</text></view>
+        <view class="stat"><text class="stat-num">{{nearMiss}}</text><text class="stat-label">擦肩</text></view>
+        <view class="stat"><text class="stat-num">×{{bestCombo}}</text><text class="stat-label">最高连击</text></view>
+        <view class="stat"><text class="stat-num">{{bestDrift}}s</text><text class="stat-label">最长漂移</text></view>
+        <view class="stat"><text class="stat-num">{{checkpoints}}</text><text class="stat-label">检查点</text></view>
+      </view>
       <view class="action-row">
         <view class="retry-btn" catchtouchstart="onRetry">
           <text class="retry-text">再跑一把</text>
