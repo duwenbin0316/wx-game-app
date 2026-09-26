@@ -30,15 +30,15 @@
       <view class="local-difficulty-row">
         <view class="diff-btn" data-difficulty="easy" bindtap="onStartAi">
           <text class="diff-name">简单</text>
-          <text class="diff-desc">随机落子</text>
+          <text class="diff-desc">会犯错</text>
         </view>
         <view class="diff-btn" data-difficulty="medium" bindtap="onStartAi">
           <text class="diff-name">普通</text>
-          <text class="diff-desc">有策略</text>
+          <text class="diff-desc">攻守兼备</text>
         </view>
         <view class="diff-btn" data-difficulty="hard" bindtap="onStartAi">
           <text class="diff-name">困难</text>
-          <text class="diff-desc">较强</text>
+          <text class="diff-desc">深度计算</text>
         </view>
       </view>
       <view class="modal-actions" style="margin-top: 28rpx;">

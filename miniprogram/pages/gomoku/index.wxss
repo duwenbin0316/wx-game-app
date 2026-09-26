@@ -163,6 +163,13 @@ page {
   box-shadow: 0 0 0 4rpx rgba(167,139,250,0.3), 0 2rpx 6rpx rgba(0,0,0,0.3);
 }
 
+.move-count {
+  margin-top: 8rpx;
+  font-size: 20rpx;
+  color: #8A8ABA;
+  font-family: monospace;
+}
+
 .vs-text {
   font-size: 18rpx;
   font-weight: 700;
@@ -171,133 +178,100 @@ page {
   font-family: monospace;
 }
 
-/* ── 棋盘 ── */
+/* ── 棋盘:木框 + canvas ── */
 .game-board {
-  background: #253550;
-  border: 3rpx solid #4A7AB0;
-  border-radius: 0;
-  padding: 20rpx;
-  box-shadow: 6rpx 6rpx 0 #0A0A1A;
-  margin-bottom: 20rpx;
+  background: linear-gradient(135deg, #5A3A22 0%, #3E2716 100%);
+  border: 2rpx solid #7A5230;
+  padding: 12rpx;
+  box-shadow: 0 16rpx 40rpx rgba(0, 0, 0, 0.55), 6rpx 6rpx 0 #0A0A1A, inset 0 0 0 2rpx rgba(255, 220, 160, 0.12);
+  margin-bottom: 14rpx;
   display: flex;
   justify-content: center;
   align-items: center;
 }
 
-.board-grid {
-  position: relative;
-  /* container 左右各 20rpx + board 左右各 20rpx = 共减 80rpx */
-  width: calc(100vw - 80rpx);
-  height: calc(100vw - 80rpx);
-  box-sizing: border-box;
+.board-canvas {
+  /* container 左右各 20rpx + 木框左右各 14rpx */
+  width: calc(100vw - 68rpx);
+  height: calc(100vw - 68rpx);
+  display: block;
 }
 
-.lines-layer {
-  position: absolute;
-  top: 0; left: 0; right: 0; bottom: 0;
-  z-index: 1;
-  /* 15×15 grid = 14 intervals; 100/14 ≈ 7.14286% per cell */
-  background-image:
-    linear-gradient(rgba(90,140,210,0.85) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(90,140,210,0.85) 1px, transparent 1px);
-  background-size: 7.14286% 7.14286%;
+.board-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12rpx;
+  margin-bottom: 16rpx;
+  min-height: 52rpx;
 }
 
-.star-points {
-  position: absolute;
-  left: 0; top: 0; right: 0; bottom: 0;
-  pointer-events: none;
-  z-index: 2;
+.board-tip {
+  flex: 1;
+  font-size: 22rpx;
+  color: #6A6A9A;
+  font-family: monospace;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-.star-point {
-  position: absolute;
-  width: 12rpx;
-  height: 12rpx;
-  border-radius: 50%;
-  background: #6AA0E0;
-  transform: translate(-50%, -50%);
+.board-tip.tip-on { color: #D97757; }
+
+.toggle-row {
+  display: flex;
+  gap: 10rpx;
+  flex-shrink: 0;
 }
 
-.star-point-1 { left: 21.4286%; top: 21.4286%; }
-.star-point-2 { left: 78.5714%; top: 21.4286%; }
-.star-point-3 { left: 50%;      top: 50%; }
-.star-point-4 { left: 21.4286%; top: 78.5714%; }
-.star-point-5 { left: 78.5714%; top: 78.5714%; }
-
-.points-layer {
-  position: absolute;
-  left: 0; top: 0; right: 0; bottom: 0;
-  z-index: 2;
-  pointer-events: none;
+.toggle {
+  font-size: 20rpx;
+  font-family: monospace;
+  padding: 8rpx 16rpx;
+  color: #4A6FA5;
+  background: #16162A;
+  border: 2rpx solid #2E3A5C;
 }
 
-.intersection {
-  position: absolute;
-  width: calc(100% / 14);
-  height: calc(100% / 14);
+.toggle-on {
+  color: #1A1A2E;
+  background: #A78BFA;
+  border-color: #A78BFA;
+}
+
+/* ── 复盘控制条 ── */
+.review-bar {
   display: flex;
   align-items: center;
   justify-content: center;
-  transform: translate(-50%, -50%);
-  pointer-events: auto;
+  gap: 12rpx;
 }
 
-.r-0  { top: 0%; }       .r-1  { top: 7.1429%; }
-.r-2  { top: 14.2857%; } .r-3  { top: 21.4286%; }
-.r-4  { top: 28.5714%; } .r-5  { top: 35.7143%; }
-.r-6  { top: 42.8571%; } .r-7  { top: 50%; }
-.r-8  { top: 57.1429%; } .r-9  { top: 64.2857%; }
-.r-10 { top: 71.4286%; } .r-11 { top: 78.5714%; }
-.r-12 { top: 85.7143%; } .r-13 { top: 92.8571%; }
-.r-14 { top: 100%; }
-
-.c-0  { left: 0%; }       .c-1  { left: 7.1429%; }
-.c-2  { left: 14.2857%; } .c-3  { left: 21.4286%; }
-.c-4  { left: 28.5714%; } .c-5  { left: 35.7143%; }
-.c-6  { left: 42.8571%; } .c-7  { left: 50%; }
-.c-8  { left: 57.1429%; } .c-9  { left: 64.2857%; }
-.c-10 { left: 71.4286%; } .c-11 { left: 78.5714%; }
-.c-12 { left: 85.7143%; } .c-13 { left: 92.8571%; }
-.c-14 { left: 100%; }
-
-.chess {
-  width: 32rpx;
-  height: 32rpx;
-  border-radius: 50%;
-  z-index: 2;
-  position: relative;
-  box-sizing: border-box;
+.rv-btn, .rv-exit {
+  font-size: 26rpx;
+  font-weight: 700;
+  font-family: monospace;
+  padding: 16rpx 22rpx;
+  background: #1E1E38;
+  color: #C0C0E8;
+  border: 2rpx solid #2E3A5C;
+  box-shadow: 3rpx 3rpx 0 #0E0E22;
 }
 
-.chess.black {
-  background: radial-gradient(circle at 35% 35%, #6b7280, #1e293b);
-  border: 2rpx solid #9ca3af;
-  box-shadow: 0 2rpx 8rpx rgba(0,0,0,0.6), 0 0 6rpx rgba(156,163,175,0.4);
+.rv-btn:active, .rv-exit:active { opacity: 0.7; }
+
+.rv-step {
+  min-width: 120rpx;
+  text-align: center;
+  font-size: 26rpx;
+  font-family: monospace;
+  color: #F5C842;
 }
 
-.chess.white {
-  background: radial-gradient(circle at 35% 35%, #ffffff, #e5e7eb);
-  border: 1rpx solid #aaa;
-  box-shadow: 0 2rpx 8rpx rgba(0,0,0,0.3);
-}
-
-.chess.win {
-  box-shadow: 0 0 0 3rpx #FFD700, 0 0 14rpx 4rpx rgba(255, 215, 0, 0.7);
-  border-color: #FFD700 !important;
-  transform: scale(1.12);
-  z-index: 3;
-}
-
-.chess.last::after {
-  content: '';
-  position: absolute;
-  width: 10rpx;
-  height: 10rpx;
-  border-radius: 50%;
-  top: 50%; left: 50%;
-  transform: translate(-50%, -50%);
-  background: rgba(217, 119, 87, 0.9);
+.rv-exit {
+  color: #1A1A2E;
+  background: #D97757;
+  border-color: #D97757;
 }
 
 /* ── 底部按钮 ── */
@@ -307,15 +281,30 @@ page {
   gap: 12rpx;
 }
 
-.restart-btn, .leave-btn, .undo-btn {
+.restart-btn, .leave-btn, .undo-btn, .hint-btn {
   border-radius: 0;
   font-size: 26rpx;
   font-weight: 600;
-  padding: 18rpx 32rpx;
+  padding: 18rpx 26rpx;
   user-select: none;
   letter-spacing: 1rpx;
   font-family: monospace;
   box-shadow: 3rpx 3rpx 0 #0E0E22;
+}
+
+.hint-btn {
+  background: #1E1E38;
+  color: #4CC38A;
+  border: 2rpx solid #2A5A44;
+}
+
+.hint-btn:active { opacity: 0.75; }
+
+.hint-btn.disabled {
+  background: #16162A;
+  color: #2A4A3A;
+  border-color: #1E1E38;
+  box-shadow: none;
 }
 
 .restart-btn {
@@ -329,7 +318,7 @@ page {
   border-radius: 0;
   font-size: 26rpx;
   font-weight: 600;
-  padding: 18rpx 32rpx;
+  padding: 18rpx 26rpx;
   user-select: none;
   letter-spacing: 1rpx;
   font-family: monospace;
@@ -476,6 +465,12 @@ page {
 .result-restart {
   background: #D97757;
   color: #1A1A2E;
+}
+
+.result-review {
+  background: #1E1E38;
+  color: #F5C842;
+  border: 2rpx solid #6A5A2A;
 }
 
 .result-leave {

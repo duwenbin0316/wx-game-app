@@ -23,7 +23,7 @@ wx-game-app/
 │   ├── pages/
 │   │   ├── home/                 # Game launcher hub (pixel art logo, game list)
 │   │   ├── online/               # Gomoku lobby: room list, create/join (~360 lines)
-│   │   ├── gomoku/               # Five-in-a-row, online + offline (~1560 lines)
+│   │   ├── gomoku/               # Five-in-a-row, online + offline, canvas board (~1730 lines)
 │   │   ├── tetris/               # SRS kicks, T-Spin/B2B/combo, chiptune BGM (~1200 lines)
 │   │   ├── runner/               # "Claude 快跑": coins combo, coffee shield (~1150 lines)
 │   │   ├── racing/               # Pseudo-3D night racing: 4 zones, drift, near-miss (~1900 lines)
@@ -35,6 +35,8 @@ wx-game-app/
 │   │   └── pet/                  # Virtual pet Clawd + bug-catching minigame (~770 lines)
 │   ├── utils/
 │   │   ├── clawd.js              # Shared Clawd sprite (COLORS, GRID_COLS/ROWS, buildSprite, drawClawd)
+│   │   ├── gomoku-ai.js          # Gomoku AI: 5-tuple eval, easy/medium greedy, hard alpha-beta (pure, node-testable)
+│   │   ├── gomoku-board.js       # Gomoku canvas renderer (wood board, stones, drop/win animations, hit test)
 │   │   ├── racing-art.js         # Racing pixel-art atlas (cars, scenery, glows, parallax tiles)
 │   │   └── racing-audio.js       # Racing WebAudio synth (engine w/ gears, tyre squeal, SFX)
 │   ├── components/
@@ -100,7 +102,7 @@ Cloud environment ID comes from `miniprogram/envList.js` and `cloudbaserc.json` 
 | Layer | Technology |
 |-------|-----------|
 | Frontend | WeChat Mini Program (native WXML/WXSS/JS) |
-| Rendering | Canvas 2D (`<canvas type="2d">` node API) for all games except Gomoku, whose board is WXML views |
+| Rendering | Canvas 2D (`<canvas type="2d">` node API) for all games, including the Gomoku board |
 | Audio | WeChat `InnerAudioContext` |
 | Backend | Serverless Node.js (Tencent CloudBase) |
 | Database | Cloud Database (MongoDB-compatible): `gameRooms`, `pets` |
@@ -214,7 +216,9 @@ const openid = wxContext.OPENID;  // Always use this
 ### Gomoku (online + offline)
 
 - **Flow**: `home` → `online` (lobby: room list, create/join) → `gomoku` (board)
-- **Board**: 15×15 array of `'black'` | `'white'` | `''`, rendered as WXML views (not canvas)
+- **Board**: 15×15 array of `'black'` | `'white'` | `''` in `data.board`, drawn on `<canvas id="board-canvas">` by `utils/gomoku-board.js`. The page wraps `setData` so every update redraws the board; taps go through `onBoardTouch` → `hitTest` → `onCellTap(row, col)`
+- **Local features**: tap-to-confirm placement, move numbers (prefs in `gomoku_prefs`), 3 hints per game, post-game review from move history, AI win/loss record (`gomoku_ai_record`)
+- **AI**: `chooseMove(board, color, level)` in `utils/gomoku-ai.js`; hard uses iterative-deepening alpha-beta with a time budget (keeps iOS responsive)
 - **Win detection**: `checkWinner()` in the cloud function checks 4 directions from the last move; 5+ consecutive pieces wins
 - **Undo**: max 3 per player (`MAX_UNDO_COUNT`); opponent must approve via `pendingUndo`
 - **Rematch**: request/approve via `requestRestart` / `respondRestart` (`pendingRestart`); `restartRoom` is kept only for old clients. `flipTable` ends the game.

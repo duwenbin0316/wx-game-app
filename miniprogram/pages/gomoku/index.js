@@ -1,12 +1,20 @@
-﻿Page({
+﻿// 棋盘用 Canvas 绘制(utils/gomoku-board.js),人机对战用 utils/gomoku-ai.js
+const { BoardRenderer, LETTERS } = require('../../utils/gomoku-board');
+const { chooseMove } = require('../../utils/gomoku-ai');
+
+const PREF_KEY = 'gomoku_prefs';        // { confirm, numbers }
+const RECORD_KEY = 'gomoku_ai_record';  // { easy: { w, l }, medium, hard }
+const HINTS_PER_GAME = 3;
+const DIFF_LABELS = { easy: '简单', medium: '普通', hard: '困难' };
+// 电脑"思考"的最短展示时间(毫秒);困难档的搜索本身就要几百毫秒
+const THINK_MS = { easy: [350, 750], medium: [450, 950], hard: [250, 500] };
+
+Page({
   data: {
     board: [],
     currentPlayer: 'black',
     winner: null,
     boardSize: 15,
-    gridSize: 14,
-    lineGrid: [],
-    points: [],
     mode: 'local', // local or online
     roomId: null,
     myColor: null, // black or white
@@ -36,14 +44,34 @@
     showResult: false,
     resultTitle: '',
     resultSub: '',
-    resultIsWin: false
+    resultIsWin: false,
+    // 落子确认 / 手数显示(本地偏好)
+    confirmMode: true,
+    showNumbers: false,
+    ghostTip: '',
+    // 提示(本地 / 人机)
+    hintLeft: HINTS_PER_GAME,
+    // 复盘
+    canReview: false,
+    reviewMode: false,
+    reviewStep: 0,
+    reviewTotal: 0
   },
 
   onLoad(options) {
     const { roomId, mode, roomName, created, invite, ai, difficulty } = options;
     const decodedRoomName = roomName ? decodeURIComponent(roomName) : '';
 
-    this.initBoardMeta();
+    // 所有 setData 之后顺手重绘棋盘:棋盘状态散落在十几处 setData 里,
+    // 统一在这里接管,不用每个调用点都记得刷新 canvas
+    const rawSetData = this.setData;
+    this.setData = (patch, cb) => {
+      rawSetData.call(this, patch, cb);
+      this.renderBoard();
+    };
+    this._ghost = null;
+    this._hint = null;
+    this.loadPrefs();
     this.initAudio();
     this.pendingMove = null;
     this.isUndoModalOpen = false;
@@ -75,8 +103,28 @@
     }
   },
 
+  onReady() {
+    wx.createSelectorQuery()
+      .select('#board-canvas')
+      .fields({ node: true, size: true, rect: true })
+      .exec(res => {
+        const info = res && res[0];
+        if (!info || !info.node) return;
+        const dpr = wx.getSystemInfoSync().pixelRatio || 2;
+        const canvas = info.node;
+        canvas.width = Math.round(info.width * dpr);
+        canvas.height = Math.round(info.height * dpr);
+        const ctx = canvas.getContext('2d');
+        ctx.scale(dpr, dpr);
+        this._boardRect = { left: info.left, top: info.top };
+        this._renderer = new BoardRenderer(canvas, ctx, info.width);
+        this.renderBoard();
+      });
+  },
+
   onUnload() {
     this.isPageActive = false;
+    if (this._renderer) this._renderer.stop();
     this.clearWatchRetry();
     this.stopRoomWatch();
     this.stopRoomPolling();
@@ -125,8 +173,9 @@
     const boardSize = this.data.boardSize;
     const board = Array(boardSize).fill(null).map(() => Array(boardSize).fill(''));
     const isAiMode = this.data.isAiMode;
-    const diffLabels = { easy: '简单', medium: '普通', hard: '困难' };
-    const aiLabel = diffLabels[this.data.aiDifficulty] || '普通';
+    const aiLabel = DIFF_LABELS[this.data.aiDifficulty] || '普通';
+    this._ghost = null;
+    this._hint = null;
     this.setData({
       board,
       currentPlayer: 'black',
@@ -141,7 +190,11 @@
       isUndoWaiting: false,
       showResult: false,
       lastMoveKey: '',
-      winCellSet: {}
+      winCellSet: {},
+      ghostTip: '',
+      hintLeft: HINTS_PER_GAME,
+      canReview: false,
+      reviewMode: false
     });
     this.lastWinnerNotice = null;
   },
@@ -226,17 +279,176 @@
     }
   },
 
-  initBoardMeta() {
-    const boardSize = this.data.boardSize;
-    const gridSize = boardSize - 1;
-    const lineGrid = Array.from({ length: gridSize }, (_, i) => ({ row: i, col: i }));
-    const points = [];
-    for (let r = 0; r < boardSize; r++) {
-      for (let c = 0; c < boardSize; c++) {
-        points.push({ id: `${r}-${c}`, r, c });
-      }
+  // ── 棋盘绘制 ────────────────────────────────────────────
+  // 当前对局的落子顺序(本地用自己的记录,联机以服务器为准)
+  getHistory() {
+    if (this.data.mode === 'online') {
+      const room = this.data.roomInfo;
+      return room && Array.isArray(room.moveHistory) ? room.moveHistory : [];
     }
-    this.setData({ gridSize, lineGrid, points });
+    return this.data.moveHistory || [];
+  },
+
+  renderBoard() {
+    const renderer = this._renderer;
+    if (!renderer) return;
+    const d = this.data;
+    const history = this.getHistory();
+    const size = d.boardSize;
+
+    let board = d.board;
+    let lastKey = d.lastMoveKey;
+    let winCells = Object.keys(d.winCellSet || {});
+    let moves = history;
+    if (d.reviewMode) {
+      // 复盘:按手数重建棋盘
+      moves = history.slice(0, d.reviewStep);
+      board = Array.from({ length: size }, () => Array(size).fill(''));
+      moves.forEach(m => { board[m.row][m.col] = m.player; });
+      const last = moves[moves.length - 1];
+      lastKey = last ? `${last.row}-${last.col}` : '';
+      if (d.reviewStep < d.reviewTotal) winCells = [];
+    }
+    if (!Array.isArray(board) || board.length !== size) return;
+
+    let numbers = null;
+    if (d.showNumbers || d.reviewMode) {
+      numbers = {};
+      moves.forEach((m, i) => { numbers[`${m.row}-${m.col}`] = i + 1; });
+    }
+    // 预落子点被占了(比如对手先下到那里)就作废
+    if (this._ghost && board[this._ghost.r] && board[this._ghost.r][this._ghost.c]) this._ghost = null;
+    if (this._hint && board[this._hint.r] && board[this._hint.r][this._hint.c]) this._hint = null;
+
+    renderer.setState({
+      board,
+      lastKey,
+      winCells,
+      numbers,
+      ghost: d.reviewMode ? null : this._ghost,
+      hint: d.reviewMode ? null : this._hint,
+      dim: d.mode === 'online' && d.roomInfo && d.roomInfo.status === 'waiting',
+      noAnim: d.reviewMode,
+    });
+  },
+
+  // 触点 → 交叉点
+  onBoardTouch(e) {
+    const t = e.changedTouches && e.changedTouches[0];
+    if (!t || !this._renderer) return;
+    let x = t.x;
+    let y = t.y;
+    // canvas 触摸事件一般带相对 canvas 的 x/y;没有就用 clientX 减去 canvas 位置
+    if (typeof x !== 'number' && this._boardRect) {
+      x = t.clientX - this._boardRect.left;
+      y = t.clientY - this._boardRect.top;
+    }
+    const cell = this._renderer.hitTest(x, y);
+    if (cell) this.onCellTap(cell.r, cell.c);
+  },
+
+  // ── 偏好:落子确认 / 手数 ─────────────────────────────────
+  loadPrefs() {
+    let prefs = {};
+    try { prefs = wx.getStorageSync(PREF_KEY) || {}; } catch (e) {}
+    this.setData({
+      confirmMode: prefs.confirm !== false,
+      showNumbers: !!prefs.numbers
+    });
+  },
+
+  savePrefs() {
+    try {
+      wx.setStorageSync(PREF_KEY, { confirm: this.data.confirmMode, numbers: this.data.showNumbers });
+    } catch (e) {}
+  },
+
+  onToggleConfirm() {
+    this._ghost = null;
+    this.setData({ confirmMode: !this.data.confirmMode, ghostTip: '' });
+    this.savePrefs();
+  },
+
+  onToggleNumbers() {
+    this.setData({ showNumbers: !this.data.showNumbers });
+    this.savePrefs();
+  },
+
+  // ── 提示(本地 / 人机):用困难档 AI 替当前一方想一步 ─────────
+  onHint() {
+    const d = this.data;
+    if (d.mode === 'online' || d.winner || d.reviewMode) return;
+    if (d.isAiMode && d.currentPlayer === 'white') return;
+    if (d.hintLeft <= 0) {
+      wx.showToast({ title: '本局提示已用完', icon: 'none' });
+      return;
+    }
+    const move = chooseMove(d.board, d.currentPlayer, 'hard', { budgetMs: 400 });
+    if (!move) return;
+    this._hint = { r: move.r, c: move.c };
+    this._ghost = null;
+    this.setData({ hintLeft: d.hintLeft - 1, ghostTip: `提示:${LETTERS[move.c]}${d.boardSize - move.r}` });
+  },
+
+  // ── 复盘 ────────────────────────────────────────────────
+  onReview() {
+    const total = this.getHistory().length;
+    if (!total) return;
+    this._ghost = null;
+    this._hint = null;
+    this.setData({ showResult: false, reviewMode: true, reviewTotal: total, reviewStep: total, ghostTip: '' });
+  },
+
+  onReviewStep(e) {
+    const d = this.data;
+    const act = e.currentTarget.dataset.act;
+    let step = d.reviewStep;
+    if (act === 'first') step = 0;
+    else if (act === 'prev') step = Math.max(0, step - 1);
+    else if (act === 'next') step = Math.min(d.reviewTotal, step + 1);
+    else if (act === 'last') step = d.reviewTotal;
+    if (step !== d.reviewStep) this.setData({ reviewStep: step });
+  },
+
+  onReviewExit() {
+    this.setData({ reviewMode: false, showResult: true });
+  },
+
+  // ── 人机战绩 ────────────────────────────────────────────
+  recordAiResult(isWin) {
+    const diff = this.data.aiDifficulty;
+    let rec = {};
+    try { rec = wx.getStorageSync(RECORD_KEY) || {}; } catch (e) {}
+    const r = rec[diff] || { w: 0, l: 0 };
+    if (isWin) r.w++; else r.l++;
+    rec[diff] = r;
+    try { wx.setStorageSync(RECORD_KEY, rec); } catch (e) {}
+    return `对${DIFF_LABELS[diff] || ''}电脑 ${r.w} 胜 ${r.l} 负`;
+  },
+
+  // 胜利小旋律(Web Audio 合成,不支持时静默)
+  playWinSound(isWin) {
+    try {
+      const ac = wx.createWebAudioContext ? wx.createWebAudioContext() : null;
+      if (!ac) return;
+      const now = ac.currentTime;
+      const notes = isWin ? [523, 659, 784, 1046] : [392, 330, 262];
+      notes.forEach((f, i) => {
+        const osc = ac.createOscillator();
+        const g = ac.createGain();
+        osc.connect(g);
+        g.connect(ac.destination);
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(f, now + i * 0.12);
+        g.gain.setValueAtTime(0.22, now + i * 0.12);
+        g.gain.exponentialRampToValueAtTime(0.001, now + i * 0.12 + 0.3);
+        osc.start(now + i * 0.12);
+        osc.stop(now + i * 0.12 + 0.32);
+      });
+      setTimeout(() => {
+        try { ac.close(); } catch (e) {}
+      }, 1400);
+    } catch (e) {}
   },
 
   initAudio() {
@@ -267,10 +479,12 @@
     const moveCount = this.data.mode === 'online'
       ? (this.data.roomInfo && this.data.roomInfo.moveHistory ? this.data.roomInfo.moveHistory.length : 0)
       : (this.data.moveHistory || []).length;
-    const sub = moveCount ? `共落子 ${moveCount} 步` : '';
+    let sub = moveCount ? `共落子 ${moveCount} 步` : '';
+    this._ghost = null;
+    this._hint = null;
 
     if (winner === 'draw') {
-      this.setData({ showResult: true, resultTitle: '平局', resultSub: sub, resultIsWin: false, resultIcon: '' });
+      this.setData({ showResult: true, resultTitle: '平局', resultSub: sub, resultIsWin: false, resultIcon: '', canReview: moveCount > 0, ghostTip: '' });
       return;
     }
 
@@ -287,12 +501,19 @@
     } else if (this.data.isAiMode) {
       isWin = winner === 'black';
       title = isWin ? '你赢了！' : '电脑获胜';
+      sub = `${sub} · ${this.recordAiResult(isWin)}`;
     } else {
       isWin = true;
       title = `${winner === 'black' ? this.data.blackName : this.data.whiteName} 获胜`;
     }
+    this.playWinSound(isWin);
 
-    this.setData({ showResult: true, resultTitle: title, resultSub: sub, resultIsWin: isWin, resultIcon: '' });
+    // 先让连五金线亮一会儿,再弹结果
+    this.setData({ ghostTip: '', canReview: moveCount > 0 });
+    setTimeout(() => {
+      if (this.data.winner !== winner) return;   // 期间悔棋 / 重开了
+      this.setData({ showResult: true, resultTitle: title, resultSub: sub, resultIsWin: isWin, resultIcon: '' });
+    }, 900);
   },
 
   findWinCells(board, winner) {
@@ -323,7 +544,7 @@
   },
 
   onResultRestart() {
-    this.setData({ showResult: false });
+    this.setData({ showResult: false, reviewMode: false });
     if (this.data.mode === 'online') {
       this.restartOnlineGame();
       return;
@@ -474,7 +695,9 @@
       myUndoCount: 0,
       undoLeft: this.data.undoLimit,
       isUndoWaiting: false,
-      isRestartWaiting: false
+      isRestartWaiting: false,
+      canReview: false,
+      reviewMode: false
     });
     this.startRoomWatch();
     this.startRoomPolling();
@@ -875,6 +1098,8 @@
       this.lastWinnerNotice = null;
       this.pendingMove = null;
       updates.showResult = false;
+      updates.reviewMode = false;
+      updates.canReview = false;
       updates.winCellSet = {};
       updates.canUndo = false;
       updates.myUndoCount = 0;
@@ -926,8 +1151,8 @@
     }
   },
 
-  async onCellTap(e) {
-    if (this.data.winner) return;
+  async onCellTap(row, col) {
+    if (this.data.winner || this.data.reviewMode || this.data.isFlipping) return;
 
     if (this.data.mode === 'online') {
       if (!this.data.canPlay) {
@@ -939,10 +1164,23 @@
     // Block tap during AI's turn
     if (this.data.isAiMode && this.data.currentPlayer === 'white') return;
 
-    const { row, col } = e.currentTarget.dataset;
     const board = this.data.board;
 
-    if (board[row][col] !== '') return;
+    if (!board[row] || board[row][col] !== '') return;
+
+    // 落子确认:第一下只放虚影,再点同一个点才真正落子(防手滑)
+    if (this.data.confirmMode) {
+      const g = this._ghost;
+      if (!g || g.r !== row || g.c !== col) {
+        this._ghost = { r: row, c: col, color: this.data.currentPlayer };
+        try { wx.vibrateShort({ type: 'light' }); } catch (e) {}
+        this.setData({ ghostTip: `${LETTERS[col]}${this.data.boardSize - row} · 再点一次落子` });
+        return;
+      }
+    }
+    this._ghost = null;
+    this._hint = null;
+    if (this.data.ghostTip) this.setData({ ghostTip: '' });
 
     if (this.data.mode === 'online') {
       await this.makeOnlineMove(row, col);
@@ -984,10 +1222,9 @@
       return;
     }
 
-    // Trigger AI move after player (black) places
+    // 玩家(黑)落子后轮到电脑
     if (this.data.isAiMode && player === 'black') {
-      const thinkRange = { easy: [400, 900], medium: [800, 1800], hard: [1200, 2800] };
-      const [min, max] = thinkRange[this.data.aiDifficulty] || [800, 1800];
+      const [min, max] = THINK_MS[this.data.aiDifficulty] || THINK_MS.medium;
       const delay = min + Math.random() * (max - min);
       setTimeout(() => {
         if (!this.data.winner && this.data.currentPlayer === 'white') this.makeAiMove();
@@ -996,71 +1233,10 @@
   },
 
   makeAiMove() {
-    const board = this.data.board.map(r => [...r]);
-    const { boardSize, aiDifficulty, winner } = this.data;
+    const { board, aiDifficulty, winner } = this.data;
     if (winner) return;
-
-    const empties = [];
-    for (let r = 0; r < boardSize; r++)
-      for (let c = 0; c < boardSize; c++)
-        if (board[r][c] === '') empties.push({ r, c });
-    if (!empties.length) return;
-
-    if (aiDifficulty === 'easy') {
-      const pick = empties[Math.floor(Math.random() * empties.length)];
-      this.makeLocalMove(pick.r, pick.c);
-      return;
-    }
-
-    // Medium/Hard: heuristic scoring
-    let best = null;
-    let bestScore = -1;
-    const center = (boardSize - 1) / 2;
-
-    for (const { r, c } of empties) {
-      const aiScore = this.scoreCell(board, r, c, 'white', boardSize);
-      if (aiScore >= 100000) { best = { r, c }; break; }
-
-      const blockScore = this.scoreCell(board, r, c, 'black', boardSize);
-      let total = aiScore + blockScore * (aiDifficulty === 'hard' ? 1.3 : 1.1);
-
-      if (aiDifficulty === 'hard') {
-        total += (boardSize - Math.abs(r - center) - Math.abs(c - center)) * 0.2;
-      }
-
-      if (total > bestScore) { bestScore = total; best = { r, c }; }
-    }
-
-    if (best) this.makeLocalMove(best.r, best.c);
-  },
-
-  scoreCell(board, row, col, color, boardSize) {
-    board[row][col] = color;
-    let score = 0;
-    const dirs = [[0, 1], [1, 0], [1, 1], [1, -1]];
-    for (const [dr, dc] of dirs) {
-      let cnt = 1;
-      let open = 0;
-      for (let s = 1; s <= 4; s++) {
-        const r = row + dr * s, c = col + dc * s;
-        if (r < 0 || r >= boardSize || c < 0 || c >= boardSize) break;
-        if (board[r][c] === color) cnt++;
-        else { if (board[r][c] === '') open++; break; }
-      }
-      for (let s = 1; s <= 4; s++) {
-        const r = row - dr * s, c = col - dc * s;
-        if (r < 0 || r >= boardSize || c < 0 || c >= boardSize) break;
-        if (board[r][c] === color) cnt++;
-        else { if (board[r][c] === '') open++; break; }
-      }
-      if (cnt >= 5) { score += 100000; break; }
-      else if (cnt === 4) score += open >= 1 ? 10000 : 500;
-      else if (cnt === 3) score += open === 2 ? 1000 : (open === 1 ? 200 : 0);
-      else if (cnt === 2) score += open === 2 ? 100 : (open === 1 ? 20 : 0);
-      else if (cnt === 1) score += open >= 1 ? 5 : 0;
-    }
-    board[row][col] = '';
-    return score;
+    const move = chooseMove(board, 'white', aiDifficulty, { budgetMs: 800 });
+    if (move) this.makeLocalMove(move.r, move.c);
   },
 
   async makeOnlineMove(row, col) {
@@ -1415,7 +1591,11 @@
       ? !!(lastInHistory && lastInHistory.player === 'black')
       : moveHistory.length > 0;
     const prevMove = moveHistory[moveHistory.length - 1];
+    this._ghost = null;
+    this._hint = null;
     this.setData({
+      ghostTip: '',
+      canReview: false,
       board,
       currentPlayer: this.data.isAiMode ? 'black' : lastMove.player,
       winner: null,
@@ -1444,10 +1624,6 @@
       // 兜底刷新失败不提示，避免阻断操作
       console.error('刷新房间信息失败', e);
     }
-  },
-
-  onBoardTap() {
-    // 阻止事件冒泡
   },
 
   onLeaveRoom() {
