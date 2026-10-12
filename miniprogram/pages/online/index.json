@@ -3,5 +3,8 @@
   "navigationBarBackgroundColor": "#1A1A2E",
   "navigationBarTextStyle": "white",
   "backgroundColor": "#1A1A2E",
-  "enableShareAppMessage": true
+  "enableShareAppMessage": true,
+  "usingComponents": {
+    "privacy-popup": "/components/privacy-popup/index"
+  }
 }

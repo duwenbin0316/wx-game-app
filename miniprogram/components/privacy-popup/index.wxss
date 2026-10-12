@@ -1,0 +1,84 @@
+.pp-mask {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(8, 8, 24, 0.66);
+  display: flex;
+  align-items: flex-end;
+  z-index: 1000;
+}
+
+.pp-sheet {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 44rpx 40rpx calc(40rpx + env(safe-area-inset-bottom));
+  background: #1E1E38;
+  border-top: 4rpx solid #D97757;
+  animation: pp-up 0.22s ease-out;
+}
+
+@keyframes pp-up {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+
+.pp-title {
+  font-size: 34rpx;
+  font-weight: 700;
+  color: #FFFFFF;
+  margin-bottom: 24rpx;
+}
+
+.pp-body {
+  font-size: 27rpx;
+  line-height: 1.7;
+  color: #C0C0E8;
+}
+
+.pp-link {
+  color: #6FC8FF;
+  text-decoration: underline;
+}
+
+.pp-reason {
+  display: block;
+  margin-top: 16rpx;
+  font-size: 22rpx;
+  color: #F5C842;
+  font-family: monospace;
+}
+
+.pp-note {
+  display: block;
+  margin-top: 16rpx;
+  font-size: 22rpx;
+  color: #6A6A9A;
+}
+
+.pp-actions {
+  display: flex;
+  gap: 20rpx;
+  margin-top: 36rpx;
+}
+
+.pp-btn {
+  flex: 1;
+  margin: 0;
+  height: 88rpx;
+  line-height: 88rpx;
+  border-radius: 0;
+  font-size: 30rpx;
+  font-weight: 700;
+}
+
+.pp-btn::after { border: none; }
+
+.pp-disagree {
+  background: #16162A;
+  color: #8A8ABA;
+  border: 2rpx solid #2E3A5C;
+}
+
+.pp-agree {
+  background: #D97757;
+  color: #1A1A2E;
+}

@@ -87,4 +87,6 @@
       </view>
     </view>
   </view>
+  <!-- 隐私授权弹窗:本页会调用 getUserProfile -->
+  <privacy-popup></privacy-popup>
 </view>
