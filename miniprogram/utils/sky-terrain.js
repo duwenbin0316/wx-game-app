@@ -2,12 +2,14 @@
 // 地面按"块"生成:每块宽 360、高 CH 虚拟像素。先在半分辨率网格上算
 // 分形噪声高度场,按高度上色并做山体光照(左上方来光),再放大画到整块
 // 画布上,叠加树木 / 岩石 / 道路 / 建筑等矢量装饰,最后转成图片。
-// 生成是分帧进行的(每帧只算几十行),不会卡顿。
+// 生成按时间预算分帧进行(每帧只花几毫秒),慢设备上也不会卡顿。
+// 性能要点:噪声只在半分辨率网格上算;坡度、波纹 / 沙丘纹理也在网格上
+// 预先算好;全分辨率像素只做双线性插值 + 查颜色表,不分配对象。
 // 世界坐标 wy 随卷动增大;块 k 覆盖 [k*CH, (k+1)*CH)。
 
 const CH = 240;
 const R = 0.5;          // 高度场分辨率(相对虚拟像素)
-const ROWS_PER_STEP = 20;     // 每帧推进的行数(高度场按网格行,上色按 2 倍)
+const LUT_N = 1024;      // 颜色查找表精度
 const AHEAD = 3;        // 提前生成几块
 
 function hash2(ix, iy, seed) {
@@ -16,17 +18,39 @@ function hash2(ix, iy, seed) {
   return ((h ^ (h >>> 16)) >>> 0) / 4294967296;
 }
 
+// 值噪声:用打乱的排列表查格点随机值(查表比乘法哈希快得多,iOS 无 JIT 时尤其明显)
+const PERM = new Uint8Array(512);
+const VAL = new Float32Array(256);
+(function initPerm() {
+  let s = 1234567;
+  const rnd = () => {
+    s = (Math.imul(s, 1103515245) + 12345) & 0x7fffffff;
+    return s / 0x7fffffff;
+  };
+  const p = [];
+  for (let i = 0; i < 256; i++) { p.push(i); VAL[i] = rnd(); }
+  for (let i = 255; i > 0; i--) {
+    const j = Math.floor(rnd() * (i + 1));
+    const t = p[i]; p[i] = p[j]; p[j] = t;
+  }
+  for (let i = 0; i < 512; i++) PERM[i] = p[i & 255];
+})();
+
 function noise(x, y, seed) {
-  const ix = Math.floor(x);
-  const iy = Math.floor(y);
-  const fx = x - ix;
-  const fy = y - iy;
+  const fxi = Math.floor(x);
+  const fyi = Math.floor(y);
+  const fx = x - fxi;
+  const fy = y - fyi;
+  const ix = (fxi + seed * 31) & 255;
+  const iy = (fyi + seed * 17) & 255;
   const sx = fx * fx * (3 - 2 * fx);
   const sy = fy * fy * (3 - 2 * fy);
-  const a = hash2(ix, iy, seed);
-  const b = hash2(ix + 1, iy, seed);
-  const c = hash2(ix, iy + 1, seed);
-  const d = hash2(ix + 1, iy + 1, seed);
+  const r0 = PERM[ix];
+  const r1 = PERM[ix + 1];
+  const a = VAL[PERM[r0 + iy]];
+  const b = VAL[PERM[r1 + iy]];
+  const c = VAL[PERM[r0 + iy + 1]];
+  const d = VAL[PERM[r1 + iy + 1]];
   return a + (b - a) * sx + (c - a) * sy + (a - b - c + d) * sx * sy;
 }
 
@@ -34,12 +58,12 @@ function fbm(x, y, seed) {
   let v = 0;
   let amp = 0.5;
   let f = 1;
-  for (let o = 0; o < 5; o++) {
+  for (let o = 0; o < 4; o++) {
     v += noise(x * f, y * f, seed + o * 17) * amp;
     f *= 2.03;
     amp *= 0.5;
   }
-  return v / 0.96875;
+  return v / 0.9375;
 }
 
 function hex(c) {
@@ -126,6 +150,21 @@ const BIOMES = {
   },
 };
 
+// 按高度预先算好颜色表:r/g/b、是否打光、光照强度
+function buildLut(B) {
+  const lut = { r: new Float32Array(LUT_N), g: new Float32Array(LUT_N), b: new Float32Array(LUT_N), lit: new Uint8Array(LUT_N), k: new Float32Array(LUT_N) };
+  const o = { c: null, lit: false, k: 1, m: 1 };
+  for (let i = 0; i < LUT_N; i++) {
+    B.color(i / (LUT_N - 1), 0, 0, 0, o);
+    lut.r[i] = o.c[0];
+    lut.g[i] = o.c[1];
+    lut.b[i] = o.c[2];
+    lut.lit[i] = o.lit ? 1 : 0;
+    lut.k[i] = o.k || 1;
+  }
+  return lut;
+}
+
 class Terrain {
   // createCanvas(w, h) → 离屏 canvas;toImage(canvas, cb(img|null)) 把画布转成可绘制图片
   constructor(biome, seed, vw, createCanvas, toImage) {
@@ -137,6 +176,9 @@ class Terrain {
     this.toImage = toImage;
     this.chunks = {};
     this.queue = [];
+    this.lut = buildLut(this.B);
+    this.desert = this.biome === 'desert';
+    this.ripAmp = this.biome === 'islands' ? 0.12 : 0.1;
     this.gw = Math.ceil(vw * R);
     this.gh = Math.ceil(CH * R);
   }
@@ -154,8 +196,8 @@ class Terrain {
     return this.B.land > 0 && this.height(x, wy) < this.B.land - 0.04;
   }
 
-  // 每帧调用:排队需要的块,推进一点生成工作,丢掉已经离开屏幕的块
-  update(scroll, vh) {
+  // 每帧调用:排队需要的块,在时间预算内推进生成,丢掉已经离开屏幕的块
+  update(scroll, vh, budgetMs) {
     const first = Math.floor(scroll / CH);
     const last = Math.floor((scroll + vh) / CH) + AHEAD;
     for (let k = first; k <= last; k++) {
@@ -172,18 +214,35 @@ class Terrain {
         if (i >= 0) this.queue.splice(i, 1);
       }
     });
-    this._step();
+    const t0 = Date.now();
+    const budget = budgetMs === undefined ? 4 : budgetMs;
+    do {
+      if (!this.queue.length) break;
+      this._step();
+    } while (Date.now() - t0 < budget);
   }
 
-  // 一次性把前几块生成好(开局加载用)
+  // 当前屏幕上的块是否都已生成(并且转成了图片)
+  ready(scroll, vh, needImg) {
+    const first = Math.floor(scroll / CH);
+    const last = Math.floor((scroll + vh) / CH);
+    for (let k = first; k <= last; k++) {
+      const ch = this.chunks[k];
+      if (!ch || !ch.ready || (needImg && !ch.img)) return false;
+    }
+    return true;
+  }
+
+  // 同步生成到可见块就绪为止(测试 / 预热用)
   warm(scroll, vh) {
-    this.update(scroll, vh);
+    this.update(scroll, vh, 0);
     let guard = 0;
-    while (this.queue.length && guard++ < 400) this._step();
+    while (this.queue.length && guard++ < 20000) this._step();
   }
 
-  // 分两段推进:先在半分辨率网格上算噪声高度场(最贵),再按全分辨率
-  // 双线性插值高度来上色和打光,海岸线平滑、块与块之间无缝
+  // 推进一小步:一行网格,或者 6 行像素。两段:
+  //   1. 半分辨率网格:高度(5 层噪声)、坡度、纹理(水面波纹 / 沙丘)
+  //   2. 全分辨率像素:三张网格双线性插值 → 查颜色表 → 光照
   _step() {
     const k = this.queue[0];
     if (k === undefined) return;
@@ -193,23 +252,39 @@ class Terrain {
     const W2 = this.gw + 4;
     const H2 = this.gh + 4;
     const top = (k + 1) * CH;
+    const sd = this.seed;
     if (!ch.h) {
       ch.h = new Float32Array(W2 * H2);
-      ch.rip = new Float32Array(W2 * H2);
+      ch.tone = new Float32Array(W2 * H2);
+      ch.slope = new Float32Array(W2 * H2);
       ch.hrow = 0;
+      ch.srow = 1;
       ch.row = 0;
     }
-    const sd = this.seed;
-    while (ch.hrow < H2) {
+    if (ch.hrow < H2) {
       const j = ch.hrow;
       const wy = top - (j - 1.5) / R;
+      const base = j * W2;
       for (let i = 0; i < W2; i++) {
         const x = (i - 1.5) / R;
-        ch.h[j * W2 + i] = this.height(x, wy);
-        ch.rip[j * W2 + i] = noise(x * 0.09, wy * 0.035, sd + 99) - 0.5;
+        ch.h[base + i] = this.height(x, wy);
+        // 水面波纹 / 沙丘:几组正弦叠加就够了,不必再算一层噪声
+        const rip = 0.25 * (Math.sin(x * 0.11 + wy * 0.031) + Math.sin(x * 0.047 - wy * 0.083 + 1.7));
+        ch.tone[base + i] = this.desert ? 0.5 + 0.5 * Math.sin(x * 0.05 + wy * 0.018 + rip * 3 + Math.sin(wy * 0.007) * 2) : rip;
       }
       ch.hrow++;
-      if (ch.hrow % ROWS_PER_STEP === 0) return;
+      return;
+    }
+    if (ch.srow < H2 - 1) {
+      // 坡度:左上与右下两个网格点的高度差(左上来光)
+      const hs = ch.h;
+      const j = ch.srow;
+      for (let i = 1; i < W2 - 1; i++) {
+        const q = j * W2 + i;
+        ch.slope[q] = hs[q - W2 - 1] - hs[q + W2 + 1];
+      }
+      ch.srow++;
+      return;
     }
     if (!ch.canvas) {
       ch.canvas = this.createCanvas(this.vw, CH);
@@ -218,50 +293,68 @@ class Terrain {
     }
     const d = ch.data.data;
     const hs = ch.h;
-    const rs = ch.rip;
-    const o = this._o || (this._o = { c: null, lit: false, k: 1, m: 1 });
-    const end = Math.min(CH, ch.row + ROWS_PER_STEP * 2);
+    const ts = ch.tone;
+    const ss = ch.slope;
+    const L = this.lut;
     const vw = this.vw;
-    const bil = (gx, gy) => {
-      const i = Math.floor(gx);
-      const j = Math.floor(gy);
-      const fx = gx - i;
-      const fy = gy - j;
-      const q = j * W2 + i;
-      return (hs[q] * (1 - fx) + hs[q + 1] * fx) * (1 - fy) + (hs[q + W2] * (1 - fx) + hs[q + W2 + 1] * fx) * fy;
-    };
-    // 网格坐标:像素 (x, y) → 网格 (x*R + 1.5, y*R + 1.5)
+    const desert = this.desert;
+    const ripAmp = this.ripAmp;
+    const end = Math.min(CH, ch.row + 6);
+    // 每行先把各网格列的纵向插值算好,像素上只剩一次横向插值
+    if (!this._hv) {
+      this._hv = new Float32Array(W2);
+      this._sv = new Float32Array(W2);
+      this._tv = new Float32Array(W2);
+    }
+    const hv = this._hv;
+    const sv = this._sv;
+    const tv = this._tv;
     for (let y = ch.row; y < end; y++) {
+      // 网格坐标:像素 (x, y) → 网格 (x*R + 1.5, y*R + 1.5)
       const gy = (y + 0.5) * R + 1.5;
-      const j0 = Math.floor(gy);
+      const j0 = gy | 0;
       const fy = gy - j0;
-      const wy = top - (y + 0.5);
+      const fy1 = 1 - fy;
+      const ra = j0 * W2;
+      const rb = ra + W2;
+      for (let i = 0; i < W2; i++) {
+        hv[i] = hs[ra + i] * fy1 + hs[rb + i] * fy;
+        sv[i] = ss[ra + i] * fy1 + ss[rb + i] * fy;
+        tv[i] = ts[ra + i] * fy1 + ts[rb + i] * fy;
+      }
+      let p = y * vw * 4;
       for (let x = 0; x < vw; x++) {
         const gx = (x + 0.5) * R + 1.5;
-        const i0 = Math.floor(gx);
+        const i0 = gx | 0;
         const fx = gx - i0;
-        const a = j0 * W2 + i0;
-        const h00 = hs[a];
-        const h10 = hs[a + 1];
-        const h01 = hs[a + W2];
-        const h11 = hs[a + W2 + 1];
-        const h = (h00 * (1 - fx) + h10 * fx) * (1 - fy) + (h01 * (1 - fx) + h11 * fx) * fy;
-        const rip = (rs[a] * (1 - fx) + rs[a + 1] * fx) * (1 - fy) + (rs[a + W2] * (1 - fx) + rs[a + W2 + 1] * fx) * fy;
-        o.m = 1;
-        this.B.color(h, x, wy, rip, o);
-        let m = o.m;
-        if (o.lit) {
-          // 左上来光:左上方 1.5 像素与右下方 1.5 像素的高度差就是坡向
-          const slope = bil(gx - 0.75, gy - 0.75) - bil(gx + 0.75, gy + 0.75);
-          m = 1 - slope * 12 * o.k;
+        const h = hv[i0] + (hv[i0 + 1] - hv[i0]) * fx;
+        let li = (h * (LUT_N - 1)) | 0;
+        li = li < 0 ? 0 : li >= LUT_N ? LUT_N - 1 : li;
+        let r = L.r[li];
+        let g = L.g[li];
+        let bl = L.b[li];
+        let m;
+        if (L.lit[li]) {
+          const sl = sv[i0] + (sv[i0 + 1] - sv[i0]) * fx;
+          m = 1 - sl * 9 * L.k[li];
           m = m < 0.62 ? 0.62 : m > 1.32 ? 1.32 : m;
+          // 沙漠沙丘:沙地色带里按沙丘纹理在两种沙色之间渐变
+          if (desert && h >= 0.36 && h <= 0.6) {
+            let t = (tv[i0] + (tv[i0 + 1] - tv[i0]) * fx) * 0.8 + (h - 0.36) * 0.6;
+            t = t < 0 ? 0 : t > 1 ? 1 : t;
+            r = C.dsand1[0] + (C.dsand2[0] - C.dsand1[0]) * t;
+            g = C.dsand1[1] + (C.dsand2[1] - C.dsand1[1]) * t;
+            bl = C.dsand1[2] + (C.dsand2[2] - C.dsand1[2]) * t;
+          }
+        } else {
+          m = 1 + (tv[i0] + (tv[i0 + 1] - tv[i0]) * fx) * ripAmp;
         }
-        const c = o.c;
-        const p = (y * vw + x) * 4;
-        d[p] = c[0] * m > 255 ? 255 : c[0] * m;
-        d[p + 1] = c[1] * m > 255 ? 255 : c[1] * m;
-        d[p + 2] = c[2] * m > 255 ? 255 : c[2] * m;
+        r *= m; g *= m; bl *= m;
+        d[p] = r > 255 ? 255 : r;
+        d[p + 1] = g > 255 ? 255 : g;
+        d[p + 2] = bl > 255 ? 255 : bl;
         d[p + 3] = 255;
+        p += 4;
       }
     }
     ch.row = end;
@@ -275,7 +368,8 @@ class Terrain {
     this._decorate(ch.g, ch.k);
     ch.data = null;
     ch.h = null;
-    ch.rip = null;
+    ch.tone = null;
+    ch.slope = null;
     ch.g = null;
     ch.ready = true;
     this.toImage(ch.canvas, img => {

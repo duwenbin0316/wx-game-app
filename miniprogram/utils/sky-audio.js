@@ -53,6 +53,15 @@ class SkyAudio {
     this.timer = null;
   }
 
+  // iOS 等平台上音频上下文可能处于挂起状态,要在用户点击时恢复
+  unlock() {
+    const c = this.ctx;
+    if (!c) return;
+    try {
+      if (c.state === 'suspended' && c.resume) c.resume();
+    } catch (e) {}
+  }
+
   setMuted(m) {
     this.muted = m;
     if (this.master) {

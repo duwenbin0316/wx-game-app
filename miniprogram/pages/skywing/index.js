@@ -40,6 +40,8 @@ Page({
 
   // ── 生命周期 ──────────────────────────────────────────
   onLoad() {
+    // iPhone 静音开关打开时默认会静音,射击游戏的音效让它照常播放
+    try { wx.setInnerAudioOption({ obeyMuteSwitch: false, mixWithOther: true }); } catch (e) {}
     this._save = this.loadSave();
     this._audio = new SkyAudio();
     this._audio.setMuted(!!this._save.muted);
@@ -173,6 +175,7 @@ Page({
   },
 
   onSelectStage(e) {
+    this._audio.unlock();
     const id = +e.currentTarget.dataset.id;
     if (id > this._save.unlocked) {
       wx.showToast({ title: '通关上一关后解锁', icon: 'none' });
@@ -184,6 +187,7 @@ Page({
   },
 
   onBuy(e) {
+    this._audio.unlock();
     const id = e.currentTarget.dataset.id;
     const u = D.UPGRADES.find(x => x.id === id);
     const s = this._save;
@@ -213,9 +217,9 @@ Page({
   // 机库背景:选中关卡的地形缓缓卷动,战机悬停
   buildAttract(stageId) {
     const st = D.STAGES[stageId - 1];
+    // 地形分帧生成,不在这里同步算(慢设备上会卡住界面好几秒)
     const t = new Terrain(st.biome, st.seed, VW, (w, h) => this.createCanvas(w, h), (c, cb) => this.toImage(c, cb));
-    t.warm(0, this._VH);
-    this._attract = { terrain: t, scroll: 0, t: 0, clouds: [], flash: 0 };
+    this._attract = { terrain: t, stageId, scroll: 0, t: 0, clouds: [], flash: 0 };
     for (let i = 0; i < 3; i++) this.spawnCloud(this._attract.clouds, rnd(0, this._VH));
   },
 
@@ -223,14 +227,25 @@ Page({
   onStart() {
     const st = D.STAGES[this.data.sel - 1];
     if (!st) return;
-    this.startStage(st);
+    this._audio.unlock();
+    try {
+      // 机库背景就是这一关的地形:直接接着用,出击无需等待
+      const a = this._attract;
+      const reuse = a && a.stageId === st.id ? { terrain: a.terrain, scroll: a.scroll } : null;
+      this.startStage(st, reuse);
+    } catch (e) {
+      console.error('skywing start failed', e);
+      wx.showToast({ title: `启动失败:${(e && e.message) || e}`, icon: 'none', duration: 3000 });
+    }
   },
 
-  startStage(st) {
+  // reuse: { terrain, scroll } 复用已经生成好的地形
+  startStage(st, reuse) {
     const up = this._save.up;
     const VH = this._VH;
-    const terrain = new Terrain(st.biome, st.seed, VW, (w, h) => this.createCanvas(w, h), (c, cb) => this.toImage(c, cb));
-    terrain.warm(0, VH);
+    const terrain = reuse ? reuse.terrain : new Terrain(st.biome, st.seed, VW, (w, h) => this.createCanvas(w, h), (c, cb) => this.toImage(c, cb));
+    const scroll0 = reuse ? reuse.scroll : 0;
+    this._attract = null;
     const maxHp = 100 + up.armor * 30;
     this._g = {
       stage: st,
@@ -238,7 +253,10 @@ Page({
       script: D.buildScript(st),
       ev: 0,
       terrain,
-      scroll: 0,
+      scroll: scroll0,      // 地形卷动位置(地面单位用它定位)
+      dist: 0,              // 本关飞行距离(出怪脚本 / 进度条用它)
+      loading: !terrain.ready(scroll0, VH, true),
+      loadT: 0,
       speed: st.speed,
       t: 0,
       player: { x: VW / 2, y: VH + 60, tx: VW / 2, ty: VH * 0.78, hp: maxHp, maxHp, inv: 0, bank: 0, fireT: 0, misT: 0.5, alive: true, dieT: 0, vx: 0 },
@@ -253,7 +271,7 @@ Page({
     };
     for (let i = 0; i < 3; i++) this.spawnCloud(this._g.clouds, rnd(0, VH));
     this.setData({ screen: 'play', bombs: this._g.bombs, result: null });
-    this._audio.playMusic('battle');
+    if (!this._g.loading) this._audio.playMusic('battle');
   },
 
   onPause() {
@@ -265,6 +283,7 @@ Page({
 
   onResume() {
     if (this.data.screen !== 'pause') return;
+    this._audio.unlock();
     this._lastTs = 0;
     this.setData({ screen: 'play' });
     this._audio.playMusic(this._g && this._g.boss ? 'boss' : 'battle');
@@ -280,11 +299,13 @@ Page({
   },
 
   onRetry() {
+    this._audio.unlock();
     const st = this._g ? this._g.stage : D.STAGES[this.data.sel - 1];
     this.startStage(st);
   },
 
   onNext() {
+    this._audio.unlock();
     const next = Math.min(3, (this._g ? this._g.stage.id : this.data.sel) + 1);
     this.setData({ sel: next });
     this.startStage(D.STAGES[next - 1]);
@@ -297,6 +318,7 @@ Page({
   // ── 输入:相对拖动(手指在哪都行,战机跟着手指的位移走)──
   onTouchStart(e) {
     if (this.data.screen !== 'play' || !this._g) return;
+    this._audio.unlock();
     const t = e.touches[0];
     const p = this._g.player;
     this._drag = { fx: t.clientX, fy: t.clientY, px: p.tx, py: p.ty };
@@ -399,7 +421,7 @@ Page({
     if (!a) return;
     a.t += dt;
     a.scroll += 30 * dt;
-    a.terrain.update(a.scroll, this._VH);
+    a.terrain.update(a.scroll, this._VH, a.terrain.ready(a.scroll, this._VH) ? 4 : 14);
     this.updateClouds(a.clouds, dt, 30);
     if (a.flash > 0) a.flash = Math.max(0, a.flash - dt * 2);
   },
@@ -407,6 +429,16 @@ Page({
   updateGame(dt) {
     const g = this._g;
     const VH = this._VH;
+    // 加载阶段:地形在后台加大预算生成,可见区域就绪后再开打
+    if (g.loading) {
+      g.loadT += dt;
+      g.terrain.update(g.scroll, VH, 22);
+      if (g.terrain.ready(g.scroll, VH, true) || (g.loadT > 6 && g.terrain.ready(g.scroll, VH, false))) {
+        g.loading = false;
+        this._audio.playMusic('battle');
+      }
+      return;
+    }
     g.t += dt;
     if (g.intro > 0) g.intro -= dt;
     if (g.bombCd > 0) g.bombCd -= dt;
@@ -417,10 +449,12 @@ Page({
     const target = g.boss ? g.stage.speed * 0.3 : g.stage.speed;
     g.speed += (target - g.speed) * Math.min(1, dt * 1.5);
     g.scroll += g.speed * dt;
-    g.terrain.update(g.scroll, VH);
+    g.dist += g.speed * dt;
+    // 屏幕上有块还没生成好时临时加大预算
+    g.terrain.update(g.scroll, VH, g.terrain.ready(g.scroll, VH) ? 3 : 12);
 
     // 出怪脚本
-    while (g.ev < g.script.length && g.script[g.ev].at <= g.scroll) {
+    while (g.ev < g.script.length && g.script[g.ev].at <= g.dist) {
       this.runEvent(g.script[g.ev]);
       g.ev++;
     }
@@ -1495,6 +1529,14 @@ Page({
     const ctx = this._ctx;
     const VH = this._VH;
     const p = g.player;
+    if (g.loading) {
+      ctx.fillStyle = 'rgba(6,10,24,0.55)';
+      ctx.fillRect(0, 0, VW, VH);
+      const dots = '...'.slice(0, 1 + (Math.floor(g.loadT * 3) % 3));
+      this.text(`准备出击${dots}`, VW / 2, VH * 0.45, 'bold 22px sans-serif', '#CDE8FF', 'center');
+      this.text(g.stage.name, VW / 2, VH * 0.45 + 28, '13px sans-serif', '#6FC8FF', 'center');
+      return;
+    }
     // 分数
     this.text(String(g.stats.score), 14, 30, 'bold 20px sans-serif', '#FFFFFF');
     // 星星
@@ -1513,7 +1555,7 @@ Page({
     ctx.fillRect(bx, by, bw * pct, 2);
     // 关卡进度(右侧细条)
     if (!g.boss) {
-      const prog = clamp(g.scroll / g.stage.length, 0, 1);
+      const prog = clamp(g.dist / g.stage.length, 0, 1);
       const h = VH * 0.36;
       const y0 = VH * 0.3;
       ctx.fillStyle = 'rgba(4,8,20,0.45)';
