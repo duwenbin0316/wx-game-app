@@ -63,6 +63,12 @@ Page({
         name: '电子宠物',
         desc: '陪 Clawd 散步、喂食，一起抓 Bug',
         url: '/pages/pet/index'
+      },
+      {
+        id: 'skywing',
+        name: '苍穹之翼',
+        desc: '竖版射击:升级战机,击落空中巨舰!',
+        url: '/pages/skywing/index'
       }
     ]
   },

@@ -1,0 +1,102 @@
+<view class="sw" bindtouchstart="onTouchStart" bindtouchmove="onTouchMove" bindtouchend="onTouchEnd" bindtouchcancel="onTouchEnd">
+  <canvas type="2d" id="sky" class="sky"></canvas>
+
+  <!-- 加载 -->
+  <view class="loading" wx:if="{{screen === 'loading'}}">
+    <text class="loading-title">SKY WING</text>
+    <text class="loading-text">{{loadingText}}</text>
+  </view>
+
+  <!-- 战斗中按钮 -->
+  <block wx:if="{{screen === 'play'}}">
+    <view class="pause-btn" catchtouchstart="onPause"><view class="pbar"></view><view class="pbar"></view></view>
+    <view class="bomb-btn {{bombs > 0 ? '' : 'bomb-off'}}" catchtouchstart="onBomb">
+      <text class="bomb-label">BOMB</text>
+      <text class="bomb-num">×{{bombs}}</text>
+    </view>
+  </block>
+
+  <!-- 机库 -->
+  <view class="hangar" wx:if="{{screen === 'hangar'}}" catchtouchstart="noop">
+    <view class="h-top">
+      <view class="h-title">
+        <text class="h-name">苍穹之翼</text>
+        <text class="h-en">SKY WING</text>
+      </view>
+      <view class="h-right">
+        <view class="bank"><text class="bank-star">★</text><text class="bank-num">{{bank}}</text></view>
+        <view class="mute" bindtap="onToggleMute">{{muted ? '静音' : '音效'}}</view>
+      </view>
+    </view>
+
+    <view class="stage-row">
+      <view wx:for="{{stages}}" wx:key="id" class="stage {{item.id === sel ? 'stage-on' : ''}} {{item.locked ? 'stage-lock' : ''}}" data-id="{{item.id}}" bindtap="onSelectStage">
+        <text class="stage-no">STAGE {{item.id}}</text>
+        <text class="stage-name">{{item.locked ? '未解锁' : item.name}}</text>
+        <view class="medals">
+          <view wx:for="{{item.medals}}" wx:for-item="m" wx:for-index="mi" wx:key="mi" class="medal {{m ? 'medal-on' : ''}}"></view>
+        </view>
+        <text class="stage-best" wx:if="{{item.best}}">最高 {{item.best}}</text>
+      </view>
+    </view>
+
+    <view class="spacer"></view>
+
+    <view class="up-panel">
+      <text class="panel-title">战机改装</text>
+      <view class="up" wx:for="{{upgrades}}" wx:key="id">
+        <view class="up-info">
+          <view class="up-head">
+            <text class="up-name">{{item.name}}</text>
+            <view class="pips"><view wx:for="{{item.pips}}" wx:for-item="pp" wx:for-index="pi" wx:key="pi" class="pip {{pp ? 'pip-on' : ''}}"></view></view>
+          </view>
+          <text class="up-desc">{{item.desc}}</text>
+        </view>
+        <view class="buy {{item.maxed ? 'buy-max' : (item.canBuy ? '' : 'buy-no')}}" data-id="{{item.id}}" bindtap="onBuy">
+          <text wx:if="{{item.maxed}}">已满级</text>
+          <text wx:else>★ {{item.cost}}</text>
+        </view>
+      </view>
+    </view>
+
+    <view class="go" bindtap="onStart">
+      <text class="go-text">出 击</text>
+      <text class="go-sub">{{stages[sel - 1].name}}</text>
+    </view>
+    <text class="tip">手指在屏幕任意位置拖动操控 · 自动射击 · 击落敌机收集星星</text>
+  </view>
+
+  <!-- 暂停 -->
+  <view class="mask" wx:if="{{screen === 'pause'}}" catchtouchstart="noop">
+    <view class="card">
+      <text class="card-title">暂停</text>
+      <view class="btn btn-main" bindtap="onResume">继续战斗</view>
+      <view class="btn" bindtap="onQuit">撤退回机库</view>
+      <text class="card-note">撤退时已拾取的星星会保留</text>
+    </view>
+  </view>
+
+  <!-- 结算 -->
+  <view class="mask" wx:if="{{screen === 'result' && result}}" catchtouchstart="noop">
+    <view class="card {{result.win ? 'card-win' : 'card-lose'}}">
+      <text class="card-title">{{result.win ? '任务完成' : '战机坠毁'}}</text>
+      <text class="card-sub">{{result.stageName}}</text>
+      <view class="r-medals" wx:if="{{result.win}}">
+        <view class="r-medal {{m.got ? 'r-medal-on' : ''}} {{m.fresh ? 'r-medal-new' : ''}}" wx:for="{{result.medals}}" wx:for-item="m" wx:key="name">
+          <view class="r-medal-icon"><text class="r-medal-star">★</text></view>
+          <text class="r-medal-name">{{m.name}}</text>
+          <text class="r-medal-bonus" wx:if="{{m.fresh}}">+{{m.bonus}}★</text>
+        </view>
+      </view>
+      <view class="r-stats">
+        <view class="r-stat"><text class="r-k">得分</text><text class="r-v">{{result.score}}{{result.newBest ? ' · 新纪录' : ''}}</text></view>
+        <view class="r-stat"><text class="r-k">击落</text><text class="r-v">{{result.killed}} / {{result.spawned}}({{result.pct}}%)</text></view>
+        <view class="r-stat"><text class="r-k">星星</text><text class="r-v r-gold">+{{result.stars + result.bonus}}</text></view>
+      </view>
+      <text class="unlock" wx:if="{{result.unlockedNext}}">新关卡已解锁!</text>
+      <view class="btn btn-main" wx:if="{{result.hasNext}}" bindtap="onNext">下一关</view>
+      <view class="btn {{result.hasNext ? '' : 'btn-main'}}" bindtap="onRetry">{{result.win ? '再来一次' : '重新出击'}}</view>
+      <view class="btn" bindtap="onBackHangar">返回机库</view>
+    </view>
+  </view>
+</view>

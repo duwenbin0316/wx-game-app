@@ -4,7 +4,7 @@ This file provides guidance for AI assistants (Claude and others) working in thi
 
 ## Project Overview
 
-A WeChat Mini Program game hub featuring ten entries — Gomoku (online + offline), Tetris, Sokoban, Runner, Snake, 2048, Racing, Adventure, Stack, and a virtual Pet — with real-time multiplayer and cloud-saved pet state powered by Tencent CloudBase (TCB). Most games share a pixel-art mascot, Clawd (`miniprogram/utils/clawd.js`). The app uses native WeChat APIs exclusively — no external UI libraries.
+A WeChat Mini Program game hub featuring eleven entries — Gomoku (online + offline), Tetris, Sokoban, Runner, Snake, 2048, Racing, Adventure, Stack, Sky Wing (vertical shmup), and a virtual Pet — with real-time multiplayer and cloud-saved pet state powered by Tencent CloudBase (TCB). Most games share a pixel-art mascot, Clawd (`miniprogram/utils/clawd.js`). The app uses native WeChat APIs exclusively — no external UI libraries.
 
 - **AppID**: `wxe5b06e8c6ba926fc`
 - **Library Version**: 2.20.1
@@ -32,13 +32,18 @@ wx-game-app/
 │   │   ├── snake/                # Snake eating bugs (~620 lines)
 │   │   ├── game2048/             # Pixel 2048 with share card (~600 lines)
 │   │   ├── stack/                # Tap-to-drop tower stacking (~480 lines)
-│   │   └── pet/                  # Virtual pet Clawd + bug-catching minigame (~770 lines)
+│   │   ├── pet/                  # Virtual pet Clawd + bug-catching minigame (~770 lines)
+│   │   └── skywing/              # "苍穹之翼" vertical shmup: 3 stages, bosses, upgrades, medals (~1570 lines)
 │   ├── utils/
 │   │   ├── clawd.js              # Shared Clawd sprite (COLORS, GRID_COLS/ROWS, buildSprite, drawClawd)
 │   │   ├── gomoku-ai.js          # Gomoku AI: 5-tuple eval, easy/medium greedy, hard alpha-beta (pure, node-testable)
 │   │   ├── gomoku-board.js       # Gomoku canvas renderer (wood board, stones, drop/win animations, hit test)
 │   │   ├── racing-art.js         # Racing pixel-art atlas (cars, scenery, glows, parallax tiles)
-│   │   └── racing-audio.js       # Racing WebAudio synth (engine w/ gears, tyre squeal, SFX)
+│   │   ├── racing-audio.js       # Racing WebAudio synth (engine w/ gears, tyre squeal, SFX)
+│   │   ├── sky-data.js           # Sky Wing data: enemies, flight paths, stage scripts, bosses, upgrades (pure, node-testable)
+│   │   ├── sky-art.js            # Sky Wing vector sprite atlas (ships, bosses, FX) + flash/shadow variants
+│   │   ├── sky-terrain.js        # Sky Wing procedural terrain chunks (fbm heightfield, hillshade, decorations)
+│   │   └── sky-audio.js          # Sky Wing WebAudio SFX + step-sequencer music (battle / boss)
 │   ├── components/
 │   │   └── cloudTipModal/        # Reusable modal for cloud setup tips
 │   ├── assets/sounds/            # Gomoku place sounds + Tetris SFX (mp3/wav)
@@ -285,6 +290,7 @@ All render on a `<canvas type="2d">` node (queried via `wx.createSelectorQuery()
 | 2048 | Swipe merge, off-screen canvas share card | `game2048_best` |
 | Stack | Tap to drop layers, PERFECT combo restores width | `stack_best` |
 | Pet | Walking Clawd, feed/play/sleep (cloud-synced), bug-catching minigame | — (cloud `pets`) |
+| Sky Wing | Vertical shmup in virtual 360-wide coords; terrain generated in 240-unit chunks a few rows per frame and converted to images; stars bought upgrades in the hangar; per-stage medals (kill 70% / 100% / no damage); boss core opens only after all parts are destroyed | `skywing_save` (stars, upgrades, unlocked, medals, best) |
 
 ### Sharing
 
