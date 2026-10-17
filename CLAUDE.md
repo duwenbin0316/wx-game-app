@@ -32,19 +32,15 @@ wx-game-app/
 │   │   ├── snake/                # Snake eating bugs (~620 lines)
 │   │   ├── game2048/             # Pixel 2048 with share card (~600 lines)
 │   │   ├── stack/                # Tap-to-drop tower stacking (~480 lines)
-│   │   ├── pet/                  # Virtual pet Clawd + bug-catching minigame (~770 lines)
-│   │   └── privacy/              # Privacy compliance demo (agreement, popup, revoke, permissions, anti-capture)
+│   │   └── pet/                  # Virtual pet Clawd + bug-catching minigame (~770 lines)
 │   ├── utils/
 │   │   ├── clawd.js              # Shared Clawd sprite (COLORS, GRID_COLS/ROWS, buildSprite, drawClawd)
 │   │   ├── gomoku-ai.js          # Gomoku AI: 5-tuple eval, easy/medium greedy, hard alpha-beta (pure, node-testable)
 │   │   ├── gomoku-board.js       # Gomoku canvas renderer (wood board, stones, drop/win animations, hit test)
 │   │   ├── racing-art.js         # Racing pixel-art atlas (cars, scenery, glows, parallax tiles)
-│   │   ├── racing-audio.js       # Racing WebAudio synth (engine w/ gears, tyre squeal, SFX)
-│   │   └── privacy.js            # Privacy: onNeedPrivacyAuthorization routing, consent record + log
+│   │   └── racing-audio.js       # Racing WebAudio synth (engine w/ gears, tyre squeal, SFX)
 │   ├── components/
-│   │   ├── cloudTipModal/        # Reusable modal for cloud setup tips
-│   │   ├── privacy-popup/        # Privacy authorization sheet (agreePrivacyAuthorization button)
-│   │   └── permission-gate/      # Permission container: explain → wx.authorize → openSetting fallback
+│   │   └── cloudTipModal/        # Reusable modal for cloud setup tips
 │   ├── assets/sounds/            # Gomoku place sounds + Tetris SFX (mp3/wav)
 │   ├── images/icons/             # UI icons and sprites
 │   └── envList.js                # Cloud environment ID list
@@ -293,16 +289,6 @@ All render on a `<canvas type="2d">` node (queried via `wx.createSelectorQuery()
 ### Sharing
 
 Most game pages implement `onShareAppMessage` (not yet Pet or Sokoban). Share text reports the current run's result only after a game has started; otherwise it uses a plain invite message.
-
----
-
-## Privacy Compliance
-
-- `utils/privacy.js` registers `wx.onNeedPrivacyAuthorization` **once, globally** (WeChat has no off API) and routes each request to the `<privacy-popup>` on the currently visible page. **Every page that calls a privacy API (e.g. `getUserProfile`, clipboard, `authorize`) must include `<privacy-popup>`**; pages without one get the call auto-declined. Currently mounted on `online`, `gomoku`, `privacy`.
-- The agree button must be `<button id="privacy-agree-btn" open-type="agreePrivacyAuthorization">` and resolve with that `buttonId`.
-- WeChat offers no API to revoke privacy authorization; "撤回" clears our local consent record (`privacy_consent`) and logs it (`privacy_log`). System scopes are revoked via `wx.openSetting`.
-- `<permission-gate scope name reason>` shows its slot only when the scope is granted; otherwise it explains the purpose before calling `wx.authorize`, and guides to settings after a denial.
-- Anti-capture APIs (`setVisualEffectOnCapture` Android-only, `onUserCaptureScreen`, `onScreenRecordingStateChanged` 3.1.4+) are feature-detected; listeners are removed in `onUnload`.
 
 ---
 

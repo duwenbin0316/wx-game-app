@@ -63,12 +63,6 @@ Page({
         name: '电子宠物',
         desc: '陪 Clawd 散步、喂食，一起抓 Bug',
         url: '/pages/pet/index'
-      },
-      {
-        id: 'privacy',
-        name: '隐私合规 Demo',
-        desc: '隐私弹窗 · 权限容器 · 防截屏录屏',
-        url: '/pages/privacy/index'
       }
     ]
   },
