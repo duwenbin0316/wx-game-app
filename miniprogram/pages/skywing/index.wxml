@@ -25,12 +25,12 @@
       </view>
       <view class="h-right">
         <view class="bank"><text class="bank-star">★</text><text class="bank-num">{{bank}}</text></view>
-        <view class="mute" bindtap="onToggleMute">{{muted ? '静音' : '音效'}}</view>
+        <view class="mute" catchtouchstart="onToggleMute">{{muted ? '静音' : '音效'}}</view>
       </view>
     </view>
 
     <view class="stage-row">
-      <view wx:for="{{stages}}" wx:key="id" class="stage {{item.id === sel ? 'stage-on' : ''}} {{item.locked ? 'stage-lock' : ''}}" data-id="{{item.id}}" bindtap="onSelectStage">
+      <view wx:for="{{stages}}" wx:key="id" class="stage {{item.id === sel ? 'stage-on' : ''}} {{item.locked ? 'stage-lock' : ''}}" data-id="{{item.id}}" catchtouchstart="onSelectStage">
         <text class="stage-no">STAGE {{item.id}}</text>
         <text class="stage-name">{{item.locked ? '未解锁' : item.name}}</text>
         <view class="medals">
@@ -52,14 +52,14 @@
           </view>
           <text class="up-desc">{{item.desc}}</text>
         </view>
-        <view class="buy {{item.maxed ? 'buy-max' : (item.canBuy ? '' : 'buy-no')}}" data-id="{{item.id}}" bindtap="onBuy">
+        <view class="buy {{item.maxed ? 'buy-max' : (item.canBuy ? '' : 'buy-no')}}" data-id="{{item.id}}" catchtouchstart="onBuy">
           <text wx:if="{{item.maxed}}">已满级</text>
           <text wx:else>★ {{item.cost}}</text>
         </view>
       </view>
     </view>
 
-    <view class="go" bindtap="onStart">
+    <view class="go" catchtouchstart="onStart">
       <text class="go-text">出 击</text>
       <text class="go-sub">{{stages[sel - 1].name}}</text>
     </view>
@@ -70,8 +70,8 @@
   <view class="mask" wx:if="{{screen === 'pause'}}" catchtouchstart="noop">
     <view class="card">
       <text class="card-title">暂停</text>
-      <view class="btn btn-main" bindtap="onResume">继续战斗</view>
-      <view class="btn" bindtap="onQuit">撤退回机库</view>
+      <view class="btn btn-main" catchtouchstart="onResume">继续战斗</view>
+      <view class="btn" catchtouchstart="onQuit">撤退回机库</view>
       <text class="card-note">撤退时已拾取的星星会保留</text>
     </view>
   </view>
@@ -94,9 +94,9 @@
         <view class="r-stat"><text class="r-k">星星</text><text class="r-v r-gold">+{{result.stars + result.bonus}}</text></view>
       </view>
       <text class="unlock" wx:if="{{result.unlockedNext}}">新关卡已解锁!</text>
-      <view class="btn btn-main" wx:if="{{result.hasNext}}" bindtap="onNext">下一关</view>
-      <view class="btn {{result.hasNext ? '' : 'btn-main'}}" bindtap="onRetry">{{result.win ? '再来一次' : '重新出击'}}</view>
-      <view class="btn" bindtap="onBackHangar">返回机库</view>
+      <view class="btn btn-main" wx:if="{{result.hasNext}}" catchtouchstart="onNext">下一关</view>
+      <view class="btn {{result.hasNext ? '' : 'btn-main'}}" catchtouchstart="onRetry">{{result.win ? '再来一次' : '重新出击'}}</view>
+      <view class="btn" catchtouchstart="onBackHangar">返回机库</view>
     </view>
   </view>
 </view>

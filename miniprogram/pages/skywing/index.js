@@ -207,6 +207,7 @@ Page({
   },
 
   onToggleMute() {
+    this._audio.unlock();
     const m = !this.data.muted;
     this._save.muted = m;
     this.writeSave();
@@ -225,9 +226,11 @@ Page({
 
   // ── 开局 ─────────────────────────────────────────────
   onStart() {
-    const st = D.STAGES[this.data.sel - 1];
-    if (!st) return;
+    if (this.data.screen !== 'hangar') return;
+    const st = D.STAGES[(this.data.sel || 1) - 1] || D.STAGES[0];
     this._audio.unlock();
+    try { wx.vibrateShort({ type: 'light' }); } catch (e) {}
+    this._audio.power();
     try {
       // 机库背景就是这一关的地形:直接接着用,出击无需等待
       const a = this._attract;
@@ -290,6 +293,7 @@ Page({
   },
 
   onQuit() {
+    if (this.data.screen !== 'pause') return;
     // 中途退出:已拾取的星星照样入账
     if (this._g) {
       this._save.stars += this._g.stats.stars;
@@ -299,12 +303,14 @@ Page({
   },
 
   onRetry() {
+    if (this.data.screen !== 'result') return;
     this._audio.unlock();
     const st = this._g ? this._g.stage : D.STAGES[this.data.sel - 1];
     this.startStage(st);
   },
 
   onNext() {
+    if (this.data.screen !== 'result') return;
     this._audio.unlock();
     const next = Math.min(3, (this._g ? this._g.stage.id : this.data.sel) + 1);
     this.setData({ sel: next });
@@ -312,6 +318,7 @@ Page({
   },
 
   onBackHangar() {
+    if (this.data.screen !== 'result') return;
     this.enterHangar();
   },
 
