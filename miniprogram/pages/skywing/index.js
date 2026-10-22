@@ -14,6 +14,7 @@ const SAVE_KEY = 'skywing_save';
 const FIRE_GAP = 0.075;          // 主炮射击间隔
 const BULLET_SPEED = 950;
 const FINGER_OFFSET = 56;      // 战机在手指上方多少虚拟像素
+const SLOW_SCALE = 0.1;         // 松手后战场时间流速
 const MAX_FLY = 1600;          // 按下后飞向手指的最大速度(虚拟像素/秒)
 const PLAYER_R = 6;              // 玩家判定半径(比机身小,方便擦弹)
 const MAX_EB = 280;              // 敌弹上限
@@ -154,6 +155,7 @@ Page({
   enterHangar() {
     this._g = null;
     this._audio.stopMusic();
+    this._audio.setMusicLevel(1);
     this.buildAttract(this.data.sel);
     this.refreshHangar();
     this.setData({ screen: 'hangar', result: null });
@@ -251,6 +253,8 @@ Page({
     const terrain = reuse ? reuse.terrain : new Terrain(st.biome, st.seed, VW, (w, h) => this.createCanvas(w, h), (c, cb) => this.toImage(c, cb));
     const scroll0 = reuse ? reuse.scroll : 0;
     this._attract = null;
+    this._drag = null;
+    this._audio.setMusicLevel(1);
     const maxHp = 100 + up.armor * 30;
     this._g = {
       stage: st,
@@ -269,6 +273,7 @@ Page({
       boss: null,
       stats: { spawned: 0, killed: 0, damaged: false, stars: 0, score: 0, starChain: 0 },
       shake: 0, flash: 0, flashColor: '255,255,255',
+      ts: 1, slowA: 0, rt: 0,
       intro: 3, warnT: 0, overT: 0, clearT: 0,
       bombs: 1 + up.bomb, bombCd: 0,
       powT: 0, lowHp: 0,
@@ -332,19 +337,32 @@ Page({
     p.ty = clamp(t.clientY / this._k - FINGER_OFFSET, 60, this._VH - 30);
   },
 
+  // 只跟踪按下的那根手指(另一根手指去按炸弹时不会抢走战机)
+  findTouch(list, id) {
+    if (!list) return null;
+    for (let i = 0; i < list.length; i++) if (list[i].identifier === id) return list[i];
+    return null;
+  },
+
   onTouchStart(e) {
     if (this.data.screen !== 'play' || !this._g) return;
     this._audio.unlock();
-    this._drag = true;
-    this.touchTarget(e.touches[0]);
+    const t = (e.changedTouches && e.changedTouches[0]) || e.touches[0];
+    if (!t) return;
+    this._drag = { id: t.identifier };
+    this.touchTarget(t);
   },
 
   onTouchMove(e) {
     if (!this._drag || !this._g) return;
-    this.touchTarget(e.touches[0]);
+    const t = this.findTouch(e.touches, this._drag.id) || (e.touches && e.touches.length === 1 ? e.touches[0] : null);
+    if (t) this.touchTarget(t);
   },
 
-  onTouchEnd() {
+  onTouchEnd(e) {
+    if (!this._drag) return;
+    const left = e && e.touches;
+    if (left && left.length && this.findTouch(left, this._drag.id)) return;   // 抬起的是别的手指
     this._drag = null;
   },
 
@@ -450,8 +468,18 @@ Page({
       }
       return;
     }
+    // 松手子弹时间:没有手指按着时整个战场缓缓减速到几乎静止,按下立刻恢复
+    const rdt = dt;
+    const p0 = g.player;
+    const slow = !this._drag && p0.alive && g.intro < 2 && !(g.boss && g.boss.state === 'dead');
+    g.ts += ((slow ? SLOW_SCALE : 1) - g.ts) * Math.min(1, rdt * (slow ? 3.5 : 14));
+    if (!slow && g.ts > 0.995) g.ts = 1;
+    g.slowA = (1 - g.ts) / (1 - SLOW_SCALE);
+    this._audio.setMusicLevel(1 - g.slowA * 0.65);
+    if (g.intro > 0) g.intro -= rdt;
+    dt = rdt * g.ts;
     g.t += dt;
-    if (g.intro > 0) g.intro -= dt;
+    g.rt += rdt;
     if (g.bombCd > 0) g.bombCd -= dt;
     if (g.powT > 0) g.powT -= dt;
     if (g.warnT > 0) g.warnT -= dt;
@@ -470,7 +498,7 @@ Page({
       g.ev++;
     }
 
-    this.updatePlayer(dt);
+    this.updatePlayer(dt, rdt);
     this.updatePlayerShots(dt);
     this.updateEnemies(dt);
     if (g.boss) this.updateBoss(dt);
@@ -497,14 +525,17 @@ Page({
   },
 
   // ── 玩家 ─────────────────────────────────────────────
-  updatePlayer(dt) {
+  // dt:战场时间(子弹时间里会变慢);rdt:真实时间(战机跟手永远不减速)
+  updatePlayer(dt, rdt) {
     const g = this._g;
     const p = g.player;
     if (!p.alive) return;
+    const mdt = rdt || dt;
     // 开场从屏幕下方飞入
     if (g.intro > 2.2) {
-      p.y += (p.ty - p.y) * Math.min(1, dt * 3);
+      p.y += (p.ty - p.y) * Math.min(1, mdt * 3);
     } else {
+      const dt = mdt;
       // 跟手:近处快速贴合,远处(刚按下)限速飞过去,不会瞬移
       const k = Math.min(1, dt * 22);
       let dx = (p.tx - p.x) * k;
@@ -516,7 +547,7 @@ Page({
       p.x += dx;
       p.y += dy;
     }
-    p.bank += (clamp(p.vx / 260, -2, 2) - p.bank) * Math.min(1, dt * 10);
+    p.bank += (clamp(p.vx / 260, -2, 2) - p.bank) * Math.min(1, mdt * 10);
     if (p.inv > 0) p.inv -= dt;
 
     if (g.intro > 2) return;
@@ -1344,8 +1375,8 @@ Page({
     this.drawClouds(g.clouds, false);
     // 6. 星星 / 补给
     g.pickups.forEach(pk => {
-      const sc = pk.kind === 'star' ? 1 + Math.sin(pk.t * 8) * 0.08 : 1.1;
-      this.spr(pk.spr, pk.x, pk.y, pk.kind === 'star' ? pk.rot : 0, sc);
+      if (pk.kind === 'star') this.drawStarPickup(pk);
+      else this.spr(pk.spr, pk.x, pk.y, 0, 1.1 + Math.sin(pk.t * 6) * 0.06);
     });
     // 7. Boss
     if (g.boss && g.boss.state !== 'dead') this.drawBoss(g.boss);
@@ -1392,6 +1423,8 @@ Page({
       ctx.fillStyle = `rgba(${g.flashColor},${g.flash * 0.45})`;
       ctx.fillRect(0, 0, VW, VH);
     }
+    // 子弹时间:压暗 + 冷色暗角
+    if (g.slowA > 0.01) this.drawSlowVeil(g);
     // 低血量红色暗角
     if (p.alive && p.hp < p.maxHp * 0.3 && q > 0) {
       const a = 0.25 + Math.sin(g.t * 6) * 0.12;
@@ -1404,9 +1437,66 @@ Page({
     this.drawHud(g);
   },
 
+  drawSlowVeil(g) {
+    const ctx = this._ctx;
+    const VH = this._VH;
+    const a = clamp(g.slowA, 0, 1);
+    ctx.fillStyle = `rgba(8,16,40,${0.28 * a})`;
+    ctx.fillRect(0, 0, VW, VH);
+    const grd = ctx.createRadialGradient(VW / 2, VH * 0.55, VH * 0.22, VW / 2, VH * 0.55, VH * 0.72);
+    grd.addColorStop(0, 'rgba(6,12,32,0)');
+    grd.addColorStop(1, `rgba(6,12,32,${0.55 * a})`);
+    ctx.fillStyle = grd;
+    ctx.fillRect(0, 0, VW, VH);
+    if (a < 0.45) return;
+    // 提示:按住继续(在战机下方,呼吸闪烁)
+    const p = g.player;
+    const k = (a - 0.45) / 0.55;
+    const pulse = 0.65 + Math.sin(g.rt * 4) * 0.35;
+    const y = clamp(p.y + 64, 120, VH - 40);
+    ctx.globalAlpha = k;
+    ctx.strokeStyle = `rgba(150,220,255,${0.5 * pulse})`;
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, 30 + (1 - pulse) * 10, 0, Math.PI * 2);
+    ctx.stroke();
+    this.text('按住屏幕继续战斗', VW / 2, y, 'bold 15px sans-serif', `rgba(220,240,255,${0.55 + pulse * 0.45})`, 'center');
+    ctx.globalAlpha = 1;
+  },
+
+  // 星星:金色光晕 + 像硬币一样翻转 + 定时闪一下十字星光
+  drawStarPickup(pk) {
+    const ctx = this._ctx;
+    const r = this._rects[pk.spr];
+    const big = pk.val > 1;
+    ctx.globalCompositeOperation = 'lighter';
+    this.glow('g_y', pk.x, pk.y, big ? 34 : 24, big ? 34 : 24, 0.32);
+    ctx.globalCompositeOperation = 'source-over';
+    const sx = Math.max(0.22, Math.abs(Math.cos(pk.t * 4.2 + pk.rot)));
+    ctx.save();
+    ctx.translate(pk.x, pk.y);
+    ctx.scale(sx, 1);
+    ctx.drawImage(this._img, r.x, r.y, r.w, r.h, -r.vw / 2, -r.vh / 2, r.vw, r.vh);
+    ctx.restore();
+    const ph = (pk.t * 0.7 + pk.rot) % 1.6;
+    if (ph < 0.28) {
+      const k = Math.sin((ph / 0.28) * Math.PI);
+      const gs = (big ? 26 : 19) * k;
+      ctx.globalCompositeOperation = 'lighter';
+      this.glow('glint', pk.x - r.vw * 0.18, pk.y - r.vh * 0.22, gs, gs, 0.95);
+      ctx.globalCompositeOperation = 'source-over';
+    }
+  },
+
   drawGroundUnit(en) {
     const def = en.def;
     const fl = en.flash > 0;
+    if (def.water && en.vx) {
+      // 船尾浪花
+      const nx = -Math.sin(en.rot);
+      const ny = Math.cos(en.rot);
+      this.spr('b_wake', en.x - nx * 16, en.y - ny * 16, en.rot + Math.PI, 1, 0.5 + Math.sin(this._g.t * 5) * 0.1);
+    }
     this.spr(fl ? `${def.sprite}_w` : def.sprite, en.x, en.y, en.rot);
     if (def.head) this.spr(fl ? `${def.head}_w` : def.head, en.x, en.y, en.head, def.water ? 0.8 : 1);
   },

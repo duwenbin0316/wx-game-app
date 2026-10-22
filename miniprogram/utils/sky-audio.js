@@ -69,6 +69,15 @@ class SkyAudio {
     }
   }
 
+  // 配乐音量系数(子弹时间里压低)
+  setMusicLevel(v) {
+    if (!this.musicBus) return;
+    const target = 0.32 * v;
+    if (this._ml !== undefined && Math.abs(target - this._ml) < 0.004) return;
+    this._ml = target;
+    try { this.musicBus.gain.value = target; } catch (e) {}
+  }
+
   _noiseBuf() {
     if (this._noise) return this._noise;
     const c = this.ctx;

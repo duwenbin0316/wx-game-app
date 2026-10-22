@@ -36,8 +36,8 @@ wx-game-app/
 │   │   ├── gomoku-board.js       # Gomoku canvas renderer (wood board, stones, drop/win animations, hit test)
 │   │   ├── tetris-wood.js        # Tetris wooden 3D art: stained-wood cube atlas, walnut tray (floor/rim layers), side panels
 │   │   ├── sky-data.js           # Sky Wing data: enemies, flight paths, stage scripts, bosses, upgrades (pure, node-testable)
-│   │   ├── sky-art.js            # Sky Wing vector sprite atlas (ships, bosses, FX) + flash/shadow variants
-│   │   ├── sky-terrain.js        # Sky Wing procedural terrain chunks (fbm heightfield, hillshade, decorations)
+│   │   ├── sky-art.js            # Sky Wing vector sprite atlas (3×, outlined ships, bosses, FX) + flash/shadow variants
+│   │   ├── sky-terrain.js        # Sky Wing procedural terrain chunks (fbm heightfield, hillshade, contours, villages/roads/stations)
 │   │   └── sky-audio.js          # Sky Wing WebAudio SFX + step-sequencer music (battle / boss)
 │   ├── components/
 │   │   └── cloudTipModal/        # Reusable modal for cloud setup tips
@@ -263,7 +263,7 @@ All render on a `<canvas type="2d">` node (queried via `wx.createSelectorQuery()
 | Sokoban | 10 verified levels, level data inline in `index.js` | `sokoban_best`, `sokoban_unlocked` |
 | Snake | Clawd eats bugs | `snake_best` |
 | 2048 | Swipe merge, off-screen canvas share card | `game2048_best` |
-| Sky Wing | Vertical shmup in virtual 360-wide coords; terrain generated in 240-unit chunks a few rows per frame and converted to images; stars bought upgrades in the hangar; per-stage medals (kill 70% / 100% / no damage); boss core opens only after all parts are destroyed | `skywing_save` (stars, upgrades, unlocked, medals, best) |
+| Sky Wing | Vertical shmup in virtual 360-wide coords; plane follows the finger, lifting it eases the battle into slow motion (`SLOW_SCALE`); terrain generated in 240-unit chunks at 2× resolution a few rows per frame (time-budgeted) and converted to images; sprite atlas drawn at 3× with dark outlines; stars bought upgrades in the hangar; per-stage medals (kill 70% / 100% / no damage); boss core opens only after all parts are destroyed | `skywing_save` (stars, upgrades, unlocked, medals, best) |
 
 ### Sharing
 
