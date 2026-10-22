@@ -237,6 +237,8 @@ page {
   flex-shrink: 0;
 }
 
+.controls-hidden { visibility: hidden; }
+
 .ctrl-cluster {
   display: flex;
   flex-direction: column;

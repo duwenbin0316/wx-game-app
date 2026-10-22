@@ -969,13 +969,48 @@ Page({
   _drawNext() {
     const ctx = this._nextCtx;
     if (!ctx) return;
-    ctx.clearRect(0, 0, this._nextW, this._nextH);
-    drawPanel(ctx, this._nextW, this._nextH);
-    const slotH = this._nextH / 3;
-    const cell = Math.max(6, Math.floor(Math.min(this._nextW / 5.4, slotH / 3.6)));
-    for (let i = 0; i < 3 && i < this._queue.length; i++) {
-      // 第一个最亮,越往后越淡
-      this._drawMini(ctx, this._queue[i], this._nextW / 2, slotH * i + slotH / 2, cell, 1 - i * 0.22);
+    const W = this._nextW;
+    const H = this._nextH;
+    ctx.clearRect(0, 0, W, H);
+    drawPanel(ctx, W, H);
+
+    // 余光里要一眼分清"下一个":第一个独占上半截的亮框、方块最大;
+    // 后两个在刻槽下面,小一号且变暗,大小和亮度差比位置更容易被余光捕捉
+    const firstH = Math.round(H * 0.46);
+    const pad = 4;
+    const r = 6;
+    const bx = pad, by = pad, bw = W - pad * 2, bh = firstH - pad * 2;
+    ctx.save();
+    ctx.beginPath();
+    ctx.moveTo(bx + r, by);
+    ctx.arcTo(bx + bw, by, bx + bw, by + bh, r);
+    ctx.arcTo(bx + bw, by + bh, bx, by + bh, r);
+    ctx.arcTo(bx, by + bh, bx, by, r);
+    ctx.arcTo(bx, by, bx + bw, by, r);
+    ctx.closePath();
+    const glow = ctx.createRadialGradient(W / 2, firstH / 2, 0, W / 2, firstH / 2, bw * 0.7);
+    glow.addColorStop(0, 'rgba(255, 214, 140, 0.30)');
+    glow.addColorStop(1, 'rgba(255, 214, 140, 0.06)');
+    ctx.fillStyle = glow;
+    ctx.fill();
+    ctx.lineWidth = 1.5;
+    ctx.strokeStyle = 'rgba(255, 214, 140, 0.75)';
+    ctx.stroke();
+    ctx.restore();
+
+    // 分隔刻槽
+    ctx.fillStyle = 'rgba(10, 4, 0, 0.6)';
+    ctx.fillRect(pad, firstH + 1, W - pad * 2, 1.5);
+    ctx.fillStyle = 'rgba(255, 220, 170, 0.12)';
+    ctx.fillRect(pad, firstH + 2.5, W - pad * 2, 1);
+
+    const big = Math.max(6, Math.floor(Math.min((bw - 6) / 4.4, (bh - 6) / 2.8)));
+    if (this._queue.length) this._drawMini(ctx, this._queue[0], W / 2, firstH / 2, big, 1);
+
+    const slotH = (H - firstH) / 2;
+    const small = Math.max(5, Math.min(Math.round(big * 0.6), Math.floor(Math.min(W / 6, slotH / 3.4))));
+    for (let i = 1; i < 3 && i < this._queue.length; i++) {
+      this._drawMini(ctx, this._queue[i], W / 2, firstH + slotH * (i - 0.5) + 2, small, i === 1 ? 0.6 : 0.4);
     }
   },
 
