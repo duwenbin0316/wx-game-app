@@ -4,7 +4,7 @@ This file provides guidance for AI assistants (Claude and others) working in thi
 
 ## Project Overview
 
-A WeChat Mini Program game hub featuring eleven entries — Gomoku (online + offline), Tetris, Sokoban, Runner, Snake, 2048, Racing, Adventure, Stack, Sky Wing (vertical shmup), and a virtual Pet — with real-time multiplayer and cloud-saved pet state powered by Tencent CloudBase (TCB). Most games share a pixel-art mascot, Clawd (`miniprogram/utils/clawd.js`). The app uses native WeChat APIs exclusively — no external UI libraries.
+A WeChat Mini Program game hub featuring seven entries — Gomoku (online + offline), Runner, Sokoban, Tetris, Sky Wing (vertical shmup), Snake, and 2048 — with real-time Gomoku multiplayer powered by Tencent CloudBase (TCB). Several games share a pixel-art mascot, Clawd (`miniprogram/utils/clawd.js`). The app uses native WeChat APIs exclusively — no external UI libraries.
 
 - **AppID**: `wxe5b06e8c6ba926fc`
 - **Library Version**: 2.20.1
@@ -26,20 +26,14 @@ wx-game-app/
 │   │   ├── gomoku/               # Five-in-a-row, online + offline, canvas board (~1730 lines)
 │   │   ├── tetris/               # SRS kicks, T-Spin/B2B/combo, chiptune BGM (~1200 lines)
 │   │   ├── runner/               # "Claude 快跑": coins combo, coffee shield (~1150 lines)
-│   │   ├── racing/               # Pseudo-3D night racing: 4 zones, drift, near-miss (~1900 lines)
-│   │   ├── adventure/            # Side-scrolling platformer, 3 levels (~1050 lines)
 │   │   ├── sokoban/              # Puzzle game, 10 levels (~720 lines)
 │   │   ├── snake/                # Snake eating bugs (~620 lines)
 │   │   ├── game2048/             # Pixel 2048 with share card (~600 lines)
-│   │   ├── stack/                # Tap-to-drop tower stacking (~480 lines)
-│   │   ├── pet/                  # Virtual pet Clawd + bug-catching minigame (~770 lines)
 │   │   └── skywing/              # "苍穹之翼" vertical shmup: 3 stages, bosses, upgrades, medals (~1570 lines)
 │   ├── utils/
 │   │   ├── clawd.js              # Shared Clawd sprite (COLORS, GRID_COLS/ROWS, buildSprite, drawClawd)
 │   │   ├── gomoku-ai.js          # Gomoku AI: 5-tuple eval, easy/medium greedy, hard alpha-beta (pure, node-testable)
 │   │   ├── gomoku-board.js       # Gomoku canvas renderer (wood board, stones, drop/win animations, hit test)
-│   │   ├── racing-art.js         # Racing pixel-art atlas (cars, scenery, glows, parallax tiles)
-│   │   ├── racing-audio.js       # Racing WebAudio synth (engine w/ gears, tyre squeal, SFX)
 │   │   ├── sky-data.js           # Sky Wing data: enemies, flight paths, stage scripts, bosses, upgrades (pure, node-testable)
 │   │   ├── sky-art.js            # Sky Wing vector sprite atlas (ships, bosses, FX) + flash/shadow variants
 │   │   ├── sky-terrain.js        # Sky Wing procedural terrain chunks (fbm heightfield, hillshade, decorations)
@@ -51,8 +45,8 @@ wx-game-app/
 │   └── envList.js                # Cloud environment ID list
 │
 ├── cloudfunctions/
-│   └── quickstartFunctions/      # Single cloud function gateway (~1250 lines)
-│       ├── index.js              # Switch-case on event.type (rooms, pets, sample CRUD)
+│   └── quickstartFunctions/      # Single cloud function gateway (~1080 lines)
+│       ├── index.js              # Switch-case on event.type (rooms, sample CRUD)
 │       └── package.json          # wx-server-sdk ~2.4.0
 │
 ├── .github/workflows/
@@ -110,10 +104,10 @@ Cloud environment ID comes from `miniprogram/envList.js` and `cloudbaserc.json` 
 | Rendering | Canvas 2D (`<canvas type="2d">` node API) for all games, including the Gomoku board |
 | Audio | WeChat `InnerAudioContext` |
 | Backend | Serverless Node.js (Tencent CloudBase) |
-| Database | Cloud Database (MongoDB-compatible): `gameRooms`, `pets` |
+| Database | Cloud Database (MongoDB-compatible): `gameRooms` |
 | Real-time | `db.watch()` with 2-second polling fallback |
 | Auth | WeChat's built-in `wxContext.OPENID` |
-| State | Page-local via `this.setData()`; best scores in local storage; Cloud DB for multiplayer and pet |
+| State | Page-local via `this.setData()`; best scores in local storage; Cloud DB for multiplayer |
 
 **No external UI libraries** — only `wx-server-sdk` in cloud functions.
 
@@ -257,24 +251,6 @@ const openid = wxContext.OPENID;  // Always use this
 }
 ```
 
-`pets` (one per user, keyed by `openid`):
-
-```javascript
-{
-  _id: string,
-  openid: string,
-  name: string,                 // default '小可爱'
-  hunger: number,               // 0-100
-  happiness: number,            // 0-100
-  health: number,               // 0-100
-  isSleeping: boolean,
-  createdAt: Date,
-  lastUpdated: Date             // used by applyTimeDecay() (capped at 48h)
-}
-```
-
-Pet stats decay over time on the server (`applyTimeDecay`); handlers: `getPet`, `feedPet`, `playWithPet`, `toggleSleepPet`, `namePet`.
-
 ### Single-Player Games
 
 All render on a `<canvas type="2d">` node (queried via `wx.createSelectorQuery().fields({ node: true, size: true })`, scaled by `pixelRatio`) and most drive the loop with `requestAnimationFrame`.
@@ -283,18 +259,14 @@ All render on a `<canvas type="2d">` node (queried via `wx.createSelectorQuery()
 |------|-------|-------------------|
 | Tetris | SRS rotations + wall kicks, T-Spin / B2B / combo, hold/next, controller-style buttons with auto-repeat, chiptune BGM + SFX | `tetris_best` |
 | Runner | Endless runner: coin combos, coffee shield, death animation | `runner_best` |
-| Racing | Pseudo-3D road; zones city → coast → tunnel → forest; drift (brake + steer) charges nitro, near-miss combos add time; sprite atlas built once on an offscreen canvas; auto quality downgrade on low FPS | `racing_best` |
-| Adventure | Side-scrolling platformer, 3 levels, stomp bugs, bump bricks | `adventure_best` |
 | Sokoban | 10 verified levels, level data inline in `index.js` | `sokoban_best`, `sokoban_unlocked` |
 | Snake | Clawd eats bugs | `snake_best` |
 | 2048 | Swipe merge, off-screen canvas share card | `game2048_best` |
-| Stack | Tap to drop layers, PERFECT combo restores width | `stack_best` |
-| Pet | Walking Clawd, feed/play/sleep (cloud-synced), bug-catching minigame | — (cloud `pets`) |
 | Sky Wing | Vertical shmup in virtual 360-wide coords; terrain generated in 240-unit chunks a few rows per frame and converted to images; stars bought upgrades in the hangar; per-stage medals (kill 70% / 100% / no damage); boss core opens only after all parts are destroyed | `skywing_save` (stars, upgrades, unlocked, medals, best) |
 
 ### Sharing
 
-Most game pages implement `onShareAppMessage` (not yet Pet or Sokoban). Share text reports the current run's result only after a game has started; otherwise it uses a plain invite message.
+Most game pages implement `onShareAppMessage` (not yet Sokoban). Share text reports the current run's result only after a game has started; otherwise it uses a plain invite message.
 
 ---
 

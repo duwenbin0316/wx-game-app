@@ -45,30 +45,6 @@ Page({
         name: '2048',
         desc: '滑动合并数字，拼出 2048！',
         url: '/pages/game2048/index'
-      },
-      {
-        id: 'racing',
-        name: 'Clawd 夜行赛车',
-        desc: '伪 3D 弯道竞速，氮气冲刺抢检查点',
-        url: '/pages/racing/index'
-      },
-      {
-        id: 'adventure',
-        name: 'Clawd 大冒险',
-        desc: '横版闯关！踩扁 Bug，顶砖块吃金币',
-        url: '/pages/adventure/index'
-      },
-      {
-        id: 'stack',
-        name: '像素盖楼',
-        desc: '看准时机点一下，盖出最高像素塔！',
-        url: '/pages/stack/index'
-      },
-      {
-        id: 'pet',
-        name: '电子宠物',
-        desc: '陪 Clawd 散步、喂食，一起抓 Bug',
-        url: '/pages/pet/index'
       }
     ]
   },

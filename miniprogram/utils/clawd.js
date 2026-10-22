@@ -1,6 +1,6 @@
 // ── Clawd 吉祥物共享精灵 ─────────────────────────────────────
 // 全小程序统一的像素角色：平顶直角方身 + 两侧小手 + 四条细腿。
-// 使用方：pages/pet（宠物）、pages/home（Logo）、pages/runner（主角）、
+// 使用方：pages/home（Logo）、pages/runner（主角）、
 // pages/sokoban（主角）。改造型只改这一个文件。
 
 const COLORS = {
