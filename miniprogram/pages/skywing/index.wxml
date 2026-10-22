@@ -63,7 +63,7 @@
       <text class="go-text">出 击</text>
       <text class="go-sub">{{stages[sel - 1].name}}</text>
     </view>
-    <text class="tip">手指在屏幕任意位置拖动操控 · 自动射击 · 击落敌机收集星星</text>
+    <text class="tip">战机跟随手指移动 · 自动射击 · 击落敌机收集星星</text>
   </view>
 
   <!-- 暂停 -->

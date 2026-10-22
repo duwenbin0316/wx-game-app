@@ -13,6 +13,8 @@ const VW = D.VW;
 const SAVE_KEY = 'skywing_save';
 const FIRE_GAP = 0.075;          // 主炮射击间隔
 const BULLET_SPEED = 950;
+const FINGER_OFFSET = 56;      // 战机在手指上方多少虚拟像素
+const MAX_FLY = 1600;          // 按下后飞向手指的最大速度(虚拟像素/秒)
 const PLAYER_R = 6;              // 玩家判定半径(比机身小,方便擦弹)
 const MAX_EB = 280;              // 敌弹上限
 const MAX_FX = 420;
@@ -322,22 +324,24 @@ Page({
     this.enterHangar();
   },
 
-  // ── 输入:相对拖动(手指在哪都行,战机跟着手指的位移走)──
+  // ── 输入:跟手(按下时战机飞到手指上方,之后跟着手指走)──
+  // 战机停在手指上方一点,免得被手指挡住
+  touchTarget(t) {
+    const p = this._g.player;
+    p.tx = clamp(t.clientX / this._k, 14, VW - 14);
+    p.ty = clamp(t.clientY / this._k - FINGER_OFFSET, 60, this._VH - 30);
+  },
+
   onTouchStart(e) {
     if (this.data.screen !== 'play' || !this._g) return;
     this._audio.unlock();
-    const t = e.touches[0];
-    const p = this._g.player;
-    this._drag = { fx: t.clientX, fy: t.clientY, px: p.tx, py: p.ty };
+    this._drag = true;
+    this.touchTarget(e.touches[0]);
   },
 
   onTouchMove(e) {
     if (!this._drag || !this._g) return;
-    const t = e.touches[0];
-    const p = this._g.player;
-    const k = 1.15 / this._k;
-    p.tx = clamp(this._drag.px + (t.clientX - this._drag.fx) * k, 14, VW - 14);
-    p.ty = clamp(this._drag.py + (t.clientY - this._drag.fy) * k, 60, this._VH - 30);
+    this.touchTarget(e.touches[0]);
   },
 
   onTouchEnd() {
@@ -501,11 +505,16 @@ Page({
     if (g.intro > 2.2) {
       p.y += (p.ty - p.y) * Math.min(1, dt * 3);
     } else {
+      // 跟手:近处快速贴合,远处(刚按下)限速飞过去,不会瞬移
       const k = Math.min(1, dt * 22);
-      const nx = p.x + (p.tx - p.x) * k;
-      p.vx = (nx - p.x) / Math.max(dt, 0.001);
-      p.x = nx;
-      p.y += (p.ty - p.y) * k;
+      let dx = (p.tx - p.x) * k;
+      let dy = (p.ty - p.y) * k;
+      const d = Math.hypot(dx, dy);
+      const cap = MAX_FLY * dt;
+      if (d > cap) { dx *= cap / d; dy *= cap / d; }
+      p.vx = dx / Math.max(dt, 0.001);
+      p.x += dx;
+      p.y += dy;
     }
     p.bank += (clamp(p.vx / 260, -2, 2) - p.bank) * Math.min(1, dt * 10);
     if (p.inv > 0) p.inv -= dt;
