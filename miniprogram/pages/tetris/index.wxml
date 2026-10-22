@@ -53,8 +53,9 @@
     </view>
   </view>
 
-  <!-- 操作区:左移动/软降,右旋转/硬降 -->
-  <view class="controls" wx:if="{{gameState === 'playing'}}" catchtouchend="noop">
+  <!-- 操作区:左移动/软降,右旋转/硬降。
+       非游戏中只隐藏不移除:移除会让棋盘区变高,画布被拉伸 -->
+  <view class="controls {{gameState === 'playing' ? '' : 'controls-hidden'}}" catchtouchend="noop">
     <view class="ctrl-cluster">
       <view class="ctrl-row">
         <view class="cbtn" catchtouchstart="onLeft" catchtouchend="onMoveEnd" catchtouchcancel="onMoveEnd">
