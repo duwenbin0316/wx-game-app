@@ -15,7 +15,8 @@ const ROWS = VISIBLE_ROWS + HIDDEN_ROWS;
 
 const DAS_MS = 160;      // 按住方向后首次连发延迟
 const ARR_MS = 40;       // 连发间隔
-const SOFT_MS = 35;      // 软降每行间隔
+const SOFT_DAS_MS = 170; // 按住软降后开始连降前的延迟(点一下只降一格)
+const SOFT_MS = 50;      // 软降连降每行间隔
 const LOCK_MS = 500;     // 触底锁定延迟
 const LOCK_RESETS = 15;  // 锁定延迟最多重置次数
 const CLEAR_MS = 300;    // 消行动画时长
@@ -285,7 +286,7 @@ Page({
     this._isNewBest = false;
     this._state = 'play';
     this._now = this._now || 0;
-    this._input = { dir: 0, das: 0, arr: 0, soft: false };
+    this._input = { dir: 0, das: 0, arr: 0, soft: false, softWait: 0 };
     this._fx = { labels: [], trail: null, shake: 0, clearRows: [], clearSet: new Set(), clearStart: 0, overStart: 0 };
   },
 
@@ -503,6 +504,8 @@ Page({
 
   _lock() {
     if (!this._cur) return;
+    // 软降不带到下一块:新方块要重新按才会加速,避免一直按着一路砸到底
+    this._input.soft = false;
     const tspin = this._detectTSpin();
     const cells = this._curCells();
     let allHidden = true;
@@ -686,13 +689,23 @@ Page({
           }
         }
       }
-      // 重力
-      const gms = inp.soft ? Math.min(SOFT_MS, this._gravMs) : this._gravMs;
+      // 重力(软降按住超过 SOFT_DAS_MS 才开始连降)
+      let soft = false;
+      if (inp.soft) {
+        if (inp.softWait > 0) {
+          inp.softWait -= dt;
+          // 延迟期间攒下的重力时间清掉,否则开始连降那一帧会一下子补掉好几格
+          if (inp.softWait <= 0) this._gravAcc = 0;
+        } else {
+          soft = true;
+        }
+      }
+      const gms = soft ? Math.min(SOFT_MS, this._gravMs) : this._gravMs;
       this._gravAcc += dt;
       while (this._gravAcc >= gms) {
         this._gravAcc -= gms;
         if (this._fall()) {
-          if (inp.soft) this._addScore(1);
+          if (soft) this._addScore(1);
         } else {
           this._gravAcc = 0;
           break;
@@ -1056,6 +1069,8 @@ Page({
     if (this._state !== 'play') return;
     this._softStep();
     this._input.soft = true;
+    this._input.softWait = SOFT_DAS_MS;
+    this._gravAcc = 0;
   },
 
   onDownEnd() {
