@@ -24,7 +24,7 @@ wx-game-app/
 │   │   ├── home/                 # Game launcher hub (pixel art logo, game list)
 │   │   ├── online/               # Gomoku lobby: room list, create/join (~360 lines)
 │   │   ├── gomoku/               # Five-in-a-row, online + offline, canvas board (~1730 lines)
-│   │   ├── tetris/               # SRS kicks, T-Spin/B2B/combo, chiptune BGM (~1200 lines)
+│   │   ├── tetris/               # SRS kicks, T-Spin/B2B/combo, chiptune BGM, wooden 3D look (~1250 lines)
 │   │   ├── runner/               # "Claude 快跑": coins combo, coffee shield (~1150 lines)
 │   │   ├── racing/               # Pseudo-3D night racing: 4 zones, drift, near-miss (~1900 lines)
 │   │   ├── adventure/            # Side-scrolling platformer, 3 levels (~1050 lines)
@@ -38,6 +38,7 @@ wx-game-app/
 │   │   ├── clawd.js              # Shared Clawd sprite (COLORS, GRID_COLS/ROWS, buildSprite, drawClawd)
 │   │   ├── gomoku-ai.js          # Gomoku AI: 5-tuple eval, easy/medium greedy, hard alpha-beta (pure, node-testable)
 │   │   ├── gomoku-board.js       # Gomoku canvas renderer (wood board, stones, drop/win animations, hit test)
+│   │   ├── tetris-wood.js        # Tetris wooden 3D art: stained-wood cube atlas, walnut tray (floor/rim layers), side panels
 │   │   ├── racing-art.js         # Racing pixel-art atlas (cars, scenery, glows, parallax tiles)
 │   │   ├── racing-audio.js       # Racing WebAudio synth (engine w/ gears, tyre squeal, SFX)
 │   │   ├── sky-data.js           # Sky Wing data: enemies, flight paths, stage scripts, bosses, upgrades (pure, node-testable)
@@ -281,7 +282,7 @@ All render on a `<canvas type="2d">` node (queried via `wx.createSelectorQuery()
 
 | Game | Notes | Local storage key |
 |------|-------|-------------------|
-| Tetris | SRS rotations + wall kicks, T-Spin / B2B / combo, hold/next, controller-style buttons with auto-repeat, chiptune BGM + SFX | `tetris_best` |
+| Tetris | SRS rotations + wall kicks, T-Spin / B2B / combo, hold/next, controller-style buttons with auto-repeat, chiptune BGM + SFX. Wooden 3D look: blocks are oblique-projected wooden cubes (top face lifted up-left by `h`, south/east sides visible) drawn row-by-row top→bottom so later cubes occlude earlier sides; tray floor drawn under cubes, rim over them; board cells store type + grain variant (e.g. `'T2'`) | `tetris_best` |
 | Runner | Endless runner: coin combos, coffee shield, death animation | `runner_best` |
 | Racing | Pseudo-3D road; zones city → coast → tunnel → forest; drift (brake + steer) charges nitro, near-miss combos add time; sprite atlas built once on an offscreen canvas; auto quality downgrade on low FPS | `racing_best` |
 | Adventure | Side-scrolling platformer, 3 levels, stomp bugs, bump bricks | `adventure_best` |
