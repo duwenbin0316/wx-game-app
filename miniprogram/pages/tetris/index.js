@@ -1,8 +1,13 @@
-// ─── 像素俄罗斯方块 · 重制版 ─────────────────────────────
+// ─── 木质俄罗斯方块 · 重制版 ─────────────────────────────
 // 现代规则重写:7-bag 发牌、完整 SRS 踢墙、幽灵投影、HOLD、
 // 三连预览、锁定延迟、T-Spin / B2B / 连击 / 全清计分。
 // rAF 主循环驱动重力与 DAS/ARR 按键手感,消行闪白收缩、
 // 硬降拖尾震屏、危险区红光等动画全部画在棋盘画布上。
+// 美术是木质 3D 风格(utils/tetris-wood.js):染色木块 + 胡桃木托盘。
+const {
+  WOOD, VARIANTS, buildCubeAtlas, drawCubeAt, trayMetrics, buildTray, drawPanel,
+} = require('../../utils/tetris-wood.js');
+
 const COLS = 10;
 const VISIBLE_ROWS = 20;
 const HIDDEN_ROWS = 2;                       // 顶部缓冲(出生区)
@@ -17,11 +22,8 @@ const CLEAR_MS = 300;    // 消行动画时长
 const OVER_FILL_MS = 600;// 结束时灰块淹没动画
 const STORAGE_KEY = 'tetris_best';
 
-const PIECE_COLORS = {
-  I: '#60C0FF', O: '#D97757', T: '#A855F7', S: '#4CAF50',
-  Z: '#FF6B6B', J: '#4A6FA5', L: '#F5C842',
-};
-const PIECE_TYPES = Object.keys(PIECE_COLORS);
+const PIECE_TYPES = ['I', 'O', 'T', 'S', 'Z', 'J', 'L'];
+const PIECE_COLORS = WOOD;
 
 // 各方块在包围盒内的出生形态(SRS 标准),其余旋转态程序生成
 const BASE_CELLS = {
@@ -254,8 +256,8 @@ Page({
     const s = this._score || 0;
     return {
       title: s > 0
-        ? `我在像素俄罗斯方块拿了 ${s} 分,来挑战我～`
-        : '重制版像素俄罗斯方块,T-Spin、连击都安排上了,来一局!',
+        ? `我在木质俄罗斯方块拿了 ${s} 分,来挑战我～`
+        : '木头方块搭起来,T-Spin、连击都安排上了,来一局!',
       path: '/pages/tetris/index',
     };
   },
@@ -350,7 +352,9 @@ Page({
   },
 
   _setPiece(type) {
-    this._cur = { type, rot: 0, row: 0, col: spawnCol(type) };
+    // vars:4 个格子各自的木纹变体,落定后跟着格子存进棋盘(如 'T2')
+    const vars = [0, 1, 2, 3].map(() => Math.floor(Math.random() * VARIANTS));
+    this._cur = { type, vars, rot: 0, row: 0, col: spawnCol(type) };
     this._gravAcc = 0;
     this._lockMs = 0;
     this._lockResets = 0;
@@ -505,7 +509,7 @@ Page({
     for (let i = 0; i < cells.length; i++) {
       const [r, c] = cells[i];
       if (r < 0) { this._gameOver(); return; }
-      this._board[r][c] = this._cur.type;
+      this._board[r][c] = this._cur.type + this._cur.vars[i];
       if (r >= HIDDEN_ROWS) allHidden = false;
     }
     if (allHidden) { this._gameOver(); return; }
@@ -715,21 +719,76 @@ Page({
 
   // ── 渲染 ────────────────────────────────────────────────
   _computeMetrics() {
-    const cell = Math.max(8, Math.min(30, Math.floor(Math.min(this._W / COLS, this._H / VISIBLE_ROWS))));
-    const width = cell * COLS;
-    const height = cell * VISIBLE_ROWS;
-    this._rect = {
-      cell, width, height,
-      x: Math.floor((this._W - width) / 2),
-      y: Math.floor((this._H - height) / 2),
-    };
+    // cell / x / y / width / height 与原来含义相同;h 是木块厚度(顶面往左上抬起的量)
+    this._rect = trayMetrics(this._W, this._H, COLS, VISIBLE_ROWS);
+    this._initArt();
+  },
+
+  // 木块图集 + 托盘两层先画在离屏 canvas 上,主棋盘用的再导出成图片
+  // (导出前直接拿离屏 canvas 当图源);离屏 canvas 不可用时退回平面方块
+  _initArt() {
+    this._art = null;
+    try {
+      const make = (w, h) => wx.createOffscreenCanvas({ type: '2d', width: w, height: h });
+      const tray = buildTray(make, this._W, this._H, this._dpr, this._rect);
+      const atlas = buildCubeAtlas(make, this._rect.cell, this._dpr);
+      this._art = { make, atlas, floor: tray.floor, rim: tray.rim, img: {}, mini: {} };
+      this._bake('atlas', atlas.canvas);
+      this._bake('floor', tray.floor);
+      this._bake('rim', tray.rim);
+    } catch (e) {
+      this._art = null;
+    }
+  },
+
+  _bake(key, canvas) {
+    wx.canvasToTempFilePath({
+      canvas,
+      fileType: 'png',
+      success: r => {
+        const img = this._boardCanvas.createImage();
+        img.onload = () => { if (this._art) this._art.img[key] = img; };
+        img.src = r.tempFilePath;
+      },
+    });
+  },
+
+  // HOLD / NEXT 用的小尺寸图集,按格子大小缓存
+  _miniAtlas(cell) {
+    const art = this._art;
+    if (!art) return null;
+    if (!art.mini[cell]) {
+      try {
+        art.mini[cell] = buildCubeAtlas(art.make, cell, this._dpr);
+      } catch (e) {
+        return null;
+      }
+    }
+    return art.mini[cell];
+  },
+
+  // 一个格子上的木块;key 是棋盘里存的 'T2'(木种 + 纹理变体),scale 用于消行收缩
+  _cube(ctx, atlas, img, key, px, py, cell, alpha, scale) {
+    const type = key[0];
+    const variant = +key[1] || 0;
+    if (atlas) {
+      drawCubeAt(ctx, atlas, img, type, variant, px, py, alpha, scale);
+      return;
+    }
+    const size = cell * (scale === undefined ? 1 : scale);
+    this._blockRect(ctx, px + (cell - size) / 2, py + (cell - size) / 2, size, WOOD[type], alpha);
   },
 
   _draw(ts) {
     const ctx = this._ctx;
     if (!ctx || !this._rect) return;
     const { x, y, cell, width, height } = this._rect;
+    const art = this._art;
+    const atlas = art && art.atlas;
+    const atlasImg = art && art.img.atlas;
+    const h = art ? this._rect.h : 0;
     const fx = this._fx;
+    const live = this._state === 'play' || this._state === 'pause';
 
     ctx.clearRect(0, 0, this._W, this._H);
     ctx.save();
@@ -740,45 +799,73 @@ Page({
       fx.shake = 0;
     }
 
-    // 面板:像素投影 + 底色 + 边框
-    ctx.fillStyle = '#0A0A1C';
-    ctx.fillRect(x + 4, y + 4, width, height);
-    ctx.fillStyle = '#12122A';
-    ctx.fillRect(x, y, width, height);
-    ctx.strokeStyle = '#2E3A5C';
-    ctx.lineWidth = 2;
-    ctx.strokeRect(x + 1, y + 1, width - 2, height - 2);
+    // 托盘底板(木板 + 刻槽 + 内壁);离屏不可用时画个平面木色底
+    if (art) {
+      ctx.drawImage(art.img.floor || art.floor, 0, 0, this._W, this._H);
+    } else {
+      ctx.fillStyle = '#4A2C18';
+      ctx.fillRect(x, y, width, height);
+    }
 
-    // 网格点(比整线更干净)
-    ctx.fillStyle = 'rgba(74, 111, 165, 0.18)';
-    for (let r = 1; r < VISIBLE_ROWS; r++) {
-      for (let c = 1; c < COLS; c++) {
-        ctx.fillRect(x + c * cell - 1, y + r * cell - 1, 2, 2);
+    // 危险区红光(堆快到顶时脉动),铺在底板上
+    if (this._stackTop <= HIDDEN_ROWS + 5 && (this._state === 'play' || this._state === 'clearing')) {
+      const a = 0.16 + 0.08 * Math.sin(ts / 160);
+      const grad = ctx.createLinearGradient(0, y - h, 0, y - h + cell * 5);
+      grad.addColorStop(0, `rgba(255, 70, 40, ${a})`);
+      grad.addColorStop(1, 'rgba(255, 70, 40, 0)');
+      ctx.fillStyle = grad;
+      ctx.fillRect(x - h, y - h, width, cell * 5);
+    }
+
+    // 幽灵投影:木块落点处一圈淡淡的描边
+    if (this._cur && live) {
+      const ghostDist = this._dropDistance();
+      const color = PIECE_COLORS[this._cur.type];
+      if (ghostDist > 0) {
+        ctx.save();
+        this._curCells(this._cur.rot, this._cur.row + ghostDist, this._cur.col).forEach(([r, c]) => {
+          if (r < HIDDEN_ROWS) return;
+          const px = x + c * cell - h;
+          const py = y + (r - HIDDEN_ROWS) * cell - h;
+          ctx.globalAlpha = 0.16;
+          ctx.fillStyle = color;
+          ctx.fillRect(px + 2, py + 2, cell - 4, cell - 4);
+          ctx.globalAlpha = 0.7;
+          ctx.strokeStyle = color;
+          ctx.lineWidth = 1.5;
+          ctx.strokeRect(px + 2.5, py + 2.5, cell - 5, cell - 5);
+        });
+        ctx.restore();
       }
     }
 
-    // 已落定方块(消行中的行做闪白/收缩动画)
+    // 木块:落定的和正在下落的合在一起,按行从上到下、列从左到右画,
+    // 后画的(下方 / 右方)正好盖住前一块伸出来的侧面
+    const curAt = {};
+    if (this._cur && live) {
+      this._curCells().forEach(([r, c], i) => { curAt[r * COLS + c] = i; });
+    }
+    const curAlpha = this._lockMs > 0 ? 0.82 : 1;
     const clearing = this._state === 'clearing';
     const p = clearing ? Math.min(1, (ts - fx.clearStart) / CLEAR_MS) : 0;
     for (let r = HIDDEN_ROWS; r < ROWS; r++) {
+      const py = y + (r - HIDDEN_ROWS) * cell;
+      const shrink = clearing && fx.clearSet.has(r) && p >= 0.35 ? 1 - (p - 0.35) / 0.65 : 1;
       for (let c = 0; c < COLS; c++) {
-        const t = this._board[r][c];
-        if (!t) continue;
         const px = x + c * cell;
-        const py = y + (r - HIDDEN_ROWS) * cell;
-        if (clearing && fx.clearSet.has(r) && p >= 0.35) {
-          const s = 1 - (p - 0.35) / 0.65;
-          const size = cell * s;
-          this._blockRect(ctx, px + (cell - size) / 2, py + (cell - size) / 2, size, PIECE_COLORS[t], 1);
-        } else {
-          this._blockRect(ctx, px, py, cell, PIECE_COLORS[t], 1);
+        const t = this._board[r][c];
+        if (t) {
+          this._cube(ctx, atlas, atlasImg, t, px, py, cell, 1, shrink);
+        } else if (curAt[r * COLS + c] !== undefined) {
+          const i = curAt[r * COLS + c];
+          this._cube(ctx, atlas, atlasImg, this._cur.type + this._cur.vars[i], px, py, cell, curAlpha);
         }
       }
     }
     if (clearing && p < 0.35) {
-      ctx.fillStyle = `rgba(255, 255, 255, ${0.85 * (1 - p / 0.35)})`;
+      ctx.fillStyle = `rgba(255, 246, 220, ${0.85 * (1 - p / 0.35)})`;
       fx.clearRows.forEach(r => {
-        if (r >= HIDDEN_ROWS) ctx.fillRect(x, y + (r - HIDDEN_ROWS) * cell, width, cell);
+        if (r >= HIDDEN_ROWS) ctx.fillRect(x - h, y + (r - HIDDEN_ROWS) * cell - h, width, cell + h);
       });
     }
 
@@ -786,66 +873,31 @@ Page({
     if (fx.trail && ts - fx.trail.start < 160) {
       const a = 1 - (ts - fx.trail.start) / 160;
       ctx.fillStyle = fx.trail.color;
-      ctx.globalAlpha = 0.22 * a;
+      ctx.globalAlpha = 0.28 * a;
       fx.trail.cols.forEach(({ c, toRow, dist }) => {
         const top = Math.max(HIDDEN_ROWS, toRow - dist);
-        const py = y + (top - HIDDEN_ROWS) * cell;
+        const py = y + (top - HIDDEN_ROWS) * cell - h;
         const ph = (toRow - top) * cell;
-        if (ph > 0) ctx.fillRect(x + c * cell + cell * 0.15, py, cell * 0.7, ph);
+        if (ph > 0) ctx.fillRect(x + c * cell - h + cell * 0.15, py, cell * 0.7, ph);
       });
       ctx.globalAlpha = 1;
     } else if (fx.trail) {
       fx.trail = null;
     }
 
-    // 幽灵投影 + 当前方块
-    if (this._cur && (this._state === 'play' || this._state === 'pause')) {
-      const ghostDist = this._dropDistance();
-      const color = PIECE_COLORS[this._cur.type];
-      if (ghostDist > 0) {
-        this._curCells(this._cur.rot, this._cur.row + ghostDist, this._cur.col).forEach(([r, c]) => {
-          if (r < HIDDEN_ROWS) return;
-          const px = x + c * cell;
-          const py = y + (r - HIDDEN_ROWS) * cell;
-          ctx.save();
-          ctx.globalAlpha = 0.08;
-          ctx.fillStyle = color;
-          ctx.fillRect(px + 2, py + 2, cell - 4, cell - 4);
-          ctx.globalAlpha = 0.5;
-          ctx.strokeStyle = color;
-          ctx.lineWidth = 2;
-          ctx.strokeRect(px + 2.5, py + 2.5, cell - 5, cell - 5);
-          ctx.restore();
-        });
-      }
-      const alpha = this._lockMs > 0 ? 0.82 : 1;
-      this._curCells().forEach(([r, c]) => {
-        if (r < HIDDEN_ROWS) return;
-        this._blockRect(ctx, x + c * cell, y + (r - HIDDEN_ROWS) * cell, cell, color, alpha);
-      });
-    }
-
-    // 危险区红光(堆快到顶时脉动)
-    if (this._stackTop <= HIDDEN_ROWS + 5 && (this._state === 'play' || this._state === 'clearing')) {
-      const a = 0.10 + 0.07 * Math.sin(ts / 160);
-      const grad = ctx.createLinearGradient(0, y, 0, y + cell * 5);
-      grad.addColorStop(0, `rgba(255, 80, 80, ${a})`);
-      grad.addColorStop(1, 'rgba(255, 80, 80, 0)');
-      ctx.fillStyle = grad;
-      ctx.fillRect(x, y, width, cell * 5);
-    }
-
-    // 结束动画:灰块自底向上淹没
+    // 结束动画:灰木块自底向上淹没(从上往下画,保持遮挡顺序)
     if (this._state === 'overAnim' || this._state === 'over') {
       const op = Math.min(1, (ts - fx.overStart) / OVER_FILL_MS);
       const nFill = this._state === 'over' ? VISIBLE_ROWS : Math.floor(op * VISIBLE_ROWS);
-      for (let i = 0; i < nFill; i++) {
-        const r = VISIBLE_ROWS - 1 - i;
+      for (let r = VISIBLE_ROWS - nFill; r < VISIBLE_ROWS; r++) {
         for (let c = 0; c < COLS; c++) {
-          this._blockRect(ctx, x + c * cell, y + r * cell, cell, '#3A3A55', 0.92);
+          this._cube(ctx, atlas, atlasImg, 'X' + ((r + c) % VARIANTS), x + c * cell, y + r * cell, cell, 0.96);
         }
       }
     }
+
+    // 托盘围边盖在最上面:挡住最右列 / 最底行木块的侧面
+    if (art) ctx.drawImage(art.img.rim || art.rim, 0, 0, this._W, this._H);
 
     // 浮动大字(TETRIS! / T-SPIN! / COMBO…)
     for (let i = fx.labels.length - 1; i >= 0; i--) {
@@ -855,21 +907,25 @@ Page({
       const t01 = age / 900;
       ctx.save();
       ctx.globalAlpha = t01 < 0.15 ? t01 / 0.15 : 1 - (t01 - 0.15) / 0.85;
-      ctx.fillStyle = lb.color;
       ctx.font = `bold ${Math.round(cell * 0.9)}px monospace`;
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
+      const lx = x - h + width / 2;
       const ly = y + height * 0.3 - t01 * 40 + i * cell * 1.1;
-      ctx.shadowColor = '#0A0A1A';
-      ctx.shadowOffsetX = 2;
-      ctx.shadowOffsetY = 2;
-      ctx.fillText(lb.text, x + width / 2, ly);
+      ctx.lineJoin = 'round';
+      ctx.lineWidth = Math.max(3, cell * 0.16);
+      ctx.strokeStyle = '#2A1408';
+      ctx.strokeText(lb.text, lx + 1.5, ly + 2);
+      ctx.strokeText(lb.text, lx, ly);
+      ctx.fillStyle = lb.color;
+      ctx.fillText(lb.text, lx, ly);
       ctx.restore();
     }
 
     ctx.restore();
   },
 
+  // 平面方块:离屏 canvas 不可用时的兜底画法
   _blockRect(ctx, x, y, size, color, alpha) {
     if (size < 3) return;
     const inset = 1;
@@ -885,29 +941,28 @@ Page({
     ctx.fillStyle = tint(color, -0.32);
     ctx.fillRect(x + size - bevel - inset, y + inset, bevel, inner);
     ctx.fillRect(x + inset, y + size - bevel - inset, inner, bevel);
-    ctx.strokeStyle = 'rgba(10, 10, 26, 0.35)';
+    ctx.strokeStyle = 'rgba(40, 20, 6, 0.45)';
     ctx.strokeRect(x + 0.5, y + 0.5, size - 1, size - 1);
     ctx.restore();
   },
 
   _drawMini(ctx, type, cx, cy, cell, alpha) {
-    const cells = SHAPES[type][0];
+    const atlas = this._miniAtlas(cell);
+    const h = atlas ? atlas.h : 0;
+    // 先上后下、先左后右,保证木块侧面的遮挡顺序
+    const cells = SHAPES[type][0].slice().sort((a, b) => a[0] - b[0] || a[1] - b[1]);
     let minR = 9, maxR = -9, minC = 9, maxC = -9;
     cells.forEach(([r, c]) => {
       minR = Math.min(minR, r); maxR = Math.max(maxR, r);
       minC = Math.min(minC, c); maxC = Math.max(maxC, c);
     });
     const w = (maxC - minC + 1) * cell;
-    const h = (maxR - minR + 1) * cell;
-    cells.forEach(([r, c]) => {
-      this._blockRect(
-        ctx,
-        cx - w / 2 + (c - minC) * cell,
-        cy - h / 2 + (r - minR) * cell,
-        cell,
-        PIECE_COLORS[type],
-        alpha
-      );
+    const hh = (maxR - minR + 1) * cell;
+    // 木块整体(顶面 + 侧面)居中
+    const ox = cx - w / 2 + h / 2;
+    const oy = cy - hh / 2 + h / 2;
+    cells.forEach(([r, c], i) => {
+      this._cube(ctx, atlas, null, type + (i % VARIANTS), ox + (c - minC) * cell, oy + (r - minR) * cell, cell, alpha);
     });
   },
 
@@ -915,16 +970,12 @@ Page({
     const ctx = this._nextCtx;
     if (!ctx) return;
     ctx.clearRect(0, 0, this._nextW, this._nextH);
-    ctx.fillStyle = '#0A0A1A';
-    ctx.fillRect(0, 0, this._nextW, this._nextH);
-    ctx.strokeStyle = '#2E3A5C';
-    ctx.lineWidth = 1;
-    ctx.strokeRect(0.5, 0.5, this._nextW - 1, this._nextH - 1);
+    drawPanel(ctx, this._nextW, this._nextH);
     const slotH = this._nextH / 3;
-    const cell = Math.max(6, Math.floor(Math.min(this._nextW / 5.2, slotH / 3.4)));
+    const cell = Math.max(6, Math.floor(Math.min(this._nextW / 5.4, slotH / 3.6)));
     for (let i = 0; i < 3 && i < this._queue.length; i++) {
       // 第一个最亮,越往后越淡
-      this._drawMini(ctx, this._queue[i], this._nextW / 2, slotH * i + slotH / 2, cell, 1 - i * 0.25);
+      this._drawMini(ctx, this._queue[i], this._nextW / 2, slotH * i + slotH / 2, cell, 1 - i * 0.22);
     }
   },
 
@@ -932,21 +983,17 @@ Page({
     const ctx = this._holdCtx;
     if (!ctx) return;
     ctx.clearRect(0, 0, this._holdW, this._holdH);
-    ctx.fillStyle = '#0A0A1A';
-    ctx.fillRect(0, 0, this._holdW, this._holdH);
-    ctx.strokeStyle = '#2E3A5C';
-    ctx.lineWidth = 1;
-    ctx.strokeRect(0.5, 0.5, this._holdW - 1, this._holdH - 1);
+    drawPanel(ctx, this._holdW, this._holdH);
     if (!this._hold) {
-      ctx.fillStyle = 'rgba(74, 111, 165, 0.5)';
+      ctx.fillStyle = 'rgba(255, 228, 185, 0.4)';
       ctx.font = '11px monospace';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       ctx.fillText('空', this._holdW / 2, this._holdH / 2);
       return;
     }
-    const cell = Math.max(6, Math.floor(Math.min(this._holdW / 5.2, this._holdH / 3.4)));
-    this._drawMini(ctx, this._hold, this._holdW / 2, this._holdH / 2, cell, this._holdUsed ? 0.35 : 1);
+    const cell = Math.max(6, Math.floor(Math.min(this._holdW / 5.4, this._holdH / 3.6)));
+    this._drawMini(ctx, this._hold, this._holdW / 2, this._holdH / 2, cell, this._holdUsed ? 0.4 : 1);
   },
 
   // ── 按键 ────────────────────────────────────────────────

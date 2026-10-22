@@ -24,7 +24,7 @@ wx-game-app/
 │   │   ├── home/                 # Game launcher hub (pixel art logo, game list)
 │   │   ├── online/               # Gomoku lobby: room list, create/join (~360 lines)
 │   │   ├── gomoku/               # Five-in-a-row, online + offline, canvas board (~1730 lines)
-│   │   ├── tetris/               # SRS kicks, T-Spin/B2B/combo, chiptune BGM (~1200 lines)
+│   │   ├── tetris/               # SRS kicks, T-Spin/B2B/combo, chiptune BGM, wooden 3D look (~1250 lines)
 │   │   ├── runner/               # "Claude 快跑": coins combo, coffee shield (~1150 lines)
 │   │   ├── sokoban/              # Puzzle game, 10 levels (~720 lines)
 │   │   ├── snake/                # Snake eating bugs (~620 lines)
@@ -34,6 +34,7 @@ wx-game-app/
 │   │   ├── clawd.js              # Shared Clawd sprite (COLORS, GRID_COLS/ROWS, buildSprite, drawClawd)
 │   │   ├── gomoku-ai.js          # Gomoku AI: 5-tuple eval, easy/medium greedy, hard alpha-beta (pure, node-testable)
 │   │   ├── gomoku-board.js       # Gomoku canvas renderer (wood board, stones, drop/win animations, hit test)
+│   │   ├── tetris-wood.js        # Tetris wooden 3D art: stained-wood cube atlas, walnut tray (floor/rim layers), side panels
 │   │   ├── sky-data.js           # Sky Wing data: enemies, flight paths, stage scripts, bosses, upgrades (pure, node-testable)
 │   │   ├── sky-art.js            # Sky Wing vector sprite atlas (ships, bosses, FX) + flash/shadow variants
 │   │   ├── sky-terrain.js        # Sky Wing procedural terrain chunks (fbm heightfield, hillshade, decorations)
@@ -257,7 +258,7 @@ All render on a `<canvas type="2d">` node (queried via `wx.createSelectorQuery()
 
 | Game | Notes | Local storage key |
 |------|-------|-------------------|
-| Tetris | SRS rotations + wall kicks, T-Spin / B2B / combo, hold/next, controller-style buttons with auto-repeat, chiptune BGM + SFX | `tetris_best` |
+| Tetris | SRS rotations + wall kicks, T-Spin / B2B / combo, hold/next, controller-style buttons with auto-repeat, chiptune BGM + SFX. Wooden 3D look: blocks are oblique-projected wooden cubes (top face lifted up-left by `h`, south/east sides visible) drawn row-by-row top→bottom so later cubes occlude earlier sides; tray floor drawn under cubes, rim over them; board cells store type + grain variant (e.g. `'T2'`) | `tetris_best` |
 | Runner | Endless runner: coin combos, coffee shield, death animation | `runner_best` |
 | Sokoban | 10 verified levels, level data inline in `index.js` | `sokoban_best`, `sokoban_unlocked` |
 | Snake | Clawd eats bugs | `snake_best` |
