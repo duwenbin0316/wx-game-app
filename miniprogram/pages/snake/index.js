@@ -1,7 +1,9 @@
 // ─── Clawd 贪吃蛇 ────────────────────────────────────────
 // 蛇头是 Clawd（眼睛朝移动方向、会眨眼），吃的是像素 Bug。
 // 平滑插值移动 + 金色限时 Bug + 粒子/飘分 + 震屏 + 8-bit 音效。
+// 美术是木质 3D 风格(utils/wood-art.js):棋盘是胡桃木托盘,蛇身是一串染色木块。
 const { drawClawd, GRID_COLS, GRID_ROWS } = require('../../utils/clawd');
+const { buildCubeAtlas, drawCubeAt, trayMetrics, buildTray } = require('../../utils/wood-art.js');
 
 const COLS = 17;              // 横向格数（纵向按画布高度自适应）
 const TICK_START = 230;       // 初始每步毫秒（起步慢一点，方便熟悉操作）
@@ -35,6 +37,16 @@ function lerpColor(t) {
   const b = [0xA8, 0x56, 0x42];
   const c = a.map((v, i) => Math.round(v + (b[i] - v) * t));
   return `rgb(${c[0]},${c[1]},${c[2]})`;
+}
+
+// 木块调色板:H 是蛇头(Clawd 橙),B0~B5 是身体从头到尾逐渐变深
+const BODY_STEPS = 6;
+const SNAKE_WOOD = { H: '#E08458' };
+for (let i = 0; i < BODY_STEPS; i++) {
+  const t = i / (BODY_STEPS - 1);
+  const a = [0xD8, 0x86, 0x58];
+  const b = [0x9A, 0x55, 0x3A];
+  SNAKE_WOOD[`B${i}`] = '#' + a.map((v, k) => Math.round(v + (b[k] - v) * t).toString(16).padStart(2, '0')).join('');
 }
 
 Page({
@@ -72,11 +84,15 @@ Page({
         this._ctx    = ctx;
         this._W      = w;
         this._H      = h;
-        // 格子尺寸与棋盘范围（水平居中，垂直方向吃满可整除的部分）
-        this._cell = Math.floor(w / COLS);
-        this._rows = Math.floor(h / this._cell);
-        this._ox   = Math.floor((w - this._cell * COLS) / 2);
-        this._oy   = Math.floor((h - this._cell * this._rows) / 2);
+        // 格子尺寸与棋盘范围:先按宽度定格子,再算放得下几行,最后交给托盘布局
+        const guess = Math.floor(w / (COLS + 1.65));
+        this._rows = Math.max(10, Math.floor(h / guess - 1.65));
+        const m = trayMetrics(w, h, COLS, this._rows, { maxCell: 60 });
+        this._tray = m;
+        this._cell = m.cell;
+        this._ox   = m.x;
+        this._oy   = m.y;
+        this._initArt();
 
         this._initAudio();
         this._drawIdle();
@@ -372,13 +388,33 @@ Page({
     if (this._gold) this._drawBug(ctx, this._gold, '#F5C842', '#FFF3C4', now, true);
 
     this._drawSnake(ctx, t, now);
+    // 托盘围边盖在上面,挡住最右列 / 最底行木块的侧面
+    if (this._art) ctx.drawImage(this._art.tray.rim, 0, 0, W, H);
     this._drawParticles(ctx);
     this._drawFloats(ctx);
 
     ctx.restore();
   },
 
+  // 托盘两层 + 蛇身木块图集;离屏 canvas 不可用时退回平面画法
+  _initArt() {
+    this._art = null;
+    try {
+      const make = (w, h) => wx.createOffscreenCanvas({ type: '2d', width: w, height: h });
+      const tray = buildTray(make, this._W, this._H, this._dpr, this._tray);
+      const atlas = buildCubeAtlas(make, this._cell, this._dpr, SNAKE_WOOD, { variants: 2, radius: 0.28, depth: 0.2 });
+      this._art = { tray, atlas };
+    } catch (e) {
+      this._art = null;
+    }
+  },
+
   _drawBoard(ctx, W, H) {
+    if (this._art) {
+      ctx.clearRect(0, 0, W, H);
+      ctx.drawImage(this._art.tray.floor, 0, 0, W, H);
+      return;
+    }
     ctx.fillStyle = '#1A1A2E';
     ctx.fillRect(0, 0, W, H);
     // 棋盘格（2×2 格一块，弱对比）
@@ -422,7 +458,17 @@ Page({
       const px = this._ox + gx * c;
       const py = this._oy + gy * c;
 
-      if (i === 0) {
+      if (this._art) {
+        // 木块:身体按位置取渐变色,尾节略小,蛇头略大
+        const atlas = this._art.atlas;
+        if (i === 0) {
+          drawCubeAt(ctx, atlas, null, 'H', 0, px, py, 1, 1.1);
+          this._drawEyes(ctx, px - atlas.h, py - atlas.h, c, now);
+        } else {
+          const step = Math.min(BODY_STEPS - 1, Math.floor((i / Math.max(1, n - 1)) * BODY_STEPS));
+          drawCubeAt(ctx, atlas, null, `B${step}`, i % 2, px, py, 1, i === n - 1 ? 0.78 : 0.9);
+        }
+      } else if (i === 0) {
         this._drawHead(ctx, px, py, c, now);
       } else {
         const shade = lerpColor(i / Math.max(1, n - 1));
@@ -443,6 +489,14 @@ Page({
     ctx.fillStyle = '#D97757';
     this._roundRect(ctx, x + 1, y + 1, s - 2, s - 2, Math.floor(s * 0.24));
     ctx.fill();
+    this._drawEyes(ctx, px, py, c, now);
+  },
+
+  // 眼睛画在头顶面上:(px, py) 是顶面左上角
+  _drawEyes(ctx, px, py, c, now) {
+    const grow = Math.floor(c * 0.06);
+    const x = px - grow, y = py - grow;
+    const s = c + grow * 2;
 
     // 眨眼：每 3~4 秒闭眼 130ms
     if (now >= this._blinkAt) {
@@ -477,9 +531,19 @@ Page({
     const c = this._cell;
     const S = Math.max(2, Math.floor(c / 8));
     const wob = Math.sin(now / 260 + bug.x * 1.7) * S * 0.4;  // 轻微蠕动
-    const bx = this._ox + bug.x * c + Math.floor((c - 6 * S) / 2);
-    const by = this._oy + bug.y * c + Math.floor((c - 5 * S) / 2) + wob;
+    // 有托盘时 Bug 跟木块顶面对齐(往左上抬一点),脚下垫一圈影子
+    const lift = this._art ? Math.round(this._art.atlas.h * 0.5) : 0;
+    const bx = this._ox + bug.x * c + Math.floor((c - 6 * S) / 2) - lift;
+    const by = this._oy + bug.y * c + Math.floor((c - 5 * S) / 2) + wob - lift;
 
+    if (this._art) {
+      ctx.fillStyle = 'rgba(12, 5, 0, 0.35)';
+      ctx.beginPath();
+      ctx.ellipse
+        ? ctx.ellipse(bx + 3 * S + lift, by + 5 * S + lift * 0.6 - wob, 3.4 * S, 1.2 * S, 0, 0, Math.PI * 2)
+        : ctx.arc(bx + 3 * S + lift, by + 5 * S + lift * 0.6 - wob, 2.5 * S, 0, Math.PI * 2);
+      ctx.fill();
+    }
     ctx.fillStyle = bodyColor;
     BUG_PIXELS.forEach(([r, cc]) => ctx.fillRect(bx + cc * S, by + r * S, S, S));
     ctx.fillStyle = eyeColor;
@@ -503,13 +567,18 @@ Page({
 
   _drawFloats(ctx) {
     this._floats = this._floats.filter(f => f.alpha > 0);
-    ctx.font = `bold ${Math.floor(this._cell * 0.7)}px monospace`;
+    const fs = Math.floor(this._cell * 0.7);
+    ctx.font = `bold ${fs}px monospace`;
     ctx.textAlign = 'center';
+    ctx.lineJoin = 'round';
+    ctx.lineWidth = Math.max(2.5, fs * 0.2);
     for (const f of this._floats) {
       f.y -= 0.9;
       f.alpha -= 0.025;
       if (f.alpha <= 0) continue;
       ctx.globalAlpha = Math.max(0, f.alpha);
+      ctx.strokeStyle = '#2A1408';
+      ctx.strokeText(f.text, f.x, f.y);
       ctx.fillStyle = f.color;
       ctx.fillText(f.text, f.x, f.y);
     }
@@ -527,6 +596,7 @@ Page({
     const gy = Math.floor(this._H * 0.30);
     drawClawd(ctx, gx, gy, ps);
     this._drawBug(ctx, { x: Math.floor(COLS * 0.72), y: Math.floor(this._rows * 0.62) }, '#FF6B6B', '#FFB3B3', Date.now(), false);
+    if (this._art) ctx.drawImage(this._art.tray.rim, 0, 0, this._W, this._H);
   },
 
   // ─── 音频（Web Audio 合成，不支持时静默降级）───────────

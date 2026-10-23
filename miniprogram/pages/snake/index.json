@@ -1,7 +1,7 @@
 {
   "navigationBarTitleText": "Clawd 贪吃蛇",
-  "navigationBarBackgroundColor": "#1A1A2E",
+  "navigationBarBackgroundColor": "#3A200E",
   "navigationBarTextStyle": "white",
-  "backgroundColor": "#1A1A2E",
+  "backgroundColor": "#3A200E",
   "disableScroll": true
 }
