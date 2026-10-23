@@ -398,3 +398,19 @@
 }
 
 .wbtn-share::after { border: none; }
+
+/* 木牌正文:开始画面的玩法说明等 */
+.plaque-text {
+  font-size: 26rpx;
+  color: #FFF0D6;
+  line-height: 1.7;
+  text-align: center;
+  text-shadow: 0 2rpx 0 rgba(60, 30, 10, 0.6);
+}
+
+.plaque-hint {
+  margin-top: 8rpx;
+  font-size: 22rpx;
+  color: #EBCB98;
+  text-align: center;
+}

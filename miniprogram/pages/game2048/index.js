@@ -1,26 +1,34 @@
-// ─── 像素 2048 ───────────────────────────────────────────
-// 四方向滑动合并数字。滑块平滑位移 + 合并脉冲 + 新块弹出 +
-// 飘分 + 8-bit 合成音效，配色沿用大厅的暗色像素风。
+// ─── 木质 2048 ───────────────────────────────────────────
+// 四方向滑动合并数字。滑块平滑位移 + 合并脉冲 + 新块弹出 + 飘分。
+// 美术是木质 3D 风格(utils/wood-art.js):棋盘是一块带凹槽的木板,
+// 数字块是烙了字的染色木块;滑动 / 合并用木头敲击声(utils/tetris-sfx.js)。
+const {
+  drawSlab, drawSocket, drawCube, drawCastShadow, drawBurnedText, rng,
+} = require('../../utils/wood-art.js');
+const { renderSfx } = require('../../utils/tetris-sfx.js');
+
 const SIZE = 4;              // 4×4 棋盘
 const SLIDE_MS = 110;        // 滑动位移动画时长
 const POP_MS = 120;          // 合并脉冲 / 新块弹出时长
 const SPAWN_4_RATE = 0.1;    // 新块出 4 的概率
 
-// 数值 → [底色, 字色]，从冷蓝渐入品牌橙再到金色
-const TILE_COLORS = {
-  2:    ['#3D5A80', '#DCE6F5'],
-  4:    ['#4A6FA5', '#E8EFF9'],
-  8:    ['#B36546', '#FFF0E8'],
-  16:   ['#C97050', '#FFF0E8'],
-  32:   ['#D97757', '#FFF4EC'],
-  64:   ['#E8895A', '#FFF8F0'],
-  128:  ['#F5A03C', '#1A1A2E'],
-  256:  ['#F5B83C', '#1A1A2E'],
-  512:  ['#F5C842', '#1A1A2E'],
-  1024: ['#FFDD66', '#1A1A2E'],
-  2048: ['#FFEB8A', '#1A1A2E'],
+// 数值 → [木色, 字是否浅色]:浅色枫木 → 橡木 → 柚木 → 樱桃木 → 桃花心木,
+// 再往上换成彩色染木,2048 是金箔木块;深色木头上的字用浅色嵌字
+const TILE_WOOD = {
+  2:    ['#EAD3A6', false],
+  4:    ['#E0BA80', false],
+  8:    ['#D99A55', false],
+  16:   ['#C9773F', true],
+  32:   ['#BE5238', true],
+  64:   ['#963828', true],
+  128:  ['#D7A64A', false],
+  256:  ['#78A85A', true],
+  512:  ['#4C93C2', true],
+  1024: ['#8B5FB0', true],
+  2048: ['#F2C64A', false],
 };
-const TILE_SUPER = ['#FFF6C9', '#1A1A2E'];  // 4096 及以上
+const TILE_SUPER = ['#3A2A20', true];  // 4096 及以上:乌木 + 金字
+const BOARD_WOOD = '#94603A';
 
 // 还没玩过时分享卡上的演示排布（展示色阶递进）
 const SHARE_DEMO_GRID = [
@@ -47,6 +55,12 @@ Page({
   },
 
   onLoad() {
+    // 开局前先放一个空棋盘,首帧绘制不会读到 undefined
+    this._grid = Array.from({ length: SIZE }, () => new Array(SIZE).fill(0));
+    this._anims = [];
+    this._merged = [];
+    this._spawns = [];
+    this._floats = [];
     this.bestScore = wx.getStorageSync('game2048_best') || 0;
     this.setData({ bestScore: this.bestScore });
   },
@@ -72,8 +86,8 @@ Page({
         this._ctx    = ctx;
         this._W      = w;
         this._H      = h;
-        // 正方形棋盘：取宽高较小者，水平垂直居中
-        const side = Math.min(w - 24, h - 24);
+        // 正方形棋盘：取宽高较小者，水平垂直居中(右下留出木板厚度)
+        const side = Math.min(w - 36, h - 36);
         this._gap  = Math.max(6, Math.floor(side * 0.028));
         this._cell = Math.floor((side - this._gap * (SIZE + 1)) / SIZE);
         const real = this._cell * SIZE + this._gap * (SIZE + 1);
@@ -81,6 +95,7 @@ Page({
         this._by = Math.floor((h - real) / 2);
         this._side = real;
 
+        this._initArt();
         this._initAudio();
         this._drawStatic(Date.now());
       });
@@ -114,7 +129,7 @@ Page({
         ? `我拼出了 2048，拿下 ${score} 分！来挑战我～`
         : `我在 2048 拿了 ${score} 分，最大拼到 ${max}，来挑战我～`;
     }
-    return '超解压的像素 2048，滑动合并数字，一起来玩！';
+    return '超解压的木块 2048，滑动合并数字，一起来玩！';
   },
 
   // ─── 交互 ──────────────────────────────────────────────
@@ -351,8 +366,7 @@ Page({
     if (!ctx) return;
     const W = this._W, H = this._H;
 
-    ctx.fillStyle = '#1A1A2E';
-    ctx.fillRect(0, 0, W, H);
+    ctx.clearRect(0, 0, W, H);
     this._drawBoard(ctx);
 
     const slideT = this._moveAt ? Math.min(1, (now - this._moveAt) / SLIDE_MS) : 1;
@@ -389,61 +403,127 @@ Page({
     this._drawFloats(ctx);
   },
 
-  _drawBoard(ctx) {
-    // 棋盘底板 + 像素风硬阴影
-    ctx.fillStyle = '#0E0E22';
-    ctx.fillRect(this._bx + 5, this._by + 5, this._side, this._side);
-    ctx.fillStyle = '#252547';
-    ctx.fillRect(this._bx, this._by, this._side, this._side);
-    // 空格
-    ctx.fillStyle = '#1E1E38';
+  // ─── 木质美术 ──────────────────────────────────────────
+  // 棋盘(木板 + 16 个凹槽)画一次存进离屏 canvas;数字块按数值缓存精灵。
+  // 离屏 canvas 不可用时每帧直接画(慢一点但能用)
+  _initArt() {
+    this._tiles = {};
+    this._boardImg = null;
+    try {
+      this._mkCanvas = (w, h) => wx.createOffscreenCanvas({ type: '2d', width: w, height: h });
+      const c = this._mkCanvas(Math.round(this._W * this._dpr), Math.round(this._H * this._dpr));
+      const g = c.getContext('2d');
+      g.scale(this._dpr, this._dpr);
+      this._paintBoard(g, this._bx, this._by, this._side, this._cell, this._gap);
+      this._boardImg = c;
+    } catch (e) {
+      this._mkCanvas = null;
+    }
+  },
+
+  _paintBoard(g, bx, by, side, cell, gap) {
+    drawSlab(g, bx, by, side, side, {
+      base: BOARD_WOOD, depth: Math.max(4, Math.round(side * 0.022)), radius: gap * 1.6, seed: 2048,
+    });
     for (let r = 0; r < SIZE; r++) {
       for (let c = 0; c < SIZE; c++) {
-        ctx.fillRect(
-          this._cx(c) - this._cell / 2, this._cy(r) - this._cell / 2,
-          this._cell, this._cell
-        );
+        drawSocket(g, bx + gap + c * (cell + gap), by + gap + r * (cell + gap), cell, { radius: 0.14, seed: r * 7 + c + 1 });
       }
     }
   },
 
-  _drawTile(ctx, cx, cy, v, scale) {
-    if (scale <= 0) return;
-    this._paintTile(ctx, cx, cy, this._cell * scale, v);
+  _drawBoard(ctx) {
+    if (this._boardImg) ctx.drawImage(this._boardImg, 0, 0, this._W, this._H);
+    else this._paintBoard(ctx, this._bx, this._by, this._side, this._cell, this._gap);
   },
 
-  _paintTile(ctx, cx, cy, s, v) {
-    const [bg, fg] = TILE_COLORS[v] || TILE_SUPER;
-    const x = cx - s / 2, y = cy - s / 2;
+  // 数字木块:投影 + 有厚度的染色木块 + 烙上去的数字。
+  // (x, y) 是凹槽左上角;木块抬起后顶面往左上偏半个厚度,侧面落在凹槽里
+  _tileLift(s) {
+    return Math.max(1, Math.round(s * 0.045));
+  },
 
-    ctx.fillStyle = bg;
-    ctx.fillRect(x, y, s, s);
-    // 顶部高光压条，增强像素浮雕感
-    ctx.fillStyle = 'rgba(255,255,255,0.14)';
-    ctx.fillRect(x, y, s, Math.max(2, s * 0.08));
-
+  _paintWoodTile(g, x, y, s, v) {
+    const [wood, light] = TILE_WOOD[v] || TILE_SUPER;
+    const o = this._tileLift(s);
+    const h = o * 2;
+    const rand = rng(v * 37 + Math.round(s));
+    drawCastShadow(g, x - o, y - o, s, h, Math.max(1, h * 0.7));
+    drawCube(g, x - o, y - o, s, h, wood, rand, { radius: 0.14 });
     const digits = String(v).length;
-    const fs = Math.floor(s * (digits <= 2 ? 0.44 : digits === 3 ? 0.36 : 0.28));
-    ctx.fillStyle = fg;
-    ctx.font = `bold ${fs}px monospace`;
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText(String(v), cx, cy + s * 0.03);
-    ctx.textAlign = 'left';
-    ctx.textBaseline = 'alphabetic';
+    const fs = s * (digits <= 2 ? 0.46 : digits === 3 ? 0.37 : 0.29);
+    const tcx = x - o + s / 2;
+    const tcy = y - o + s / 2 + s * 0.02;
+    if (v >= 2048) {
+      // 金箔块:深色烙字 + 一道斜光;乌木块:烫金字
+      drawBurnedText(g, String(v), tcx, tcy, fs, v === 2048 ? { color: '#4A2A06' } : { light: true, color: '#FFD46A' });
+      if (v === 2048) {
+        const sh = g.createLinearGradient(x - o, y - o, x - o + s, y - o + s);
+        sh.addColorStop(0, 'rgba(255, 255, 255, 0)');
+        sh.addColorStop(0.45, 'rgba(255, 255, 240, 0.35)');
+        sh.addColorStop(0.55, 'rgba(255, 255, 240, 0)');
+        g.fillStyle = sh;
+        g.fillRect(x - o, y - o, s, s);
+      }
+    } else {
+      drawBurnedText(g, String(v), tcx, tcy, fs, { light, color: light ? '#FFF2DA' : '#3A1F0C' });
+    }
+  },
+
+  _tileSprite(v, s) {
+    const key = `${v}_${s}`;
+    if (this._tiles[key] !== undefined) return this._tiles[key];
+    let spr = null;
+    if (this._mkCanvas) {
+      try {
+        const pad = Math.ceil(s * 0.2);
+        const size = s + pad;
+        const c = this._mkCanvas(Math.ceil(size * this._dpr), Math.ceil(size * this._dpr));
+        const g = c.getContext('2d');
+        g.scale(this._dpr, this._dpr);
+        const o = this._tileLift(s);
+        this._paintWoodTile(g, o, o, s, v);
+        spr = { canvas: c, size, off: o };
+      } catch (e) {
+        spr = null;
+      }
+    }
+    this._tiles[key] = spr;
+    return spr;
+  },
+
+  _drawTile(ctx, cx, cy, v, scale) {
+    if (scale <= 0) return;
+    const s = this._cell;
+    const spr = this._tileSprite(v, s);
+    if (!spr) {
+      const ss = s * scale;
+      this._paintWoodTile(ctx, cx - ss / 2, cy - ss / 2, ss, v);
+      return;
+    }
+    // 精灵里顶面占 [0, s]²,相对凹槽往左上偏 off;绕顶面中心缩放
+    const k = scale;
+    const dx = cx - spr.off - (s / 2) * k;
+    const dy = cy - spr.off - (s / 2) * k;
+    ctx.drawImage(spr.canvas, dx, dy, spr.size * k, spr.size * k);
   },
 
   _drawFloats(ctx) {
     this._floats = this._floats.filter(f => f.alpha > 0);
     if (!this._floats.length) return;
-    ctx.font = `bold ${Math.floor(this._cell * 0.4)}px monospace`;
+    const fs = Math.floor(this._cell * 0.4);
+    ctx.font = `bold ${fs}px monospace`;
     ctx.textAlign = 'center';
+    ctx.lineJoin = 'round';
+    ctx.lineWidth = Math.max(3, fs * 0.18);
     for (const f of this._floats) {
       f.y -= 1.0;
       f.alpha -= 0.03;
       if (f.alpha <= 0) continue;
       ctx.globalAlpha = Math.max(0, f.alpha);
-      ctx.fillStyle = '#F5C842';
+      ctx.strokeStyle = '#2A1408';
+      ctx.strokeText(f.text, f.x, f.y);
+      ctx.fillStyle = '#FFD46A';
       ctx.fillText(f.text, f.x, f.y);
     }
     ctx.globalAlpha = 1;
@@ -477,71 +557,56 @@ Page({
   },
 
   _drawShareCard(ctx, W, H) {
-    // 背景 + 弱棋盘格
-    ctx.fillStyle = '#1A1A2E';
+    // 背景:深色桌面,中间亮四周暗
+    const bgGrad = ctx.createRadialGradient(W * 0.4, H * 0.4, 20, W * 0.5, H * 0.5, W * 0.7);
+    bgGrad.addColorStop(0, '#4A2C1B');
+    bgGrad.addColorStop(1, '#1C0F07');
+    ctx.fillStyle = bgGrad;
     ctx.fillRect(0, 0, W, H);
-    ctx.fillStyle = '#1E1E38';
-    const bg = 40;
-    for (let col = 0; col < Math.ceil(W / bg); col++) {
-      for (let row = 0; row < Math.ceil(H / bg); row++) {
-        if ((col + row) % 2 === 0) ctx.fillRect(col * bg, row * bg, bg, bg);
-      }
-    }
 
     // 左侧：棋盘（有对局画真实棋盘，否则画演示排布）
     const grid = (this._grid && (this.data.score > 0 || this.data.gameState !== 'idle'))
       ? this._grid
       : SHARE_DEMO_GRID;
-    const side = 320, bx = 40, by = 40, gap = 10;
-    const cell = (side - gap * (SIZE + 1)) / SIZE;
-    ctx.fillStyle = '#0E0E22';
-    ctx.fillRect(bx + 5, by + 5, side, side);
-    ctx.fillStyle = '#252547';
-    ctx.fillRect(bx, by, side, side);
+    const side = 320, bx = 36, by = 36, gap = 10;
+    const cell = Math.floor((side - gap * (SIZE + 1)) / SIZE);
+    this._paintBoard(ctx, bx, by, side, cell, gap);
     for (let r = 0; r < SIZE; r++) {
       for (let c = 0; c < SIZE; c++) {
         const x = bx + gap + c * (cell + gap);
         const y = by + gap + r * (cell + gap);
-        ctx.fillStyle = '#1E1E38';
-        ctx.fillRect(x, y, cell, cell);
-        if (grid[r][c]) this._paintTile(ctx, x + cell / 2, y + cell / 2, cell, grid[r][c]);
+        if (grid[r][c]) this._paintWoodTile(ctx, x, y, cell, grid[r][c]);
       }
     }
 
-    // 右侧：标题 + 分数
-    const rx = 430;
-    ctx.textAlign = 'center';
-    ctx.fillStyle = '#F5C842';
-    ctx.font = 'bold 42px monospace';
-    ctx.fillText('2048', rx, 100);
+    // 右侧:挂一块小木牌写标题和分数
+    const rx = 432;
+    drawSlab(ctx, 376, 46, 112, 300, { base: '#A86F3E', depth: 4, radius: 12, seed: 7, nails: 3 });
+    const title = (text, y, size, color) => {
+      ctx.save();
+      ctx.font = `bold ${size}px monospace`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillStyle = 'rgba(40, 18, 4, 0.7)';
+      ctx.fillText(text, rx, y + 2);
+      ctx.fillStyle = color;
+      ctx.fillText(text, rx, y);
+      ctx.restore();
+    };
+    title('2048', 96, 34, '#FFD46A');
 
     const score = this.data.score || 0;
     const best = this.data.bestScore || 0;
-    const label = (text, y) => {
-      ctx.fillStyle = '#5A5A8A';
-      ctx.font = 'bold 15px monospace';
-      ctx.fillText(text, rx, y);
-    };
-    const value = (text, y, color) => {
-      ctx.fillStyle = color;
-      ctx.font = 'bold 30px monospace';
-      ctx.fillText(text, rx, y);
-    };
     if (score > 0) {
-      label('SCORE', 175);
-      value(String(score), 208, '#D97757');
-      label('BEST', 265);
-      value(String(best), 298, '#F5C842');
+      title('SCORE', 160, 14, '#F6DDB0');
+      title(String(score), 190, 26, '#FFF2DA');
+      title('BEST', 240, 14, '#F6DDB0');
+      title(String(best), 270, 26, '#FFD46A');
     } else {
-      ctx.fillStyle = '#4A6FA5';
-      ctx.font = 'bold 20px monospace';
-      ctx.fillText('滑动合并', rx, 190);
-      ctx.fillText('数字翻倍', rx, 220);
+      title('滑动合并', 190, 18, '#FFF2DA');
+      title('数字翻倍', 220, 18, '#FFF2DA');
     }
-    ctx.fillStyle = '#6A6A9A';
-    ctx.font = '14px monospace';
-    ctx.fillText('来挑战我', rx, 356);
-    ctx.textAlign = 'left';
+    title('来挑战我', 320, 13, '#F6DDB0');
   },
 
   // ─── 音频（Web Audio 合成，不支持时静默降级）───────────
@@ -552,6 +617,34 @@ Page({
     } catch (e) {
       this._ac = null;
     }
+    // 木头敲击声:合成进 buffer,播的时候按块值变调
+    this._wood = {};
+    if (this._ac) {
+      ['move', 'lock', 'rotate'].forEach(name => {
+        try {
+          const data = renderSfx(name, this._ac.sampleRate);
+          const buf = this._ac.createBuffer(1, data.length, this._ac.sampleRate);
+          const ch = buf.getChannelData(0);
+          for (let i = 0; i < data.length; i++) ch[i] = data[i];
+          this._wood[name] = buf;
+        } catch (e) {}
+      });
+    }
+  },
+
+  _woodSfx(name, rate, vol) {
+    const buf = this._wood && this._wood[name];
+    if (!this._ac || !buf) return;
+    try {
+      const src = this._ac.createBufferSource();
+      src.buffer = buf;
+      src.playbackRate.value = rate;
+      const g = this._ac.createGain();
+      g.gain.value = vol;
+      src.connect(g);
+      g.connect(this._ac.destination);
+      src.start();
+    } catch (e) {}
   },
 
   _note(freq, startTime, dur, vol = 0.15, type = 'square') {
@@ -569,19 +662,18 @@ Page({
     osc.stop(startTime + dur);
   },
 
-  // 合并音调随块值升高，越大越亮
+  // 合并:两块木头撞在一起,块越大音越高越响
   _sfxMerge(v) {
     if (!this._ac) return;
-    const now = this._ac.currentTime;
     const level = Math.min(11, Math.round(Math.log2(v)));   // 2→1 … 2048→11
-    const base = 220 * Math.pow(1.12, level);
-    this._note(base, now, 0.09, 0.18);
-    this._note(base * 1.5, now + 0.05, 0.1, 0.14);
+    this._woodSfx('lock', 0.85 + level * 0.05, 0.9);
+    this._woodSfx('rotate', 0.9 + level * 0.06, 0.5);
   },
 
+  // 滑动:木块在木板上推过去
   _sfxSlide() {
     if (!this._ac) return;
-    this._note(180, this._ac.currentTime, 0.05, 0.08, 'triangle');
+    this._woodSfx('move', 0.8, 0.9);
   },
 
   _sfxWin() {

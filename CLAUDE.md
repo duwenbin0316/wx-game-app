@@ -267,7 +267,7 @@ All render on a `<canvas type="2d">` node (queried via `wx.createSelectorQuery()
 | Runner | Endless runner: coin combos, coffee shield, death animation | `runner_best` |
 | Sokoban | 10 verified levels, level data inline in `index.js` | `sokoban_best`, `sokoban_unlocked` |
 | Snake | Clawd eats bugs | `snake_best` |
-| 2048 | Swipe merge, off-screen canvas share card | `game2048_best` |
+| 2048 | Swipe merge, off-screen canvas share card. Wooden look: board is a `drawSlab` with carved sockets (baked once), tiles are stained-wood blocks with burned numbers cached per value; slide/merge use wood SFX buffers from `tetris-sfx.js` | `game2048_best` |
 | Sky Wing | Vertical shmup in virtual 360-wide coords; plane follows the finger, lifting it eases the battle into slow motion (`SLOW_SCALE`); terrain generated in 240-unit chunks at 2× resolution a few rows per frame (time-budgeted) and converted to images; sprite atlas drawn at 3× with dark outlines; stars bought upgrades in the hangar; per-stage medals (kill 70% / 100% / no damage); boss core opens only after all parts are destroyed | `skywing_save` (stars, upgrades, unlocked, medals, best) |
 
 ### Sharing
