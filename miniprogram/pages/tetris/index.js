@@ -7,6 +7,7 @@
 const {
   WOOD, VARIANTS, buildCubeAtlas, drawCubeAt, trayMetrics, buildTray, drawPanel,
 } = require('../../utils/tetris-wood.js');
+const { SFX_NAMES, renderSfx } = require('../../utils/tetris-sfx.js');
 
 const COLS = 10;
 const VISIBLE_ROWS = 20;
@@ -96,9 +97,10 @@ const CLEAR_FX = {
 };
 const MAX_PARTICLES = 280;
 
-// 消行音效音阶(Hz):普通消行用 C 大调琶音,T-Spin 用 D 小调,听感上一亮一暗
+// 全清奖励和弦(Hz)
 const CHIME_MAJOR = [523.25, 659.25, 783.99, 1046.5, 1318.51, 1567.98];
-const CHIME_MINOR = [587.33, 698.46, 880.0, 1174.66, 1396.91, 1760.0];
+// 木头音效的 mp3 兜底(没有 WebAudio 时用;由 scripts/gen-tetris-sfx.js 导出)
+const SFX_FALLBACK = ['lock', 'harddrop', 'clear1', 'clear2', 'clear3', 'clear4'];
 
 function shuffle(list) {
   const arr = list.slice();
@@ -422,7 +424,7 @@ Page({
     this._cur.col += dir;
     this._lastRotate = null;
     if (this._grounded()) this._resetLock();
-    this._tickNote(180, 0.03, 0.1);
+    this._sfx('move');
     return true;
   },
 
@@ -440,7 +442,7 @@ Page({
         p.col += dc;
         this._lastRotate = { kick: i };
         if (this._grounded()) this._resetLock();
-        this._tickNote(340, 0.04, 0.12);
+        this._sfx('rotate');
         return true;
       }
     }
@@ -476,7 +478,9 @@ Page({
       cols: Object.keys(perCol).map(c => ({ c: +c, toRow: perCol[c], dist })),
     };
     this._fx.shake = Math.max(this._fx.shake, 2.5);
+    this._hardLanding = true;
     this._lock();
+    this._hardLanding = false;
   },
 
   _resetLock() {
@@ -498,7 +502,7 @@ Page({
     }
     this._holdUsed = true;
     this._drawHold();
-    this._tickNote(500, 0.05, 0.12);
+    this._sfx('hold');
   },
 
   // ── 锁定与消行 ──────────────────────────────────────────
@@ -541,6 +545,8 @@ Page({
       if (this._board[r].every(cell => !!cell)) rows.push(r);
     }
     const pts = this._scoreLock(rows.length, tspin);
+    // 落地声先响,消行的断裂 / 爆炸晚 20ms 叠上去;有消行时落地声压低,两层加起来不爆音
+    this._sfx(this._hardLanding ? 'harddrop' : 'lock', 1, rows.length ? 0.5 : 1);
 
     if (rows.length) {
       const n = Math.min(4, rows.length);
@@ -558,7 +564,6 @@ Page({
       this._playClearSfx(n, !!tspin, this._combo);
     } else {
       if (tspin) this._playClearSfx(0, true, 0);
-      else this._playSfx('drop');
       this._spawn();
     }
   },
@@ -1333,6 +1338,7 @@ Page({
   onDown() {
     if (this._state !== 'play') return;
     this._softStep();
+    this._sfx('soft');
     this._input.soft = true;
     this._input.softWait = SOFT_DAS_MS;
     this._gravAcc = 0;
@@ -1433,9 +1439,6 @@ Page({
     };
 
     this._audio = {
-      drop:     mkSfx('/assets/sounds/tetris-drop.mp3',     0.7),
-      clear:    mkSfx('/assets/sounds/tetris-clear.mp3',    0.9),
-      tetris:   mkSfx('/assets/sounds/tetris-tetris.mp3',   1.0),
       levelup:  mkSfx('/assets/sounds/tetris-levelup.mp3',  0.9),
       gameover: mkSfx('/assets/sounds/tetris-gameover.mp3', 0.9),
     };
@@ -1445,6 +1448,34 @@ Page({
     } catch (e) {
       this._wac = null;
     }
+    if (this._wac) {
+      this._buildSfxBuffers();
+    } else {
+      SFX_FALLBACK.forEach(name => {
+        this._audio[name] = mkSfx(`/assets/sounds/tetris-${name}.mp3`, 1);
+      });
+    }
+  },
+
+  // 木头音效直接合成进 WebAudio buffer(延迟低,还能变调);
+  // 每帧只合成一个,不卡开局
+  _buildSfxBuffers() {
+    this._sfxBuf = {};
+    const wac = this._wac;
+    const queue = SFX_NAMES.slice();
+    const next = () => {
+      if (!this._wac || !queue.length) return;
+      const name = queue.shift();
+      try {
+        const data = renderSfx(name, wac.sampleRate);
+        const buf = wac.createBuffer(1, data.length, wac.sampleRate);
+        const ch = buf.getChannelData(0);
+        for (let i = 0; i < data.length; i++) ch[i] = data[i];
+        this._sfxBuf[name] = buf;
+      } catch (e) {}
+      setTimeout(next, 16);
+    };
+    next();
   },
 
   _destroyAudio() {
@@ -1458,6 +1489,7 @@ Page({
     if (this._wac) {
       try { this._wac.close(); } catch (e) {}
       this._wac = null;
+      this._bus = null;
     }
   },
 
@@ -1541,129 +1573,57 @@ Page({
     try { ctx.stop(); ctx.play(); } catch (e) {}
   },
 
-  // 移动/旋转这类高频小音效用 Web Audio 合成,避免 mp3 重播延迟
-  _tickNote(freq, dur, vol) {
-    if (!this._wac || this.data.muted) return;
-    try {
-      const t = this._wac.currentTime;
-      const osc = this._wac.createOscillator();
-      const gain = this._wac.createGain();
-      osc.type = 'square';
-      osc.frequency.value = freq;
-      gain.gain.setValueAtTime(vol, t);
-      gain.gain.exponentialRampToValueAtTime(0.001, t + dur);
-      osc.connect(gain);
-      gain.connect(this._wac.destination);
-      osc.start(t);
-      osc.stop(t + dur);
-    } catch (e) {}
-  },
-
-  // ── 消行音效:木琴音色合成,行数越多越丰富 ─────────────
-  // 1 行:木块"嗒"+ 一个音;2 行:两音上行;3 行:三和弦琶音 + 低频闷响;
-  // 4 行:五音快速琶音 + 重低音 + 镲声 + 和弦余音 + 高音闪烁。
-  // T-Spin 换成小调并加一声"嗖";连击每多一次整体升高一个半音。
-  // 没有 WebAudio 时退回原来的 mp3。
-  _playClearSfx(n, tspin, combo) {
+  // 木头音效:优先 WebAudio buffer(rate 变调,±2% 随机,听起来不机械),
+  // 没有就退回 mp3(只有落定 / 硬降 / 消行有兜底)
+  _sfx(name, rate, vol, delay) {
     if (this.data.muted) return;
-    const wac = this._wac;
-    if (!wac) {
-      if (n > 0) this._playSfx(n >= 4 ? 'tetris' : 'clear');
+    const buf = this._sfxBuf && this._sfxBuf[name];
+    if (buf && this._wac) {
+      try {
+        const src = this._wac.createBufferSource();
+        src.buffer = buf;
+        src.playbackRate.value = (rate || 1) * (0.98 + Math.random() * 0.04);
+        const gain = this._wac.createGain();
+        gain.gain.value = vol === undefined ? 1 : vol;
+        src.connect(gain);
+        gain.connect(this._sfxBus());
+        src.start(this._wac.currentTime + (delay || 0));
+      } catch (e) {}
       return;
     }
-    try {
-      const t = wac.currentTime + 0.01;
-      const up = Math.pow(2, Math.min(Math.max(combo, 0), 8) / 12);
-      const scale = (tspin ? CHIME_MINOR : CHIME_MAJOR).map(f => f * up);
-      if (tspin) this._whoosh(t, 0.22);
-      if (n === 0) {
-        this._marimba(scale[0], t + 0.12, 0.2, 0.45);
-        return;
-      }
-      this._knock(t, 0.3 + n * 0.08);
-      const steps = n >= 4 ? 5 : n;
-      const gap = n >= 4 ? 0.055 : 0.075;
-      const at0 = t + (tspin ? 0.12 : 0.03);
-      for (let i = 0; i < steps; i++) {
-        this._marimba(scale[i], at0 + i * gap, 0.2 + i * 0.015, n >= 4 ? 0.7 : 0.45);
-      }
-      if (n >= 3) this._boom(t, n >= 4 ? 0.55 : 0.3);
-      if (n >= 4) {
-        this._crash(t + 0.02, 0.18);
-        const end = at0 + steps * gap;
-        this._playChord([scale[2], scale[3], scale[4]], 0, 0.09, 1.1, end);
-        for (let i = 0; i < 6; i++) {
-          this._ping(scale[5] * (1 + Math.random() * 0.5), end + 0.05 + i * 0.07, 0.05);
-        }
-      }
-    } catch (e) {}
+    this._playSfx(name);
   },
 
-  _noiseBuffer() {
-    if (!this._noiseBuf) {
+  // 音效总线:统一压一点音量,支持的话再过压缩器,多个音效叠在一起时不削波
+  _sfxBus() {
+    if (!this._bus) {
       const wac = this._wac;
-      const len = Math.floor(wac.sampleRate * 0.6);
-      this._noiseBuf = wac.createBuffer(1, len, wac.sampleRate);
-      const ch = this._noiseBuf.getChannelData(0);
-      for (let i = 0; i < len; i++) ch[i] = Math.random() * 2 - 1;
+      const bus = wac.createGain();
+      bus.gain.value = 0.72;
+      try {
+        const comp = wac.createDynamicsCompressor();
+        comp.threshold.value = -10;
+        comp.knee.value = 6;
+        comp.ratio.value = 8;
+        comp.attack.value = 0.002;
+        comp.release.value = 0.15;
+        bus.connect(comp);
+        comp.connect(wac.destination);
+      } catch (e) {
+        bus.connect(wac.destination);
+      }
+      this._bus = bus;
     }
-    return this._noiseBuf;
+    return this._bus;
   },
 
-  // 噪声 → (带通滤波,不支持就直出)→ 包络
-  _noiseHit(at, dur, vol, freq, q, sweepTo) {
-    const wac = this._wac;
-    const src = wac.createBufferSource();
-    src.buffer = this._noiseBuffer();
-    const gain = wac.createGain();
-    gain.gain.setValueAtTime(vol, at);
-    gain.gain.exponentialRampToValueAtTime(0.001, at + dur);
-    let head = src;
-    try {
-      const bp = wac.createBiquadFilter();
-      bp.type = 'bandpass';
-      bp.Q.value = q;
-      bp.frequency.setValueAtTime(freq, at);
-      if (sweepTo) bp.frequency.exponentialRampToValueAtTime(sweepTo, at + dur);
-      src.connect(bp);
-      head = bp;
-    } catch (e) {
-      gain.gain.setValueAtTime(vol * 0.4, at);
-    }
-    head.connect(gain);
-    gain.connect(wac.destination);
-    src.start(at);
-    src.stop(at + dur);
-  },
-
-  // 木块敲击声:短促的带通噪声 + 一点低频
-  _knock(at, vol) {
-    this._noiseHit(at, 0.05, vol, 1700, 4);
-    this._osc('triangle', 180, at, 0.06, vol * 0.6);
-  },
-
-  _whoosh(at, vol) {
-    this._noiseHit(at, 0.22, vol, 500, 2.5, 3200);
-  },
-
-  _crash(at, vol) {
-    this._noiseHit(at, 0.5, vol, 5200, 0.8);
-  },
-
-  // 低音"咚":正弦从 120Hz 往下滑
-  _boom(at, vol) {
-    const wac = this._wac;
-    const osc = wac.createOscillator();
-    const gain = wac.createGain();
-    osc.type = 'sine';
-    osc.frequency.setValueAtTime(120, at);
-    osc.frequency.exponentialRampToValueAtTime(42, at + 0.35);
-    gain.gain.setValueAtTime(vol, at);
-    gain.gain.exponentialRampToValueAtTime(0.001, at + 0.4);
-    osc.connect(gain);
-    gain.connect(wac.destination);
-    osc.start(at);
-    osc.stop(at + 0.42);
+  // 消行:木头断裂 → 砸碎 → 爆炸,行数越多越猛;
+  // T-Spin 先"呼"一声;连击每次音高升 3%(最多 8 级)
+  _playClearSfx(n, tspin, combo) {
+    if (tspin) this._sfx('whoosh');
+    if (n <= 0) return;
+    const rate = 1 + Math.min(Math.max(combo, 0), 8) * 0.03;
+    this._sfx(`clear${Math.min(4, n)}`, rate, 1, 0.02);
   },
 
   _osc(type, freq, at, dur, vol) {
@@ -1681,17 +1641,7 @@ Page({
     osc.stop(at + dur + 0.02);
   },
 
-  // 木琴:基音 + 约 4 倍频的泛音(衰减快),听起来像敲木条
-  _marimba(freq, at, vol, dur) {
-    this._osc('sine', freq, at, dur, vol);
-    this._osc('sine', freq * 3.93, at, dur * 0.18, vol * 0.35);
-  },
-
-  _ping(freq, at, vol) {
-    this._osc('triangle', freq, at, 0.12, vol);
-  },
-
-  // 和弦余音(全清 / 4 行收尾)
+  // 和弦余音(全清奖励)
   _playChord(freqs, gap, vol, dur, at) {
     const wac = this._wac;
     if (!wac || this.data.muted) return;

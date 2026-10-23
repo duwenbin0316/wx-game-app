@@ -35,13 +35,14 @@ wx-game-app/
 │   │   ├── gomoku-ai.js          # Gomoku AI: 5-tuple eval, easy/medium greedy, hard alpha-beta (pure, node-testable)
 │   │   ├── gomoku-board.js       # Gomoku canvas renderer (wood board, stones, drop/win animations, hit test)
 │   │   ├── tetris-wood.js        # Tetris wooden 3D art: stained-wood cube atlas, walnut tray (floor/rim layers), side panels
+│   │   ├── tetris-sfx.js         # Tetris wood SFX synthesis (modal impacts, cracks, debris, boom; pure, node-testable)
 │   │   ├── sky-data.js           # Sky Wing data: enemies, flight paths, stage scripts, bosses, upgrades (pure, node-testable)
 │   │   ├── sky-art.js            # Sky Wing vector sprite atlas (3×, outlined ships, bosses, FX) + flash/shadow variants
 │   │   ├── sky-terrain.js        # Sky Wing procedural terrain chunks (fbm heightfield, hillshade, contours, villages/roads/stations)
 │   │   └── sky-audio.js          # Sky Wing WebAudio SFX + step-sequencer music (battle / boss)
 │   ├── components/
 │   │   └── cloudTipModal/        # Reusable modal for cloud setup tips
-│   ├── assets/sounds/            # Gomoku place sounds + Tetris SFX (mp3/wav)
+│   ├── assets/sounds/            # Gomoku place sounds + Tetris SFX (level-up/game-over + baked wood SFX fallbacks)
 │   ├── images/icons/             # UI icons and sprites
 │   └── envList.js                # Cloud environment ID list
 │
@@ -54,6 +55,8 @@ wx-game-app/
 │   ├── deploy-cloud.yml          # Deploy cloud functions on cloudfunctions/** push
 │   └── upload.yml                # Upload mini program on miniprogram/** push (version in APP_VERSION)
 │
+├── scripts/
+│   └── gen-tetris-sfx.js         # Bakes Tetris wood SFX fallback mp3s (needs ffmpeg)
 ├── openspec/                     # OpenSpec specs (specs/) and change proposals (changes/)
 ├── docs/superpowers/             # Design specs and implementation plans
 ├── .mini-wiki/wiki/              # Auto-generated architecture docs (mermaid diagrams)
@@ -258,7 +261,7 @@ All render on a `<canvas type="2d">` node (queried via `wx.createSelectorQuery()
 
 | Game | Notes | Local storage key |
 |------|-------|-------------------|
-| Tetris | SRS rotations + wall kicks, T-Spin / B2B / combo, hold/next, controller-style buttons with auto-repeat, chiptune BGM + SFX. Wooden 3D look: blocks are oblique-projected wooden cubes (top face lifted up-left by `h`, south/east sides visible) drawn row-by-row top→bottom so later cubes occlude earlier sides; tray floor drawn under cubes, rim over them; board cells store type + grain variant (e.g. `'T2'`). Line clears are tiered via `CLEAR_FX` (1–4 lines: duration, column sweep, wood-chip particles, shake, label size; 4 lines adds gold shockwave/sparks) with a gravity "settle" of the rows above; clear sounds are WebAudio-synthesized marimba arpeggios (more notes per tier, minor key for T-Spin, +1 semitone per combo), falling back to the mp3s without WebAudio | `tetris_best` |
+| Tetris | SRS rotations + wall kicks, T-Spin / B2B / combo, hold/next, controller-style buttons with auto-repeat, chiptune BGM + SFX. Wooden 3D look: blocks are oblique-projected wooden cubes (top face lifted up-left by `h`, south/east sides visible) drawn row-by-row top→bottom so later cubes occlude earlier sides; tray floor drawn under cubes, rim over them; board cells store type + grain variant (e.g. `'T2'`). Line clears are tiered via `CLEAR_FX` (1–4 lines: duration, column sweep, wood-chip particles, shake, label size; 4 lines adds gold shockwave/sparks) with a gravity "settle" of the rows above; all piece SFX (move/rotate/hold/lock/hard drop/clears) are physically-modelled wood sounds from `utils/tetris-sfx.js` (modal wood impacts, fracture crackle, splinter debris, boom), rendered into WebAudio buffers at load and played through a compressed SFX bus; clears escalate crack → smash → wooden explosion, combo raises playbackRate; without WebAudio the mp3s baked by `scripts/gen-tetris-sfx.js` are used | `tetris_best` |
 | Runner | Endless runner: coin combos, coffee shield, death animation | `runner_best` |
 | Sokoban | 10 verified levels, level data inline in `index.js` | `sokoban_best`, `sokoban_unlocked` |
 | Snake | Clawd eats bugs | `snake_best` |
