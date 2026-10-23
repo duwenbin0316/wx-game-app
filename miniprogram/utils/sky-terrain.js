@@ -1120,7 +1120,8 @@ class Terrain {
     for (let k = first; k <= last; k++) {
       const ch = this.chunks[k];
       const y = vh - ((k + 1) * CH - scroll);
-      if (ch && (ch.img || ch.canvas)) {
+      // 只画生成完的块(生成中的画布还是半张空白,画出来会闪)
+      if (ch && ch.ready && (ch.img || ch.canvas)) {
         try {
           ctx.drawImage(ch.img || ch.canvas, 0, Math.floor(y), this.vw, CH + 1);
           continue;

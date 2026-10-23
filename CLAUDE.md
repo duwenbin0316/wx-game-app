@@ -40,7 +40,7 @@ wx-game-app/
 │   │   ├── sky-data.js           # Sky Wing data: enemies, flight paths, stage scripts, bosses, upgrades (pure, node-testable)
 │   │   ├── sky-art.js            # Sky Wing vector sprite atlas (3×, outlined ships, bosses, FX) + flash/shadow variants
 │   │   ├── sky-terrain.js        # Sky Wing procedural terrain chunks (fbm heightfield, hillshade, contours, villages/roads/stations)
-│   │   └── sky-audio.js          # Sky Wing WebAudio SFX + step-sequencer music (battle / boss)
+│   │   └── sky-audio.js          # Sky Wing WebAudio SFX (compressor + delay reverb, layered explosions) + step-sequencer music (drums/bass/pad/lead)
 │   ├── styles/
 │   │   └── wood.wxss             # Shared wooden UI theme: wood-page/header/knob/plate/console/key, overlay plaque
 │   ├── components/
@@ -270,7 +270,7 @@ All render on a `<canvas type="2d">` node (queried via `wx.createSelectorQuery()
 | Sokoban | 10 verified levels, level data inline in `index.js`. Wooden look: per-level floor layer (oak parquet + burned target rings), walnut wall / crate cubes from an atlas with `decorateBlock` (planks, brace, nails, burned check when on target), drawn row by row and column-sorted within a row so 3D sides occlude correctly; controls stay in layout (hidden, not removed) so the canvas never stretches | `sokoban_best`, `sokoban_unlocked` |
 | Snake | Clawd eats bugs. Wooden look: walnut tray via `trayMetrics`/`buildTray` (rows fitted to the canvas), body is a chain of orange-stained wood cubes darkening toward the tail, head cube carries Clawd eyes | `snake_best` |
 | 2048 | Swipe merge, off-screen canvas share card. Wooden look: board is a `drawSlab` with carved sockets (baked once), tiles are stained-wood blocks with burned numbers cached per value; slide/merge use wood SFX buffers from `wood-sfx.js` | `game2048_best` |
-| Sky Wing | Vertical shmup in virtual 360-wide coords; plane follows the finger, lifting it eases the battle into slow motion (`SLOW_SCALE`); terrain generated in 240-unit chunks at 2× resolution a few rows per frame (time-budgeted) and converted to images; sprite atlas drawn at 3× with dark outlines; stars bought upgrades in the hangar; per-stage medals (kill 70% / 100% / no damage); boss core opens only after all parts are destroyed | `skywing_save` (stars, upgrades, unlocked, medals, best) |
+| Sky Wing | Vertical shmup in virtual 360-wide coords; plane follows the finger, lifting it eases the battle into slow motion (`SLOW_SCALE`); terrain generated in 240-unit chunks at 2× resolution a few rows per frame (time-budgeted) and converted to images; sprite atlas drawn at 3× with dark outlines; drone swarms (`drone`, rarely fire, 45% star drop) fill the waves, kill chains within 1.5 s build a combo multiplier; hangar map switches crossfade (terrain only draws ready chunks); stars bought upgrades in the hangar; per-stage medals (kill 70% / 100% / no damage); boss core opens only after all parts are destroyed | `skywing_save` (stars, upgrades, unlocked, medals, best) |
 
 ### Sharing
 

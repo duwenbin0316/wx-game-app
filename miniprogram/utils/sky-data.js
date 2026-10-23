@@ -19,6 +19,8 @@ function makeRng(seed) {
 // air: 空中单位(按轨迹飞,有投影);ground: 地面单位(跟着地面卷动)
 // fire: 开火方式;stars: 掉落星星数;r: 碰撞半径
 const ENEMIES = {
+  // 小型无人机:成群出现的杂兵,一两发就碎,很少开火
+  drone:   { sprite: 'e_drone', air: true, hp: 2, r: 11, score: 60, stars: 1, starChance: 0.45, fire: { pattern: 'aimed', rate: 3.2, speed: 140, delay: 0.9, chance: 0.12 } },
   dart:    { sprite: 'e_dart', air: true, hp: 4, r: 13, score: 100, stars: 1, fire: { pattern: 'aimed', rate: 2.6, speed: 150, delay: 0.7, chance: 0.55 } },
   gunship: { sprite: 'e_gunship', air: true, hp: 18, r: 18, score: 300, stars: 3, rotor: true, fire: { pattern: 'burst', count: 3, rate: 1.9, speed: 165, delay: 0.5 } },
   bomber:  { sprite: 'e_bomber', air: true, hp: 42, r: 28, score: 600, stars: 6, fire: { pattern: 'fan', count: 5, spread: 0.7, rate: 1.7, speed: 135, delay: 0.6 } },
@@ -156,16 +158,46 @@ function buildScript(stage) {
   const hasWater = stage.biome !== 'desert';
 
   const templates = [
+    // 无人机大 V 编队
+    { w: 3, min: 0, make(at) {
+      const x = 110 + rnd() * 140;
+      for (let k = -4; k <= 4; k++) ev.push({ at: at + Math.abs(k) * 7, kind: 'drone', path: 'dive', p: { x: x + k * 22, speed: 165 } });
+    } },
+    // 无人机横排压境(两排)
+    { w: 3, min: 0, make(at) {
+      for (let r = 0; r < 2; r++) {
+        for (let i = 0; i < 6; i++) ev.push({ at: at + r * 34 + (i % 2) * 6, kind: 'drone', path: 'dive', p: { x: 45 + i * 54 + r * 27 - 13, speed: 125 } });
+      }
+    } },
+    // 无人机两侧回旋
+    { w: 3, min: 0.05, make(at) {
+      for (let i = 0; i < 6; i++) {
+        ev.push({ at: at + i * 9, kind: 'drone', path: 'loop', p: { x: 70, dir: 1, turn: 1.3, radius: 70, speed: 200 } });
+        ev.push({ at: at + i * 9, kind: 'drone', path: 'loop', p: { x: 290, dir: -1, turn: 1.3, radius: 70, speed: 200 } });
+      }
+    } },
+    // 无人机俯冲雨
+    { w: 3, min: 0.1, make(at) {
+      for (let i = 0; i < 10; i++) ev.push({ at: at + i * 8, kind: 'drone', path: 'dive', p: { x: 30 + rnd() * 300, drift: (rnd() - 0.5) * 80, speed: 170 + rnd() * 50 } });
+    } },
+    // 无人机两翼包抄
+    { w: 2, min: 0.15, make(at) {
+      const y = 110 + rnd() * 120;
+      for (let i = 0; i < 5; i++) {
+        ev.push({ at: at + i * 9, kind: 'drone', path: 'sweep', p: { side: -1, y, arc: 90, speed: 210 } });
+        ev.push({ at: at + i * 9, kind: 'drone', path: 'sweep', p: { side: 1, y: y + 40, arc: 90, speed: 210 } });
+      }
+    } },
     // 一列俯冲
     { w: 2, min: 0, make(at) {
       const x = 60 + rnd() * 240;
       const drift = (rnd() - 0.5) * 60;
-      for (let i = 0; i < 5; i++) ev.push({ at: at + i * 14, kind: 'dart', path: 'dive', p: { x, drift, speed: 150 } });
+      for (let i = 0; i < 7; i++) ev.push({ at: at + i * 12, kind: 'dart', path: 'dive', p: { x, drift, speed: 150 } });
     } },
     // V 字编队
     { w: 2, min: 0, make(at) {
       const x = 90 + rnd() * 180;
-      [0, -1, 1, -2, 2].forEach((k, i) => ev.push({ at: at + Math.abs(k) * 10, kind: 'dart', path: 'dive', p: { x: x + k * 26, speed: 130 } }));
+      [0, -1, 1, -2, 2, -3, 3].forEach(k => ev.push({ at: at + Math.abs(k) * 10, kind: 'dart', path: 'dive', p: { x: x + k * 26, speed: 130 } }));
     } },
     // 左右交叉横穿
     { w: 2, min: 0.05, make(at) {
@@ -221,12 +253,16 @@ function buildScript(stage) {
     }
     const pool = templates.filter(t => phase >= t.min);
     const total = pool.reduce((s, t) => s + t.w, 0);
-    let r = rnd() * total;
-    let tpl = pool[0];
-    for (const t of pool) { r -= t.w; if (r <= 0) { tpl = t; break; } }
-    tpl.make(d);
+    const pickTpl = () => {
+      let r = rnd() * total;
+      for (const t of pool) { r -= t.w; if (r <= 0) return t; }
+      return pool[0];
+    };
+    pickTpl().make(d);
+    // 时不时两波叠在一起(后半程更常见)
+    if (rnd() < 0.18 + phase * 0.25) pickTpl().make(d + 40);
     // 越往后越密
-    d += 170 - phase * 70 + rnd() * 60;
+    d += 135 - phase * 45 + rnd() * 50;
     // 穿插一点地面目标
     if (rnd() < 0.35) ev.push({ at: d - 40, kind: pick(['turret', 'turret', 'tank']) });
   }

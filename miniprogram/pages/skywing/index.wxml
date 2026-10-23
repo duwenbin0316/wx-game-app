@@ -91,6 +91,7 @@
       <view class="r-stats">
         <view class="r-stat"><text class="r-k">得分</text><text class="r-v">{{result.score}}{{result.newBest ? ' · 新纪录' : ''}}</text></view>
         <view class="r-stat"><text class="r-k">击落</text><text class="r-v">{{result.killed}} / {{result.spawned}}({{result.pct}}%)</text></view>
+        <view class="r-stat"><text class="r-k">最大连击</text><text class="r-v">{{result.maxCombo}}</text></view>
         <view class="r-stat"><text class="r-k">星星</text><text class="r-v r-gold">+{{result.stars + result.bonus}}</text></view>
       </view>
       <text class="unlock" wx:if="{{result.unlockedNext}}">新关卡已解锁!</text>

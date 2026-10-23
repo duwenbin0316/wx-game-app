@@ -186,6 +186,7 @@ Page({
       return;
     }
     if (id === this.data.sel) return;
+    this._audio.click();
     this.setData({ sel: id });
     this.buildAttract(id);
   },
@@ -206,7 +207,7 @@ Page({
     s.up[id] = lv + 1;
     this.writeSave();
     this.refreshHangar();
-    this._audio.power();
+    this._audio.buy();
     if (this._attract) this._attract.flash = 1;
   },
 
@@ -216,6 +217,7 @@ Page({
     this._save.muted = m;
     this.writeSave();
     this._audio.setMuted(m);
+    this._audio.click();
     this.setData({ muted: m });
   },
 
@@ -224,8 +226,15 @@ Page({
     const st = D.STAGES[stageId - 1];
     // 地形分帧生成,不在这里同步算(慢设备上会卡住界面好几秒)
     const t = new Terrain(st.biome, st.seed, VW, (w, h) => this.createCanvas(w, h), (c, cb) => this.toImage(c, cb));
-    this._attract = { terrain: t, stageId, scroll: 0, t: 0, clouds: [], flash: 0 };
-    for (let i = 0; i < 3; i++) this.spawnCloud(this._attract.clouds, rnd(0, this._VH));
+    // 新地图生成好之前继续显示旧地图,好了再淡入,切换关卡不闪
+    const old = this._attract;
+    let prev = null;
+    if (old) {
+      if (old.terrain.ready(old.scroll, this._VH, true)) prev = { terrain: old.terrain, scroll: old.scroll };
+      else if (old.prev) prev = old.prev;
+    }
+    this._attract = { terrain: t, stageId, scroll: 0, t: old ? old.t : 0, clouds: old ? old.clouds : [], flash: 0, prev, fade: 0 };
+    if (!old) for (let i = 0; i < 3; i++) this.spawnCloud(this._attract.clouds, rnd(0, this._VH));
   },
 
   // ── 开局 ─────────────────────────────────────────────
@@ -234,7 +243,7 @@ Page({
     const st = D.STAGES[(this.data.sel || 1) - 1] || D.STAGES[0];
     this._audio.unlock();
     try { wx.vibrateShort({ type: 'light' }); } catch (e) {}
-    this._audio.power();
+    this._audio.launch();
     try {
       // 机库背景就是这一关的地形:直接接着用,出击无需等待
       const a = this._attract;
@@ -271,9 +280,9 @@ Page({
       player: { x: VW / 2, y: VH + 60, tx: VW / 2, ty: VH * 0.78, hp: maxHp, maxHp, inv: 0, bank: 0, fireT: 0, misT: 0.5, alive: true, dieT: 0, vx: 0 },
       pb: [], pm: [], eb: [], enemies: [], fx: [], pickups: [], decals: [], clouds: [],
       boss: null,
-      stats: { spawned: 0, killed: 0, damaged: false, stars: 0, score: 0, starChain: 0 },
+      stats: { spawned: 0, killed: 0, damaged: false, stars: 0, score: 0, starChain: 0, maxCombo: 0 },
       shake: 0, flash: 0, flashColor: '255,255,255',
-      ts: 1, slowA: 0, rt: 0,
+      ts: 1, slowA: 0, rt: 0, hitStop: 0, combo: 0, comboT: 0, comboPop: 0,
       intro: 3, warnT: 0, overT: 0, clearT: 0,
       bombs: 1 + up.bomb, bombCd: 0,
       powT: 0, lowHp: 0,
@@ -450,7 +459,15 @@ Page({
     if (!a) return;
     a.t += dt;
     a.scroll += 30 * dt;
-    a.terrain.update(a.scroll, this._VH, a.terrain.ready(a.scroll, this._VH) ? 4 : 14);
+    const VH = this._VH;
+    const ready = a.terrain.ready(a.scroll, VH, true);
+    a.terrain.update(a.scroll, VH, ready ? 4 : 14);
+    if (ready) a.fade = Math.min(1, a.fade + dt * 2.5);
+    if (a.prev) {
+      a.prev.scroll += 30 * dt;
+      a.prev.terrain.update(a.prev.scroll, VH, 2);
+      if (a.fade >= 1) a.prev = null;
+    }
     this.updateClouds(a.clouds, dt, 30);
     if (a.flash > 0) a.flash = Math.max(0, a.flash - dt * 2);
   },
@@ -478,6 +495,12 @@ Page({
     this._audio.setMusicLevel(1 - g.slowA * 0.65);
     if (g.intro > 0) g.intro -= rdt;
     dt = rdt * g.ts;
+    if (g.hitStop > 0) {
+      g.hitStop -= rdt;
+      dt *= 0.12;
+    }
+    if (g.comboT > 0) g.comboT -= dt;
+    if (g.comboPop > 0) g.comboPop = Math.max(0, g.comboPop - rdt * 6);
     g.t += dt;
     g.rt += rdt;
     if (g.bombCd > 0) g.bombCd -= dt;
@@ -548,6 +571,7 @@ Page({
       p.y += dy;
     }
     p.bank += (clamp(p.vx / 260, -2, 2) - p.bank) * Math.min(1, mdt * 10);
+    if (p.mz > 0) p.mz -= dt * 16;
     if (p.inv > 0) p.inv -= dt;
 
     if (g.intro > 2) return;
@@ -557,6 +581,7 @@ Page({
     if (p.fireT <= 0) {
       p.fireT += FIRE_GAP;
       const lv = Math.min(6, up.cannon + (g.powT > 0 ? 1 : 0));
+      p.mz = 1;
       D.CANNON[lv].forEach(c => {
         g.pb.push({ x: p.x + c.dx, y: p.y - 22, vx: Math.sin(c.a) * BULLET_SPEED, vy: -Math.cos(c.a) * BULLET_SPEED, a: c.a, dmg: 1 });
       });
@@ -666,6 +691,7 @@ Page({
       if (!en.alive || en.y < -10) continue;
       const r = en.def.r + 4;
       if (Math.abs(en.x - b.x) < r && Math.abs(en.y - b.y) < r) {
+        this.impact(b.x, b.y);
         this.damageEnemy(en, b.dmg, b.x, b.y);
         return true;
       }
@@ -675,8 +701,9 @@ Page({
       for (const pt of boss.parts) {
         if (!pt.alive) continue;
         if (Math.abs(pt.x - b.x) < 17 && Math.abs(pt.y - b.y) < 17) {
+          this.impact(b.x, b.y);
           this.damagePart(pt, b.dmg);
-          this.sparks(b.x, b.y, 2, '#FFE6A0');
+          if (Math.random() < 0.5) this.sparks(b.x, b.y, 1, '#FFE6A0');
           return true;
         }
       }
@@ -704,7 +731,7 @@ Page({
     const en = {
       kind: ev.kind, def, alive: true, t: 0, flash: 0, hp: def.hp * g.sc.hp, maxHp: def.hp * g.sc.hp,
       x: 0, y: -40, rot: 0, head: 0, fireT: def.fire.delay + Math.random() * 0.6, burst: 0, burstT: 0,
-      spin: Math.random() * 6, smokeT: 0, shoots: !def.fire.chance || Math.random() < def.fire.chance,
+      spin: Math.random() * 6, smokeT: 0, shoots: def.fire.chance === undefined || Math.random() < def.fire.chance,
     };
     if (def.ground) {
       // 地面单位:找一块合适的陆地 / 水面,从屏幕上方卷进来
@@ -895,13 +922,22 @@ Page({
     en.alive = false;
     const g = this._g;
     g.stats.killed++;
-    g.stats.score += en.def.score;
+    // 连击:1.5 秒内接连击落,分数按连击数加成
+    g.combo = g.comboT > 0 ? g.combo + 1 : 1;
+    g.comboT = 1.5;
+    g.comboPop = 1;
+    if (g.combo > g.stats.maxCombo) g.stats.maxCombo = g.combo;
+    g.stats.score += Math.round(en.def.score * (1 + Math.min(g.combo, 50) * 0.02));
+    if (g.combo === 20 || g.combo === 50 || g.combo === 100) {
+      this.addText(`${g.combo} 连击!`, '#FFD860');
+      this._audio.combo(g.combo);
+    }
     const size = en.def.elite ? 3 : en.def.r > 20 ? 2 : 1;
     this.explode(en.x, en.y, size, !en.def.ground);
     if (en.def.ground) {
       g.decals.push({ wx: en.x, wy: en.wy, life: 60, rot: Math.random() * 6 });
     }
-    this.dropStars(en.x, en.y, en.def.stars, en.def.elite);
+    if (!en.def.starChance || Math.random() < en.def.starChance) this.dropStars(en.x, en.y, en.def.stars, en.def.elite);
     // 大家伙有机会掉补给
     if (en.def.r >= 18 || en.def.elite) {
       const r = Math.random();
@@ -1143,6 +1179,13 @@ Page({
     this.addFx({ text, color, x: this._g.player.x, y: this._g.player.y - 40, vy: -30, life: 1.2, size: 1, size1: 1 });
   },
 
+  // 子弹打中的小闪光
+  impact(x, y) {
+    this._audio.hit();
+    if (this._q <= 0) return;
+    this.addFx({ spr: 'g_y', x, y: y - 3, life: 0.07, size: 7, size1: 15, add: true, alpha: 0.85 });
+  },
+
   sparks(x, y, n, color) {
     for (let i = 0; i < n; i++) {
       const a = Math.random() * Math.PI * 2;
@@ -1175,7 +1218,9 @@ Page({
     if (size >= 2) this.addFx({ spr: 'ring', x, y, life: 0.5, size: 10, size1: 40 * size, add: true, alpha: 0.9 });
     this.addFx({ spr: 'g_w', x, y, life: 0.15, size: 30 * size, size1: 50 * size, add: true, alpha: 0.9 });
     g.shake = Math.max(g.shake, size * 2.5);
-    this._audio.boom(size >= 2 ? 2 : 1);
+    // 大家伙炸掉时顿一下帧,打击感更足
+    if (size >= 2) g.hitStop = Math.max(g.hitStop || 0, size >= 3 ? 0.1 : 0.045);
+    this._audio.boom(size >= 3 ? 3 : size >= 2 ? 2 : 1);
     if (size >= 3) {
       try { wx.vibrateShort({ type: 'heavy' }); } catch (e) {}
     }
@@ -1244,7 +1289,7 @@ Page({
       screen: 'result',
       result: {
         win, stageName: st.name, score: g.stats.score, best, newBest, stars: g.stats.stars, bonus,
-        pct, killed: g.stats.killed, spawned: g.stats.spawned, medals, hasNext: win && st.id < 3, unlockedNext,
+        pct, killed: g.stats.killed, spawned: g.stats.spawned, maxCombo: g.stats.maxCombo, medals, hasNext: win && st.id < 3, unlockedNext,
       },
     });
   },
@@ -1300,7 +1345,18 @@ Page({
     const ctx = this._ctx;
     const VH = this._VH;
     if (!a) return;
-    a.terrain.draw(ctx, a.scroll, VH);
+    if (a.fade < 1) {
+      if (a.prev) a.prev.terrain.draw(ctx, a.prev.scroll, VH);
+      else {
+        ctx.fillStyle = '#060A18';
+        ctx.fillRect(0, 0, VW, VH);
+      }
+    }
+    if (a.fade > 0) {
+      ctx.globalAlpha = a.fade;
+      a.terrain.draw(ctx, a.scroll, VH);
+      ctx.globalAlpha = 1;
+    }
     this.drawClouds(a.clouds, true);
     // 战机在下方悬停
     const x = VW / 2 + Math.sin(a.t * 0.7) * 18;
@@ -1400,6 +1456,15 @@ Page({
     const p = g.player;
     if (p.alive && !(p.inv > 0 && Math.floor(g.t * 20) % 2)) {
       this.drawPlayerShip(p.x, p.y, p.bank, g.t);
+      if (p.mz > 0) {
+        // 枪口火光
+        ctx.globalCompositeOperation = 'lighter';
+        const k = 1 - Math.abs(clamp(Math.round(p.bank), -2, 2)) * 0.12;
+        const a = clamp(p.mz, 0, 1);
+        [-5, 5].forEach(dx => this.glow('g_y', p.x + dx * k, p.y - 25, 13 * a + 4, 16 * a + 4, 0.9 * a));
+        this.glow('g_w', p.x, p.y - 27, 9 * a, 9 * a, 0.7 * a);
+        ctx.globalCompositeOperation = 'source-over';
+      }
       if (g.powT > 0) {
         ctx.globalCompositeOperation = 'lighter';
         this.glow('g_o', p.x, p.y, 70, 70, 0.25 + Math.sin(g.t * 12) * 0.1);
@@ -1659,6 +1724,21 @@ Page({
     ctx.fillRect(bx, by, bw * pct, 6);
     ctx.fillStyle = 'rgba(255,255,255,0.35)';
     ctx.fillRect(bx, by, bw * pct, 2);
+    // 连击计数(右上,新增一击时弹一下)
+    if (g.combo >= 3 && g.comboT > 0) {
+      const a = clamp(g.comboT / 0.4, 0, 1);
+      const c = g.combo;
+      const col = c < 10 ? '#FFFFFF' : c < 25 ? '#FFD860' : c < 50 ? '#FF9A3C' : '#FF6AD0';
+      const fs = Math.round(24 + g.comboPop * 8 + Math.min(c, 60) * 0.12);
+      ctx.globalAlpha = a;
+      this.text(String(c), VW - 14, 84, `bold italic ${fs}px sans-serif`, col, 'right');
+      this.text('连击', VW - 14, 100, 'bold 11px sans-serif', 'rgba(230,240,255,0.9)', 'right');
+      ctx.fillStyle = 'rgba(4,8,20,0.55)';
+      ctx.fillRect(VW - 54, 105, 40, 3);
+      ctx.fillStyle = col;
+      ctx.fillRect(VW - 54, 105, 40 * clamp(g.comboT / 1.5, 0, 1), 3);
+      ctx.globalAlpha = 1;
+    }
     // 关卡进度(右侧细条)
     if (!g.boss) {
       const prog = clamp(g.dist / g.stage.length, 0, 1);

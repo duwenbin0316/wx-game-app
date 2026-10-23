@@ -257,6 +257,26 @@ function drawDart(g) {
   nozzle(g, 0, -15.2, 1.9);
 }
 
+// ── 小型无人机(机头朝下):红灰涂装的三角翼 + 发光"眼睛" ──
+function drawDrone(g) {
+  const wing = [[0, 12.4], [12.6, -4.4], [13, -7.6], [7, -6.4], [0, -9], [-7, -6.4], [-13, -7.6], [-12.6, -4.4]];
+  fillPath(g, wing, lin(g, -13, -8, 13, 12, [[0, '#B4BAC6'], [0.5, '#6A7080'], [1, '#2C303A']]));
+  clip(g, wing, () => {
+    [-1, 1].forEach(side => {
+      fillPath(g, [[side * 9.6, -1.6], [side * 13.4, -4.6], [side * 13.4, -8], [side * 9.6, -6]], '#C8302A');
+      line(g, [[side * 2.4, 6], [side * 10.4, -4.4]], 'rgba(20,24,32,0.55)', 0.35);
+    });
+    fillPath(g, [[-14, -9], [14, -9], [14, -6.6], [-14, -6.6]], 'rgba(20,24,32,0.35)');
+  });
+  line(g, [[-12.6, -4.4], [0, 12.4], [12.6, -4.4]], 'rgba(255,255,255,0.55)', 0.4);
+  // 机身吊舱
+  ellipse(g, 0, 1, 3.4, 8, lin(g, -3.4, 0, 3.4, 0, [[0, '#2A2E38'], [0.4, '#9AA0AE'], [1, '#22262E']]));
+  nozzle(g, 0, -7.6, 1.8);
+  // 发光的眼
+  circle(g, 0, 6.4, 2.4, '#14080A');
+  circle(g, 0, 6.4, 1.7, rad(g, 0, 6.4, 0, 1.7, [[0, '#FFFFFF'], [0.35, '#FF6A5A'], [1, '#A0140C']]));
+}
+
 // ── 武装直升机(机头朝下;主旋翼运行时画)──
 function drawGunship(g) {
   const rng = makeRng(33);
@@ -941,6 +961,7 @@ function buildArt(createCanvas) {
   const unit = { flash: true, ol: 0.65, shade: true };
 
   [-2, -1, 0, 1, 2].forEach(b => add(`player${b}`, 56, 58, g => drawPlayer(g, b), Object.assign({ ol: 0.7, shade: true }, b === 0 ? { shadow: true } : {})));
+  add('e_drone', 30, 30, drawDrone, ship);
   add('e_dart', 34, 38, drawDart, ship);
   add('e_gunship', 42, 58, drawGunship, ship);
   add('e_bomber', 74, 58, drawBomber, ship);
