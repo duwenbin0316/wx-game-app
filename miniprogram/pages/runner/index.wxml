@@ -1,37 +1,53 @@
-<view class="runner-container" bindtouchstart="onTap">
+<view class="wood-page runner-container" bindtouchstart="onTap">
   <canvas id="game-canvas" type="2d" class="game-canvas"></canvas>
 
-  <!-- 开始画面 -->
-  <view class="overlay" wx:if="{{gameState === 'idle'}}">
-    <view class="overlay-card">
-      <text class="overlay-logo">>></text>
-      <text class="overlay-title">Claude 快跑</text>
-      <text class="overlay-sub">躲避 BUG · DON'T GET CAUGHT</text>
-      <view class="hint-row">
-        <text class="hint-text">点击屏幕开始</text>
+  <!-- 开始画面:点哪儿都能开始 -->
+  <view class="overlay overlay-light" wx:if="{{gameState === 'idle'}}">
+    <view class="plaque">
+      <view class="nail nail-tl"></view>
+      <view class="nail nail-tr"></view>
+      <view class="nail nail-bl"></view>
+      <view class="nail nail-br"></view>
+      <view class="plaque-head">
+        <text class="plaque-title">Claude 快跑</text>
       </view>
-      <text class="hint-small">空中再点 → 二段跳</text>
-      <text class="hint-small">吃 ◆ 加分连击 · 接 ☕ 护盾挡一次</text>
+      <view class="plaque-body">
+        <text class="plaque-text">躲开 BUG,别被抓住</text>
+        <text class="plaque-hint">空中再点一下 → 二段跳</text>
+        <text class="plaque-hint">吃 ◆ 加分连击 · 接 ☕ 护盾挡一次</text>
+        <view class="btn-col btn-col-gap">
+          <view class="wbtn wbtn-primary">点击屏幕开始</view>
+        </view>
+      </view>
     </view>
   </view>
 
   <!-- 结束画面 -->
-  <view class="overlay over-overlay" wx:if="{{gameState === 'over'}}">
-    <view class="overlay-card over-card">
-      <text class="over-title">GAME OVER</text>
-      <view class="score-block">
-        <text class="score-label">SCORE</text>
-        <text class="score-value">{{score}}</text>
+  <view class="overlay" wx:if="{{gameState === 'over'}}">
+    <view class="plaque">
+      <view class="nail nail-tl"></view>
+      <view class="nail nail-tr"></view>
+      <view class="nail nail-bl"></view>
+      <view class="nail nail-br"></view>
+      <view class="plaque-head">
+        <text class="plaque-title">游戏结束</text>
       </view>
-      <view class="best-block">
-        <text class="best-label">BEST</text>
-        <text class="best-value">{{bestScore}}</text>
-      </view>
-      <view class="action-row">
-        <view class="retry-btn" catchtouchstart="onRetry">
-          <text class="retry-text">再来一次</text>
+      <view class="plaque-body">
+        <view class="newbest-badge" wx:if="{{score > 0 && score >= bestScore}}">
+          <text class="newbest-text">新纪录</text>
         </view>
-        <button class="runner-share-btn" open-type="share" catchtouchstart="">分享</button>
+        <text class="score-label" wx:else>本局得分</text>
+        <text class="score-num">{{score}}</text>
+        <view class="stat-grid">
+          <view class="stat-cell">
+            <text class="cell-label">最高</text>
+            <text class="cell-value">{{bestScore}}</text>
+          </view>
+        </view>
+        <view class="btn-col">
+          <view class="wbtn wbtn-primary" catchtouchstart="onRetry">再来一次</view>
+          <button class="wbtn wbtn-share" open-type="share" catchtouchstart="">分享战绩</button>
+        </view>
       </view>
     </view>
   </view>

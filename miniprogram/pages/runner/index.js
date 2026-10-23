@@ -12,6 +12,9 @@ const PH = 32;
 
 // ─── 玩家造型：共享 Clawd 精灵（全小程序统一，见 utils/clawd.js）──
 const { GRID_COLS, GRID_ROWS, drawClawd } = require('../../utils/clawd');
+// 木质舞台布景(背板 / 月亮 / 云 / 远景小镇 / 木梁地面),见 utils/runner-wood.js
+const { buildRunnerArt } = require('../../utils/runner-wood.js');
+const { drawSlab } = require('../../utils/wood-art.js');
 const PLAYER_PS = 1.3;  // 单格边长：视觉约 31×26px，居中于 32×32 碰撞框
 
 
@@ -76,6 +79,7 @@ Page({
         this._initGroundDeco();
         this._initUnderground();
         this._initFlora();
+        this._initWoodArt();
         this._initAudio();
         this._drawBg();
       });
@@ -141,6 +145,7 @@ Page({
     this._speed       = SPEED_INIT;
     this._frame       = 0;
     this._bgOffset    = 0;
+    this._woodScroll  = 0;
     this._nextObstIn  = 90;
     this._scoreVal    = 0;
 
@@ -204,6 +209,7 @@ Page({
     this._frame++;
     this._speed     = Math.min(SPEED_MAX, SPEED_INIT + this._frame * 0.005);
     this._bgOffset  = (this._bgOffset + this._speed) % 80;
+    this._woodScroll = (this._woodScroll || 0) + this._speed;
     this._scoreVal  = Math.floor(this._frame / 8) + this._bonus;
 
     if (this._frame % 10 === 0) {
@@ -224,7 +230,7 @@ Page({
     if (p.y >= this._groundY - PH) {
       // 从空中落地扬起尘土
       if (p.jumps > 0 && p.vy > 3) {
-        this._burst(p.x + PW / 2, this._groundY - 2, '#5A5A7A', 6, 3);
+        this._burst(p.x + PW / 2, this._groundY - 2, this._wood ? '#D2A874' : '#5A5A7A', 6, 3);
       }
       p.y    = this._groundY - PH;
       p.vy   = 0;
@@ -232,7 +238,7 @@ Page({
     }
     // 奔跑时脚下偶尔带起小尘点
     if (p.jumps === 0 && this._frame % 9 === 0) {
-      this._burst(p.x + 4, this._groundY - 2, '#44445F', 1, 1.2);
+      this._burst(p.x + 4, this._groundY - 2, this._wood ? '#B88A58' : '#44445F', 1, 1.2);
     }
 
     // 生成障碍(带组合模式)
@@ -507,10 +513,12 @@ Page({
     // 背景
     this._drawBg();
 
-    // 移动地面虚线
-    ctx.fillStyle = '#3A3A5E';
-    for (let x = -(this._bgOffset % 80); x < W + 80; x += 80) {
-      ctx.fillRect(x, gY + 6, 36, 2);
+    // 移动地面虚线(木质地面自己会滚动,不用画)
+    if (!this._wood) {
+      ctx.fillStyle = '#3A3A5E';
+      for (let x = -(this._bgOffset % 80); x < W + 80; x += 80) {
+        ctx.fillRect(x, gY + 6, 36, 2);
+      }
     }
 
     // 金币与咖啡
@@ -547,24 +555,34 @@ Page({
     for (const lb of this._labels) {
       const a = lb.f < 8 ? lb.f / 8 : 1 - Math.max(0, lb.f - 30) / 25;
       ctx.globalAlpha = Math.max(0, a);
-      ctx.fillStyle = lb.color;
       ctx.font = lb.big ? 'bold 22px monospace' : 'bold 13px monospace';
       ctx.textAlign = 'center';
+      ctx.lineJoin = 'round';
+      ctx.lineWidth = lb.big ? 4 : 3;
+      ctx.strokeStyle = 'rgba(30, 12, 2, 0.8)';
+      ctx.strokeText(lb.text, lb.x, lb.y);
+      ctx.fillStyle = lb.color;
       ctx.fillText(lb.text, lb.x, lb.y);
     }
     ctx.globalAlpha = 1;
 
-    // HUD:分数 + 护盾 + 连击
-    ctx.fillStyle = 'rgba(255,255,255,0.5)';
-    ctx.font = 'bold 15px monospace';
+    // HUD:分数 + 护盾 + 连击(浅色字 + 深色描边,压在木背板上也看得清)
     ctx.textAlign = 'left';
-    ctx.fillText(String(this._scoreVal).padStart(5, '0'), 16, 32);
+    ctx.lineJoin = 'round';
+    ctx.lineWidth = 3;
+    ctx.strokeStyle = 'rgba(30, 12, 2, 0.75)';
+    ctx.font = 'bold 16px monospace';
+    const scoreText = String(this._scoreVal).padStart(5, '0');
+    ctx.strokeText(scoreText, 16, 32);
+    ctx.fillStyle = '#FFF0D2';
+    ctx.fillText(scoreText, 16, 32);
     if (this._shield) {
-      ctx.fillText('☕', 88, 32);
+      ctx.fillText('☕', 92, 32);
     }
     if (this._combo >= 2) {
-      ctx.fillStyle = 'rgba(245, 200, 66, 0.85)';
       ctx.font = 'bold 12px monospace';
+      ctx.strokeText(`COMBO ×${this._combo}`, 16, 52);
+      ctx.fillStyle = '#FFD46A';
       ctx.fillText(`COMBO ×${this._combo}`, 16, 52);
     }
 
@@ -633,9 +651,37 @@ Page({
     this._drawGroundLine();
   },
 
+  // 木质布景:背板 / 远景小镇 / 云 / 地面都预先画好,运行时只贴图。
+  // 离屏 canvas 不可用时 _wood 为空,沿用原来的像素画法
+  _initWoodArt() {
+    this._wood = null;
+    try {
+      const make = (w, h) => wx.createOffscreenCanvas({ type: '2d', width: w, height: h });
+      this._wood = buildRunnerArt(make, this._W, this._H, this._groundY, this._dpr);
+    } catch (e) {
+      this._wood = null;
+    }
+  },
+
+  _cloudSprite(r) {
+    const wd = this._wood;
+    if (!wd.clouds[r]) wd.clouds[r] = wd.makeCloud(r);
+    return wd.clouds[r];
+  },
+
   // 天空层：背景色 + 星星 + 月亮 + 云朵
   _drawSky() {
     const { _ctx: ctx, _W: W, _H: H } = this;
+    if (this._wood) {
+      ctx.fillStyle = '#2A170B';
+      ctx.fillRect(-10, -10, W + 20, H + 20);
+      ctx.drawImage(this._wood.backdrop, 0, 0, W, this._groundY);
+      for (const cl of (this._clouds || [])) {
+        const sp = this._cloudSprite(cl.r);
+        ctx.drawImage(sp.canvas, cl.x - sp.ox, cl.y - sp.oy, sp.w, sp.h);
+      }
+      return;
+    }
     ctx.fillStyle = '#1A1A2E';
     ctx.fillRect(-10, -10, W + 20, H + 20);
     ctx.fillStyle = '#5A5A8A';
@@ -649,6 +695,13 @@ Page({
   // 远景建筑剪影（极暗色，视差滚动）
   _drawBuildings() {
     const { _ctx: ctx, _groundY: gY } = this;
+    if (this._wood) {
+      const town = this._wood.town;
+      const off = ((this._woodScroll || 0) * 0.08) % town.w;
+      ctx.drawImage(town.canvas, -off, gY - town.h, town.w, town.h);
+      ctx.drawImage(town.canvas, town.w - off, gY - town.h, town.w, town.h);
+      return;
+    }
     ctx.fillStyle = '#1F1F38';
     for (const b of (this._buildings || [])) {
       ctx.fillRect(b.x, gY - b.h, b.w, b.h);
@@ -667,6 +720,15 @@ Page({
   // 地下层：土层渐变 + 岩块 + 矿簇
   _drawUnderground() {
     const { _ctx: ctx, _W: W, _H: H, _groundY: gY } = this;
+    if (this._wood) {
+      // 木梁地面:按滚动距离平铺
+      const gr = this._wood.ground;
+      const off = (this._woodScroll || 0) % gr.w;
+      for (let x = -off; x < W; x += gr.w) {
+        ctx.drawImage(gr.canvas, Math.floor(x), gY - 1, gr.w + 0.5, gr.h);
+      }
+      return;
+    }
     ctx.fillStyle = '#1D1D34';
     ctx.fillRect(0, gY, W, 18);
     ctx.fillStyle = '#1B1B2E';
@@ -690,6 +752,7 @@ Page({
   // 地面线 + 高亮细条 + 地表碎石
   _drawGroundLine() {
     const { _ctx: ctx, _W: W, _groundY: gY } = this;
+    if (this._wood) return;
     ctx.fillStyle = '#4A6FA5';
     ctx.fillRect(0, gY, W, 2);
     ctx.fillStyle = '#2A2A4A';
@@ -838,35 +901,24 @@ Page({
     const ctx = offscreen.getContext('2d');
     ctx.scale(dpr, dpr);
 
-    // 卡片背景 + 边框
-    ctx.fillStyle = '#1A1A2E';
+    // 卡片:深色桌面上一块钉了铜钉的木牌
+    ctx.fillStyle = '#2A170B';
     ctx.fillRect(0, 0, cw, ch);
-    ctx.strokeStyle = '#FF6B6B';
-    ctx.lineWidth = 3;
-    ctx.strokeRect(2, 2, cw - 4, ch - 4);
+    drawSlab(ctx, 14, 14, cw - 32, ch - 32, { base: '#A86F3E', depth: 5, radius: 14, seed: 12, nails: 3.5 });
 
     ctx.textAlign = 'center';
-
-    // GAME OVER
-    ctx.fillStyle = '#FF6B6B';
-    ctx.font = 'bold 26px monospace';
-    ctx.fillText('GAME  OVER', cw / 2, 42);
-
-    // SCORE
-    ctx.fillStyle = '#6A6A9A';
-    ctx.font = '12px monospace';
-    ctx.fillText('S C O R E', cw / 2, 66);
-    ctx.fillStyle = '#D97757';
-    ctx.font = 'bold 46px monospace';
-    ctx.fillText(String(score), cw / 2, 116);
-
-    // BEST
-    ctx.fillStyle = '#6A6A9A';
-    ctx.font = '12px monospace';
-    ctx.fillText('B E S T', cw / 2, 142);
-    ctx.fillStyle = '#F5C842';
-    ctx.font = 'bold 28px monospace';
-    ctx.fillText(String(best), cw / 2, 174);
+    const carve = (text, y, font, color) => {
+      ctx.font = font;
+      ctx.fillStyle = 'rgba(40, 18, 4, 0.7)';
+      ctx.fillText(text, cw / 2 - 7, y + 2);
+      ctx.fillStyle = color;
+      ctx.fillText(text, cw / 2 - 7, y);
+    };
+    carve('Claude 快跑', 52, 'bold 22px monospace', '#FFF0D2');
+    carve('S C O R E', 80, '12px monospace', '#F6DDB0');
+    carve(String(score), 126, 'bold 44px monospace', '#FFD46A');
+    carve('B E S T', 154, '12px monospace', '#F6DDB0');
+    carve(String(best), 186, 'bold 26px monospace', '#FFF2DA');
 
     wx.canvasToTempFilePath({
       canvas: offscreen,
