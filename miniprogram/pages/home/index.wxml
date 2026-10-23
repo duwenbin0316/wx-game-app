@@ -1,12 +1,12 @@
-<view class="home-container">
-  <!-- 像素角色 Logo 区域 -->
+<view class="wood-bg home-container">
+  <!-- Logo:木圆牌上的 Clawd -->
   <view class="header">
     <canvas id="logo-canvas" type="2d" class="logo-canvas"></canvas>
     <text class="title">GAME HUB</text>
-    <text class="subtitle">像素游戏大厅</text>
+    <text class="subtitle">木头游戏大厅</text>
   </view>
 
-  <!-- 游戏列表 -->
+  <!-- 游戏列表:一块块木牌 -->
   <view class="game-list">
     <view
       wx:for="{{games}}"
@@ -15,6 +15,9 @@
       data-url="{{item.url}}"
       bindtap="onTapGame"
     >
+      <view class="game-badge">
+        <text class="game-icon">{{item.icon}}</text>
+      </view>
       <view class="game-card-main">
         <text class="game-name">{{item.name}}</text>
         <text class="game-desc">{{item.desc}}</text>

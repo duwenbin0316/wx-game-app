@@ -21,7 +21,7 @@ wx-game-app/
 │   ├── app.json                  # App manifest with page routes
 │   ├── app.wxss                  # Global styles
 │   ├── pages/
-│   │   ├── home/                 # Game launcher hub (pixel art logo, game list)
+│   │   ├── home/                 # Game launcher hub (Clawd on a maple medallion, wooden game cards with icon badges)
 │   │   ├── online/               # Gomoku lobby: room list, create/join (~360 lines)
 │   │   ├── gomoku/               # Five-in-a-row, online + offline, canvas board (~1730 lines)
 │   │   ├── tetris/               # SRS kicks, T-Spin/B2B/combo, chiptune BGM, wooden 3D look (~1250 lines)
@@ -74,7 +74,7 @@ wx-game-app/
 
 1. Create `miniprogram/pages/<id>/` with the 4 standard files.
 2. Register the route in `miniprogram/app.json` → `pages`.
-3. Add an entry (`id`, `name`, `desc`, `url`) to the `games` array in `miniprogram/pages/home/index.js`.
+3. Add an entry (`id`, `icon`, `name`, `desc`, `url`) to the `games` array in `miniprogram/pages/home/index.js` (`icon` is an emoji shown on the card's wooden badge).
 4. Reuse `utils/clawd.js` for the mascot sprite instead of redrawing it.
 
 Each page directory contains exactly 4 files: `index.js`, `index.json`, `index.wxml`, `index.wxss`.
