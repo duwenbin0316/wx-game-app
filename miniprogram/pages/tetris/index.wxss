@@ -33,13 +33,13 @@ page {
 
 .pause-bar {
   width: 8rpx;
-  height: 26rpx;
+  height: 32rpx;
   border-radius: 2rpx;
   background: #4A2810;
   box-shadow: 0 2rpx 0 rgba(255, 235, 200, 0.45);
 }
 
-.mute-icon { font-size: 30rpx; }
+.mute-icon { font-size: 36rpx; }
 
 .header-right {
   display: flex;
@@ -139,11 +139,11 @@ page {
 }
 
 .cbtn {
-  width: 150rpx;
-  height: 84rpx;
+  width: 156rpx;
+  height: 104rpx;
 }
 
-.cbtn-wide { width: 314rpx; }
+.cbtn-wide { width: 326rpx; }
 
 .rot-glyph {
   font-size: 44rpx;
@@ -174,3 +174,12 @@ page {
   border-radius: 2rpx;
   background: #FFEBD2;
 }
+
+/* 按键放大后,箭头和字也跟着放大 */
+.cbtn .arr-left  { border-top-width: 18rpx; border-bottom-width: 18rpx; border-right-width: 26rpx; }
+.cbtn .arr-right { border-top-width: 18rpx; border-bottom-width: 18rpx; border-left-width: 26rpx; }
+.cbtn .arr-down  { border-left-width: 18rpx; border-right-width: 18rpx; border-top-width: 26rpx; }
+.cbtn .wood-key-text { font-size: 28rpx; }
+.cbtn .rot-glyph { font-size: 52rpx; }
+.cbtn .rot-main { font-size: 60rpx; }
+.cbtn .drop-bar { width: 44rpx; }

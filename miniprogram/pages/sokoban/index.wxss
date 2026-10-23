@@ -30,8 +30,8 @@ page {
 
 .header-select {
   width: auto;
-  padding: 0 22rpx;
-  font-size: 24rpx;
+  padding: 0 28rpx;
+  font-size: 28rpx;
 }
 
 /* ── 游戏画布 ── */
@@ -48,7 +48,7 @@ page {
   flex-direction: row;
   align-items: center;
   justify-content: space-between;
-  padding: 24rpx 40rpx 44rpx;
+  padding: 24rpx 28rpx 44rpx;
 }
 
 .controls-hidden { visibility: hidden; }
@@ -67,30 +67,36 @@ page {
   gap: 12rpx;
 }
 
+/* 方向键做大:单键约 72×62px,拇指好按 */
 .dpad-key {
-  width: 96rpx;
-  height: 88rpx;
+  width: 144rpx;
+  height: 124rpx;
 }
 
+.dpad-key .arr-up    { border-left-width: 22rpx; border-right-width: 22rpx; border-bottom-width: 30rpx; }
+.dpad-key .arr-down  { border-left-width: 22rpx; border-right-width: 22rpx; border-top-width: 30rpx; }
+.dpad-key .arr-left  { border-top-width: 22rpx; border-bottom-width: 22rpx; border-right-width: 30rpx; }
+.dpad-key .arr-right { border-top-width: 22rpx; border-bottom-width: 22rpx; border-left-width: 30rpx; }
+
 .dpad-center {
-  width: 96rpx;
-  height: 88rpx;
+  width: 144rpx;
+  height: 124rpx;
 }
 
 /* ── 撤销/重开按钮 ── */
 .side-btns {
   display: flex;
   flex-direction: column;
-  gap: 34rpx;
+  gap: 40rpx;
 }
 
 .side-key {
-  width: 220rpx;
-  height: 88rpx;
+  width: 200rpx;
+  height: 120rpx;
 }
 
 .side-key .wood-key-text {
-  font-size: 28rpx;
+  font-size: 32rpx;
 }
 
 /* ── 通关 ── */
