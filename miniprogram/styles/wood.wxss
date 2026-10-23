@@ -414,3 +414,20 @@
   color: #EBCB98;
   text-align: center;
 }
+
+/* 可滚动页面用的桌面背景(不固定定位,随内容拉长) */
+.wood-bg {
+  background-color: #26150A;
+  background-image:
+    repeating-linear-gradient(90deg, rgba(0, 0, 0, 0.28) 0, rgba(0, 0, 0, 0.28) 2rpx, transparent 2rpx, transparent 188rpx),
+    repeating-linear-gradient(90deg, rgba(255, 214, 160, 0.035) 0, rgba(255, 214, 160, 0.035) 5rpx, transparent 5rpx, transparent 13rpx, rgba(0, 0, 0, 0.05) 13rpx, rgba(0, 0, 0, 0.05) 17rpx, transparent 17rpx, transparent 29rpx),
+    radial-gradient(ellipse at 50% 35%, #45291A 0%, #2C180C 60%, #1C0F07 100%);
+  color: #F3DDB6;
+  font-family: monospace;
+}
+
+/* 木键帽禁用态 */
+.wood-key-disabled {
+  opacity: 0.4;
+  box-shadow: 0 4rpx 0 #5A3218, inset 0 2rpx 0 rgba(255, 244, 220, 0.3);
+}

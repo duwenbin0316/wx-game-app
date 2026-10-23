@@ -1,5 +1,5 @@
-﻿<view class="container">
-  <view class="game-header">
+﻿<view class="wood-bg container">
+  <view class="wood-plate game-header">
     <view class="header-top">
       <view class="header-slot header-left">
         <text class="mode-pill">{{mode === 'online' ? (myColor === 'black' ? '你是：黑棋' : '你是：白棋') : (isAiMode ? '人机对战' : '本地对战')}}</text>
@@ -46,44 +46,53 @@
   <view class="board-bar">
     <text class="board-tip {{ghostTip ? 'tip-on' : ''}}">{{reviewMode ? '复盘中 · 第 ' + reviewStep + ' / ' + reviewTotal + ' 手' : (ghostTip || (confirmMode ? '点选位置,再点一次落子' : '点击交叉点落子'))}}</text>
     <view class="toggle-row">
-      <view class="toggle {{confirmMode ? 'toggle-on' : ''}}" bindtap="onToggleConfirm">落子确认</view>
-      <view class="toggle {{showNumbers ? 'toggle-on' : ''}}" bindtap="onToggleNumbers">手数</view>
+      <view class="wood-key toggle {{confirmMode ? 'toggle-on' : ''}}" bindtap="onToggleConfirm">落子确认</view>
+      <view class="wood-key toggle {{showNumbers ? 'toggle-on' : ''}}" bindtap="onToggleNumbers">手数</view>
     </view>
   </view>
 
   <!-- 复盘控制条 -->
   <view class="review-bar" wx:if="{{reviewMode}}">
-    <view class="rv-btn" data-act="first" bindtap="onReviewStep">|◀</view>
-    <view class="rv-btn" data-act="prev" bindtap="onReviewStep">◀</view>
+    <view class="wood-key rv-btn" data-act="first" bindtap="onReviewStep">|◀</view>
+    <view class="wood-key rv-btn" data-act="prev" bindtap="onReviewStep">◀</view>
     <text class="rv-step">{{reviewStep}} / {{reviewTotal}}</text>
-    <view class="rv-btn" data-act="next" bindtap="onReviewStep">▶</view>
-    <view class="rv-btn" data-act="last" bindtap="onReviewStep">▶|</view>
-    <view class="rv-exit" bindtap="onReviewExit">退出</view>
+    <view class="wood-key rv-btn" data-act="next" bindtap="onReviewStep">▶</view>
+    <view class="wood-key rv-btn" data-act="last" bindtap="onReviewStep">▶|</view>
+    <view class="wood-key wood-key-red rv-btn" bindtap="onReviewExit">退出</view>
   </view>
 
   <view class="game-controls" wx:else>
-    <view wx:if="{{mode === 'online'}}" class="leave-btn" bindtap="onLeaveRoom">离开</view>
-    <view class="undo-btn {{canUndo ? '' : 'disabled'}}" bindtap="onUndo">
+    <view wx:if="{{mode === 'online'}}" class="wood-key ctrl-btn" bindtap="onLeaveRoom">离开</view>
+    <view class="wood-key ctrl-btn {{canUndo ? '' : 'wood-key-disabled'}}" bindtap="onUndo">
       悔棋<text wx:if="{{mode === 'online'}}">({{undoLeft}})</text>
     </view>
-    <view wx:if="{{mode !== 'online'}}" class="hint-btn {{hintLeft > 0 && !winner ? '' : 'disabled'}}" bindtap="onHint">提示({{hintLeft}})</view>
-    <view class="flip-btn" bindtap="onFlipTable">掀桌</view>
-    <view class="restart-btn" bindtap="onRestart">重开</view>
+    <view wx:if="{{mode !== 'online'}}" class="wood-key ctrl-btn hint-btn {{hintLeft > 0 && !winner ? '' : 'wood-key-disabled'}}" bindtap="onHint">提示({{hintLeft}})</view>
+    <view class="wood-key ctrl-btn flip-btn" bindtap="onFlipTable">掀桌</view>
+    <view class="wood-key wood-key-red ctrl-btn" bindtap="onRestart">重开</view>
   </view>
 
   <!-- 掀桌横幅 -->
   <view class="flip-banner" wx:if="{{isFlipping}}">(╯°□°)╯︵ ┻━┻</view>
 
   <!-- 结果覆盖层 -->
-  <view class="result-mask" wx:if="{{showResult}}">
-    <view class="result-card">
-      <view class="result-icon">{{resultIcon ? resultIcon : (resultIsWin ? '🏆' : '🎯')}}</view>
-      <text class="result-title">{{resultTitle}}</text>
-      <text class="result-sub">{{resultSub}}</text>
-      <view class="result-actions">
-        <view class="result-btn result-restart" bindtap="onResultRestart">再来一局</view>
-        <view wx:if="{{canReview}}" class="result-btn result-review" bindtap="onReview">复盘</view>
-        <view class="result-btn result-leave" bindtap="onResultLeave">返回大厅</view>
+  <view class="overlay result-mask" wx:if="{{showResult}}">
+    <view class="plaque">
+      <view class="nail nail-tl"></view>
+      <view class="nail nail-tr"></view>
+      <view class="nail nail-bl"></view>
+      <view class="nail nail-br"></view>
+      <view class="plaque-head">
+        <text class="plaque-title">{{resultIsWin ? '胜利' : '对局结束'}}</text>
+      </view>
+      <view class="plaque-body">
+        <view class="result-icon">{{resultIcon ? resultIcon : (resultIsWin ? '🏆' : '🎯')}}</view>
+        <text class="result-title">{{resultTitle}}</text>
+        <text class="plaque-hint">{{resultSub}}</text>
+        <view class="btn-col btn-col-gap">
+          <view class="wbtn wbtn-primary" bindtap="onResultRestart">再来一局</view>
+          <view wx:if="{{canReview}}" class="wbtn" bindtap="onReview">复盘</view>
+          <view class="wbtn" bindtap="onResultLeave">返回大厅</view>
+        </view>
       </view>
     </view>
   </view>

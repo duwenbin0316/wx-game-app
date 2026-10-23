@@ -1,25 +1,22 @@
+/* 木质 3D 主题:通用部分在 styles/wood.wxss,这里只放五子棋自己的布局 */
+@import "../../styles/wood.wxss";
+
 page {
-  background: #1A1A2E;
+  background: #26150A;
 }
 
 .container {
   padding: 16rpx 20rpx 32rpx;
-  background: #1A1A2E;
   min-height: 100vh;
   box-sizing: border-box;
   width: 100%;
 }
 
-/* ── 顶部信息栏 ── */
+/* ── 顶部信息栏:一块小木牌 ── */
 .game-header {
-  background: #1E1E38;
-  border: 2rpx solid #2E3A5C;
-  border-radius: 0;
   padding: 18rpx 22rpx;
-  margin-bottom: 16rpx;
+  margin-bottom: 18rpx;
   width: 100%;
-  box-sizing: border-box;
-  box-shadow: 4rpx 4rpx 0 #0E0E22;
 }
 
 .header-top {
@@ -29,7 +26,8 @@ page {
   gap: 16rpx;
   min-height: 44rpx;
   padding-bottom: 14rpx;
-  border-bottom: 1rpx solid #2A2A4A;
+  border-bottom: 2rpx solid rgba(60, 30, 10, 0.45);
+  box-shadow: 0 2rpx 0 rgba(255, 230, 190, 0.18);
 }
 
 .header-slot {
@@ -41,29 +39,31 @@ page {
 .header-left  { justify-content: flex-start; }
 .header-right { justify-content: flex-end; }
 
+/* 凹进木牌里的小标签 */
 .mode-pill {
   padding: 6rpx 18rpx;
-  border-radius: 0;
+  border-radius: 10rpx;
   font-size: 22rpx;
-  font-weight: 500;
-  color: #A78BFA;
-  background: rgba(167, 139, 250, 0.1);
-  border: 1rpx solid #3A2A5A;
+  font-weight: 700;
+  color: #FFF0D6;
+  background: rgba(50, 24, 6, 0.35);
+  box-shadow: inset 0 2rpx 5rpx rgba(20, 8, 0, 0.5), 0 2rpx 0 rgba(255, 230, 190, 0.2);
   letter-spacing: 1rpx;
   font-family: monospace;
 }
 
 .status-text {
   font-size: 22rpx;
-  font-weight: 500;
+  font-weight: 700;
   letter-spacing: 1rpx;
-  color: #3A3A6A;
+  color: #F6DDB0;
   font-family: monospace;
+  text-shadow: 0 2rpx 0 rgba(50, 25, 8, 0.6);
 }
 
-.status-text.waiting   { color: #4A6FA5; }
-.status-text.your-turn { color: #D97757; }
-.status-text.finished  { color: #6A6A9A; }
+.status-text.waiting   { color: #F6DDB0; }
+.status-text.your-turn { color: #FFD46A; }
+.status-text.finished  { color: #E2C49A; }
 
 /* ── 玩家行 ── */
 .players-row {
@@ -83,7 +83,7 @@ page {
 }
 
 .player-slot.active   { opacity: 1; }
-.player-slot.inactive { opacity: 0.35; filter: grayscale(30%); }
+.player-slot.inactive { opacity: 0.45; filter: grayscale(30%); }
 
 .char-frame {
   width: 112rpx;
@@ -101,11 +101,12 @@ page {
 }
 
 .char-active {
-  filter: drop-shadow(0 0 6rpx rgba(217,119,87,0.9));
+  filter: drop-shadow(0 0 8rpx rgba(255, 210, 110, 0.9));
 }
 
 .player-name {
   font-size: 22rpx;
+  font-weight: 700;
   letter-spacing: 1rpx;
   font-family: monospace;
   white-space: nowrap;
@@ -113,10 +114,11 @@ page {
   text-overflow: ellipsis;
   max-width: 116rpx;
   text-align: center;
+  text-shadow: 0 2rpx 0 rgba(50, 25, 8, 0.6);
 }
 
-.player-slot.active   .player-name { color: #D97757; }
-.player-slot.inactive .player-name { color: #4A6FA5; }
+.player-slot.active   .player-name { color: #FFD46A; }
+.player-slot.inactive .player-name { color: #F6DDB0; }
 
 .vs-block {
   display: flex;
@@ -143,52 +145,80 @@ page {
 
 .chess-piece.black {
   background: radial-gradient(circle at 35% 35%, #5b6470, #111827);
-  border: 2rpx solid #9ca3af;
-  box-shadow: 0 2rpx 6rpx rgba(0,0,0,0.5);
+  border: 2rpx solid #3A200E;
+  box-shadow: 0 3rpx 5rpx rgba(0, 0, 0, 0.5);
 }
 
 .chess-piece.black.active {
-  border-color: #D97757;
-  box-shadow: 0 0 0 4rpx rgba(217,119,87,0.3), 0 2rpx 6rpx rgba(0,0,0,0.5);
+  border-color: #FFD46A;
+  box-shadow: 0 0 0 4rpx rgba(255, 212, 106, 0.35), 0 3rpx 5rpx rgba(0, 0, 0, 0.5);
 }
 
 .chess-piece.white {
   background: radial-gradient(circle at 35% 35%, #ffffff, #ddd);
-  border: 2rpx solid #aaa;
-  box-shadow: 0 2rpx 6rpx rgba(0,0,0,0.3);
+  border: 2rpx solid #7A5230;
+  box-shadow: 0 3rpx 5rpx rgba(0, 0, 0, 0.35);
 }
 
 .chess-piece.white.active {
-  border-color: #A78BFA;
-  box-shadow: 0 0 0 4rpx rgba(167,139,250,0.3), 0 2rpx 6rpx rgba(0,0,0,0.3);
+  border-color: #FFD46A;
+  box-shadow: 0 0 0 4rpx rgba(255, 212, 106, 0.35), 0 3rpx 5rpx rgba(0, 0, 0, 0.35);
 }
 
 .move-count {
   margin-top: 8rpx;
   font-size: 20rpx;
-  color: #8A8ABA;
+  font-weight: 700;
+  color: #FFF0D6;
   font-family: monospace;
+  text-shadow: 0 2rpx 0 rgba(50, 25, 8, 0.6);
 }
 
 .vs-text {
   font-size: 18rpx;
   font-weight: 700;
-  color: #3A3A6A;
+  color: #F6DDB0;
   letter-spacing: 3rpx;
   font-family: monospace;
 }
 
-/* ── 棋盘:木框 + canvas ── */
+/* ── 棋盘:胡桃木厚边框 + 四角铜钉 + canvas ── */
 .game-board {
-  background: linear-gradient(135deg, #5A3A22 0%, #3E2716 100%);
-  border: 2rpx solid #7A5230;
+  position: relative;
+  border-radius: 18rpx;
+  background-color: #6E4222;
+  background-image:
+    repeating-linear-gradient(90deg, rgba(40, 18, 4, 0.18) 0, rgba(40, 18, 4, 0.18) 2rpx, transparent 2rpx, transparent 11rpx),
+    linear-gradient(135deg, #8A5530 0%, #6A3E1F 55%, #55301A 100%);
+  border: 2rpx solid #3A200E;
   padding: 12rpx;
-  box-shadow: 0 16rpx 40rpx rgba(0, 0, 0, 0.55), 6rpx 6rpx 0 #0A0A1A, inset 0 0 0 2rpx rgba(255, 220, 160, 0.12);
-  margin-bottom: 14rpx;
+  box-shadow:
+    0 10rpx 0 #3A1F0C,
+    0 22rpx 40rpx rgba(0, 0, 0, 0.6),
+    inset 0 3rpx 0 rgba(255, 228, 185, 0.4),
+    inset 0 -3rpx 0 rgba(30, 12, 0, 0.4);
+  margin-bottom: 26rpx;
   display: flex;
   justify-content: center;
   align-items: center;
 }
+
+/* 四颗钉:上下两个伪元素各画左右两颗 */
+.game-board::before,
+.game-board::after {
+  content: '';
+  position: absolute;
+  left: 2rpx;
+  right: 2rpx;
+  height: 10rpx;
+  background:
+    radial-gradient(circle at 5rpx 5rpx, #FFF1C2 0, #D9A93F 2rpx, #7A5212 5rpx, transparent 5.5rpx) left center / 10rpx 10rpx no-repeat,
+    radial-gradient(circle at 5rpx 5rpx, #FFF1C2 0, #D9A93F 2rpx, #7A5212 5rpx, transparent 5.5rpx) right center / 10rpx 10rpx no-repeat;
+  pointer-events: none;
+}
+
+.game-board::before { top: 2rpx; }
+.game-board::after  { bottom: 2rpx; }
 
 .board-canvas {
   /* container 左右各 20rpx + 木框左右各 14rpx */
@@ -202,41 +232,45 @@ page {
   align-items: center;
   justify-content: space-between;
   gap: 12rpx;
-  margin-bottom: 16rpx;
+  margin-bottom: 26rpx;
   min-height: 52rpx;
 }
 
 .board-tip {
   flex: 1;
   font-size: 22rpx;
-  color: #6A6A9A;
+  color: #E9C48C;
   font-family: monospace;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  text-shadow: 0 -2rpx 0 rgba(0, 0, 0, 0.6);
 }
 
-.board-tip.tip-on { color: #D97757; }
+.board-tip.tip-on { color: #FFD46A; }
 
 .toggle-row {
   display: flex;
-  gap: 10rpx;
+  gap: 12rpx;
   flex-shrink: 0;
 }
 
 .toggle {
+  height: 52rpx;
+  padding: 0 18rpx;
   font-size: 20rpx;
-  font-family: monospace;
-  padding: 8rpx 16rpx;
-  color: #4A6FA5;
-  background: #16162A;
-  border: 2rpx solid #2E3A5C;
+  border-radius: 12rpx;
+  box-shadow: 0 6rpx 0 #5A3218, 0 8rpx 10rpx rgba(0, 0, 0, 0.35), inset 0 2rpx 0 rgba(255, 244, 220, 0.6);
+  transform: translateY(-3rpx);
 }
 
+/* 打开的开关:金色,按下去的样子 */
 .toggle-on {
-  color: #1A1A2E;
-  background: #A78BFA;
-  border-color: #A78BFA;
+  background: linear-gradient(180deg, #FFE18A 0%, #E0A93E 100%);
+  border-color: #7A5212;
+  color: #5A3A08;
+  transform: translateY(3rpx);
+  box-shadow: 0 1rpx 0 #7A5212, inset 0 3rpx 5rpx rgba(120, 70, 10, 0.4);
 }
 
 /* ── 复盘控制条 ── */
@@ -247,88 +281,41 @@ page {
   gap: 12rpx;
 }
 
-.rv-btn, .rv-exit {
+.rv-btn {
+  height: 76rpx;
+  padding: 0 22rpx;
   font-size: 26rpx;
-  font-weight: 700;
   font-family: monospace;
-  padding: 16rpx 22rpx;
-  background: #1E1E38;
-  color: #C0C0E8;
-  border: 2rpx solid #2E3A5C;
-  box-shadow: 3rpx 3rpx 0 #0E0E22;
 }
-
-.rv-btn:active, .rv-exit:active { opacity: 0.7; }
 
 .rv-step {
   min-width: 120rpx;
   text-align: center;
   font-size: 26rpx;
+  font-weight: 700;
   font-family: monospace;
-  color: #F5C842;
-}
-
-.rv-exit {
-  color: #1A1A2E;
-  background: #D97757;
-  border-color: #D97757;
+  color: #FFD46A;
+  text-shadow: 0 2rpx 0 #4A2810;
 }
 
 /* ── 底部按钮 ── */
 .game-controls {
   display: flex;
   justify-content: center;
-  gap: 12rpx;
+  gap: 14rpx;
 }
 
-.restart-btn, .leave-btn, .undo-btn, .hint-btn {
-  border-radius: 0;
+.ctrl-btn {
+  height: 80rpx;
+  padding: 0 26rpx;
   font-size: 26rpx;
-  font-weight: 600;
-  padding: 18rpx 26rpx;
-  user-select: none;
   letter-spacing: 1rpx;
   font-family: monospace;
-  box-shadow: 3rpx 3rpx 0 #0E0E22;
 }
 
-.hint-btn {
-  background: #1E1E38;
-  color: #4CC38A;
-  border: 2rpx solid #2A5A44;
-}
+.hint-btn { color: #2F5A1E; }
 
-.hint-btn:active { opacity: 0.75; }
-
-.hint-btn.disabled {
-  background: #16162A;
-  color: #2A4A3A;
-  border-color: #1E1E38;
-  box-shadow: none;
-}
-
-.restart-btn {
-  background: #D97757;
-  color: #1A1A2E;
-}
-
-.restart-btn:active { opacity: 0.75; }
-
-.flip-btn {
-  border-radius: 0;
-  font-size: 26rpx;
-  font-weight: 600;
-  padding: 18rpx 26rpx;
-  user-select: none;
-  letter-spacing: 1rpx;
-  font-family: monospace;
-  box-shadow: 3rpx 3rpx 0 #0E0E22;
-  background: #1E1E38;
-  color: #FF6B6B;
-  border: 2rpx solid #6B3A4A;
-}
-
-.flip-btn:active { opacity: 0.75; }
+.flip-btn { color: #8A2414; }
 
 /* ── 掀桌动画 ── */
 .game-board.flipping {
@@ -350,9 +337,9 @@ page {
   text-align: center;
   font-size: 60rpx;
   font-weight: 700;
-  color: #FFFFFF;
+  color: #FFF0D6;
   font-family: monospace;
-  text-shadow: 4rpx 4rpx 0 #0E0E22;
+  text-shadow: 4rpx 4rpx 0 #2A1408;
   z-index: 90;
   pointer-events: none;
   animation: flip-banner-pop 1.1s ease-out forwards;
@@ -366,115 +353,23 @@ page {
   100% { opacity: 0; transform: scale(1) translateY(-30rpx); }
 }
 
-.undo-btn {
-  background: #1E1E38;
-  color: #4A6FA5;
-  border: 2rpx solid #2E3A5C;
-}
-
-.undo-btn:active { opacity: 0.75; }
-
-.undo-btn.disabled {
-  background: #16162A;
-  color: #2A2A4A;
-  border-color: #1E1E38;
-  box-shadow: none;
-}
-
-.leave-btn {
-  background: #1E1E38;
-  color: #A78BFA;
-  border: 2rpx solid #3A2A5A;
-}
-
-.leave-btn:active { opacity: 0.75; }
-
-/* ── 结果覆盖层（居中弹出）── */
+/* ── 结果弹窗 ── */
 .result-mask {
-  position: fixed;
-  left: 0; top: 0; right: 0; bottom: 0;
-  background: rgba(10, 10, 30, 0.72);
-  display: flex;
-  align-items: center;
-  justify-content: center;
   z-index: 100;
-  padding: 0 40rpx;
-  box-sizing: border-box;
-}
-
-.result-card {
-  width: 100%;
-  max-width: 560rpx;
-  background: rgba(30, 30, 60, 0.97);
-  border: 2rpx solid #4A6FA5;
-  border-radius: 0;
-  padding: 56rpx 40rpx 44rpx;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  box-sizing: border-box;
-  box-shadow: 6rpx 6rpx 0 #0E0E22, 0 0 40rpx rgba(74,111,165,0.3);
 }
 
 .result-icon {
   font-size: 72rpx;
-  margin-bottom: 20rpx;
+  margin-bottom: 12rpx;
   line-height: 1;
 }
 
 .result-title {
-  font-size: 48rpx;
+  font-size: 44rpx;
   font-weight: 700;
-  color: #FFFFFF;
-  letter-spacing: 6rpx;
-  margin-bottom: 14rpx;
+  color: #FFD96E;
+  letter-spacing: 4rpx;
+  margin-bottom: 8rpx;
   font-family: monospace;
-}
-
-.result-sub {
-  font-size: 22rpx;
-  color: #4A6FA5;
-  letter-spacing: 2rpx;
-  margin-bottom: 48rpx;
-  font-family: monospace;
-}
-
-.result-actions {
-  display: flex;
-  gap: 16rpx;
-  width: 100%;
-}
-
-.result-btn {
-  flex: 1;
-  height: 88rpx;
-  border-radius: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 28rpx;
-  font-weight: 700;
-  letter-spacing: 2rpx;
-  user-select: none;
-  font-family: monospace;
-  box-shadow: 3rpx 3rpx 0 #0E0E22;
-}
-
-.result-btn:active { opacity: 0.75; }
-
-.result-restart {
-  background: #D97757;
-  color: #1A1A2E;
-}
-
-.result-review {
-  background: #1E1E38;
-  color: #F5C842;
-  border: 2rpx solid #6A5A2A;
-}
-
-.result-leave {
-  background: #1E1E38;
-  color: #4A6FA5;
-  border: 2rpx solid #2E3A5C;
+  text-shadow: 0 4rpx 0 #4A2810;
 }

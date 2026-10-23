@@ -1,56 +1,64 @@
+/* 木质 3D 主题:通用部分在 styles/wood.wxss,这里只放五子棋大厅自己的布局 */
+@import "../../styles/wood.wxss";
+
 page {
-  background: #1A1A2E;
+  background: #26150A;
 }
 
 .online-container {
-  padding: 16rpx 20rpx 80rpx;
-  background: #1A1A2E;
+  padding: 16rpx 24rpx 80rpx;
   min-height: 100vh;
   box-sizing: border-box;
   width: 100%;
 }
 
-/* ── 顶部标题 ── */
+/* ── 顶部标题:刻在木头上 ── */
 .header {
-  padding: 24rpx 0 20rpx;
-  border-bottom: 1rpx solid #2A2A4A;
-  margin-bottom: 24rpx;
+  padding: 24rpx 0 22rpx;
+  margin-bottom: 28rpx;
+  border-bottom: 2rpx solid rgba(0, 0, 0, 0.45);
+  box-shadow: 0 2rpx 0 rgba(255, 220, 170, 0.1);
 }
 
 .title {
   display: block;
-  font-size: 42rpx;
+  font-size: 44rpx;
   font-weight: 700;
-  color: #FFFFFF;
-  letter-spacing: 6rpx;
+  color: #F6DDB0;
+  letter-spacing: 8rpx;
   font-family: monospace;
   margin-bottom: 8rpx;
+  text-shadow: 0 -2rpx 0 rgba(0, 0, 0, 0.6), 0 3rpx 0 rgba(255, 220, 170, 0.12);
 }
 
 .version {
   display: block;
   font-size: 18rpx;
-  color: #3A3A6A;
+  color: #A8825A;
   letter-spacing: 2rpx;
   font-family: monospace;
 }
 
-/* ── 入口按钮 ── */
+/* ── 入口:两块大木牌,按下会沉一下 ── */
 .local-btn {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  background: #1E1E38;
-  border: 2rpx solid #2E3A5C;
-  border-radius: 0;
-  padding: 28rpx 24rpx;
-  margin-bottom: 16rpx;
-  box-shadow: 4rpx 4rpx 0 #0A0A1A;
+  padding: 30rpx 28rpx;
+  margin-bottom: 26rpx;
+  border-radius: 18rpx;
+  background-color: #8A5530;
+  background-image:
+    repeating-linear-gradient(180deg, rgba(60, 30, 10, 0.16) 0, rgba(60, 30, 10, 0.16) 2rpx, transparent 2rpx, transparent 9rpx),
+    linear-gradient(160deg, #B07A48 0%, #8E5A31 60%, #774623 100%);
+  border: 2rpx solid #4A2810;
+  box-shadow: 0 10rpx 0 #3A1F0C, 0 16rpx 22rpx rgba(0, 0, 0, 0.45), inset 0 3rpx 0 rgba(255, 236, 205, 0.45);
   box-sizing: border-box;
 }
 
 .local-btn:active {
-  opacity: 0.75;
+  transform: translateY(8rpx);
+  box-shadow: 0 2rpx 0 #3A1F0C, 0 4rpx 8rpx rgba(0, 0, 0, 0.4), inset 0 3rpx 6rpx rgba(60, 30, 10, 0.4);
 }
 
 .local-btn-main {
@@ -60,24 +68,25 @@ page {
 }
 
 .local-btn-title {
-  font-size: 30rpx;
-  font-weight: 600;
-  color: #C0C0E8;
-  letter-spacing: 2rpx;
+  font-size: 32rpx;
+  font-weight: 700;
+  color: #FFF1D6;
+  letter-spacing: 4rpx;
   font-family: monospace;
+  text-shadow: 0 3rpx 0 #4A2810;
 }
 
 .local-btn-sub {
   font-size: 22rpx;
-  color: #4A6FA5;
-  letter-spacing: 1rpx;
+  color: #F6DDB0;
   font-family: monospace;
 }
 
 .local-btn-arrow {
-  font-size: 40rpx;
-  color: #D97757;
-  line-height: 1;
+  font-size: 52rpx;
+  color: #FFD46A;
+  font-weight: 700;
+  text-shadow: 0 3rpx 0 #4A2810;
 }
 
 /* ── 房间列表 ── */
@@ -89,55 +98,52 @@ page {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 16rpx;
-  margin-top: 8rpx;
+  margin-bottom: 18rpx;
+  margin-top: 12rpx;
 }
 
 .section-title {
-  font-size: 20rpx;
-  font-weight: 500;
-  color: #3A3A6A;
-  letter-spacing: 3rpx;
+  font-size: 22rpx;
+  font-weight: 700;
+  color: #E9C48C;
+  letter-spacing: 4rpx;
   font-family: monospace;
+  text-shadow: 0 -2rpx 0 rgba(0, 0, 0, 0.65);
 }
 
 .clear-text {
-  font-size: 20rpx;
-  color: #3A3A6A;
-  letter-spacing: 1rpx;
+  font-size: 22rpx;
+  color: #C9A27A;
   font-family: monospace;
+  padding: 6rpx 10rpx;
 }
 
-.clear-text:active {
-  color: #D97757;
-}
+.clear-text:active { opacity: 0.6; }
 
 .section-label {
   display: block;
-  font-size: 20rpx;
-  font-weight: 500;
-  color: #3A3A6A;
-  letter-spacing: 3rpx;
-  margin-bottom: 16rpx;
+  font-size: 22rpx;
+  font-weight: 700;
+  color: #F6DDB0;
+  letter-spacing: 2rpx;
   font-family: monospace;
+  margin-bottom: 16rpx;
 }
 
-/* ── 房间卡片 ── */
+/* ── 房间卡片:小木牌 ── */
 .room-item {
   display: flex;
   justify-content: space-between;
   align-items: center;
   padding: 24rpx 24rpx;
-  background: #1E1E38;
-  border: 2rpx solid #2E3A5C;
-  border-radius: 0;
-  margin-bottom: 12rpx;
-  box-shadow: 3rpx 3rpx 0 #0A0A1A;
-  box-sizing: border-box;
-}
-
-.room-item:active {
-  opacity: 0.75;
+  margin-bottom: 20rpx;
+  border-radius: 16rpx;
+  background-color: #8A5530;
+  background-image:
+    repeating-linear-gradient(180deg, rgba(60, 30, 10, 0.16) 0, rgba(60, 30, 10, 0.16) 2rpx, transparent 2rpx, transparent 9rpx),
+    linear-gradient(160deg, #A86F3E 0%, #85502A 100%);
+  border: 2rpx solid #4A2810;
+  box-shadow: 0 6rpx 0 #3A1F0C, 0 10rpx 14rpx rgba(0, 0, 0, 0.4), inset 0 2rpx 0 rgba(255, 230, 190, 0.45);
 }
 
 .room-main-info {
@@ -148,26 +154,26 @@ page {
 
 .room-name {
   font-size: 28rpx;
-  font-weight: 600;
-  color: #C0C0E8;
+  font-weight: 700;
+  color: #FFF1D6;
   display: flex;
   align-items: center;
   gap: 14rpx;
   margin-bottom: 12rpx;
-  letter-spacing: 1rpx;
   font-family: monospace;
+  text-shadow: 0 2rpx 0 #4A2810;
 }
 
 .room-status {
   font-size: 18rpx;
-  font-weight: 500;
-  color: #4A6FA5;
-  background: rgba(74, 111, 165, 0.12);
-  border: 1rpx solid #2E3A5C;
+  font-weight: 700;
   padding: 4rpx 16rpx;
   white-space: nowrap;
-  letter-spacing: 1rpx;
-  font-family: monospace;
+  border-radius: 10rpx;
+  color: #5A3A08;
+  background: linear-gradient(180deg, #FFE18A 0%, #E0A93E 100%);
+  box-shadow: 0 2rpx 0 #7A5212;
+  text-shadow: none;
 }
 
 .room-details {
@@ -181,27 +187,29 @@ page {
   align-items: center;
   gap: 10rpx;
   font-size: 20rpx;
-  color: #3A3A6A;
+  color: #F6DDB0;
   font-family: monospace;
 }
 
+/* 头像:一枚圆木片 */
 .creator-avatar {
   width: 36rpx;
   height: 36rpx;
-  background: #2E3A5C;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #4A6FA5;
   font-size: 18rpx;
-  font-weight: 600;
+  font-weight: 700;
   flex-shrink: 0;
-  font-family: monospace;
+  border-radius: 50%;
+  color: #4A2810;
+  background: radial-gradient(circle at 35% 35%, #F2DDB2 0%, #D4A86E 70%, #A8763F 100%);
+  box-shadow: 0 2rpx 0 #4A2810;
 }
 
 .time {
   font-size: 20rpx;
-  color: #3A3A6A;
+  color: #E2C49A;
   font-family: monospace;
 }
 
@@ -211,19 +219,11 @@ page {
 }
 
 .join-btn {
-  background: #D97757;
-  color: #1A1A2E;
   padding: 16rpx 30rpx;
   font-size: 24rpx;
   font-weight: 700;
-  letter-spacing: 2rpx;
   user-select: none;
-  font-family: monospace;
-  box-shadow: 3rpx 3rpx 0 #0A0A1A;
-}
-
-.join-btn:active {
-  opacity: 0.75;
+  border-radius: 14rpx;
 }
 
 /* ── 空状态 ── */
@@ -236,47 +236,37 @@ page {
   font-size: 72rpx;
   display: block;
   margin-bottom: 28rpx;
-  opacity: 0.3;
 }
 
 .empty-text {
   font-size: 28rpx;
-  color: #C0C0E8;
   display: block;
-  font-weight: 600;
-  margin-bottom: 12rpx;
-  letter-spacing: 3rpx;
+  font-weight: 700;
+  color: #F6DDB0;
   font-family: monospace;
+  margin-bottom: 12rpx;
 }
 
 .empty-hint {
   font-size: 22rpx;
-  color: #3A3A6A;
   display: block;
   line-height: 2;
-  letter-spacing: 1rpx;
+  color: #C9A27A;
   font-family: monospace;
 }
 
 .empty-action {
   margin-top: 48rpx;
+  display: flex;
+  justify-content: center;
 }
 
 .empty-action-btn {
-  display: inline-block;
-  background: #D97757;
-  color: #1A1A2E;
   padding: 22rpx 60rpx;
   font-size: 28rpx;
   font-weight: 700;
-  letter-spacing: 2rpx;
   user-select: none;
-  font-family: monospace;
-  box-shadow: 4rpx 4rpx 0 #0A0A1A;
-}
-
-.empty-action-btn:active {
-  opacity: 0.75;
+  letter-spacing: 4rpx;
 }
 
 /* ── 加载状态 ── */
@@ -291,66 +281,70 @@ page {
 
 .loading-icon {
   font-size: 60rpx;
-  opacity: 0.3;
 }
 
 .loading-text {
-  color: #3A3A6A;
   font-size: 22rpx;
-  letter-spacing: 3rpx;
+  color: #E9C48C;
   font-family: monospace;
 }
 
-/* ── 弹窗 ── */
+/* ── 弹窗:木牌 ── */
 .modal-mask {
   position: fixed;
   left: 0; top: 0; right: 0; bottom: 0;
-  background: rgba(10, 10, 30, 0.78);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 999;
   padding: 40rpx;
-  box-sizing: border-box;
+  background: rgba(14, 7, 2, 0.8);
 }
 
 .modal-card {
   width: 100%;
   max-width: 640rpx;
-  background: rgba(30, 30, 60, 0.97);
-  border: 2rpx solid #4A6FA5;
-  padding: 44rpx 36rpx 36rpx;
+  padding: 44rpx 36rpx 40rpx;
   box-sizing: border-box;
-  box-shadow: 6rpx 6rpx 0 #0E0E22, 0 0 40rpx rgba(74,111,165,0.3);
+  border-radius: 28rpx;
+  background: linear-gradient(170deg, #B47E4B 0%, #9A6537 50%, #84522B 100%);
+  border: 4rpx solid #4A2810;
+  box-shadow: 0 14rpx 0 #3A1F0C, 0 30rpx 60rpx rgba(0, 0, 0, 0.65), inset 0 3rpx 0 rgba(255, 236, 205, 0.45);
+  animation: plaque-in 0.32s cubic-bezier(0.2, 1.2, 0.4, 1) both;
 }
 
 .modal-title {
-  font-size: 32rpx;
+  font-size: 34rpx;
   font-weight: 700;
-  color: #FFFFFF;
+  color: #FFF1D6;
+  letter-spacing: 6rpx;
   margin-bottom: 8rpx;
-  letter-spacing: 4rpx;
   font-family: monospace;
+  text-shadow: 0 3rpx 0 #4A2810;
 }
 
 .modal-subtitle {
   font-size: 22rpx;
-  color: #4A6FA5;
+  color: #F6DDB0;
   margin-bottom: 32rpx;
-  letter-spacing: 2rpx;
   font-family: monospace;
 }
 
+/* 输入框:挖进木牌里的槽 */
 .modal-input {
   width: 100%;
   height: 80rpx;
-  border: 2rpx solid #2E3A5C;
   padding: 0 20rpx;
-  box-sizing: border-box;
   font-size: 28rpx;
-  color: #C0C0E8;
-  background: #16162E;
-  font-family: monospace;
+  box-sizing: border-box;
+  border-radius: 14rpx;
+  color: #FFF2DA;
+  background: rgba(40, 18, 4, 0.45);
+  box-shadow: inset 0 4rpx 8rpx rgba(10, 4, 0, 0.6), 0 2rpx 0 rgba(255, 230, 190, 0.25);
+}
+
+.modal-input-ph {
+  color: #B8946A;
 }
 
 .modal-actions {
@@ -362,30 +356,10 @@ page {
 .modal-btn {
   flex: 1;
   height: 80rpx;
-  display: flex;
-  align-items: center;
-  justify-content: center;
   font-size: 26rpx;
   font-weight: 700;
-  letter-spacing: 2rpx;
+  letter-spacing: 4rpx;
   user-select: none;
-  font-family: monospace;
-  box-shadow: 3rpx 3rpx 0 #0E0E22;
-}
-
-.modal-btn:active {
-  opacity: 0.75;
-}
-
-.cancel-btn {
-  background: #1E1E38;
-  color: #4A6FA5;
-  border: 2rpx solid #2E3A5C;
-}
-
-.confirm-btn {
-  background: #D97757;
-  color: #1A1A2E;
 }
 
 /* ── 本地对战弹窗内组件 ── */
@@ -393,14 +367,8 @@ page {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  background: #16162E;
-  border: 2rpx solid #2E3A5C;
-  padding: 24rpx 20rpx;
-  margin-bottom: 20rpx;
-}
-
-.local-mode-btn:active {
-  opacity: 0.75;
+  padding: 24rpx 22rpx;
+  margin-bottom: 28rpx;
 }
 
 .local-mode-main {
@@ -411,51 +379,45 @@ page {
 
 .local-mode-name {
   font-size: 28rpx;
-  font-weight: 600;
-  color: #C0C0E8;
-  letter-spacing: 2rpx;
+  font-weight: 700;
+  color: #4A2810;
   font-family: monospace;
 }
 
 .local-mode-desc {
   font-size: 22rpx;
-  color: #4A6FA5;
+  color: #6A3E1C;
   font-family: monospace;
+  font-weight: 400;
+}
+
+.local-mode-btn .local-btn-arrow {
+  color: #4A2810;
+  text-shadow: 0 2rpx 0 rgba(255, 238, 210, 0.5);
 }
 
 .local-difficulty-row {
   display: flex;
-  gap: 12rpx;
+  gap: 14rpx;
 }
 
 .diff-btn {
   flex: 1;
-  display: flex;
   flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  background: #16162E;
-  border: 2rpx solid #2E3A5C;
   padding: 22rpx 0;
   gap: 8rpx;
-  user-select: none;
-}
-
-.diff-btn:active {
-  border-color: #D97757;
-  opacity: 0.85;
 }
 
 .diff-name {
   font-size: 26rpx;
   font-weight: 700;
-  color: #C0C0E8;
-  letter-spacing: 2rpx;
+  color: #4A2810;
   font-family: monospace;
 }
 
 .diff-desc {
   font-size: 20rpx;
-  color: #3A3A6A;
+  color: #6A3E1C;
   font-family: monospace;
+  font-weight: 400;
 }

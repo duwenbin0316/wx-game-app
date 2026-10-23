@@ -1,4 +1,4 @@
-﻿<view class="online-container">
+﻿<view class="wood-bg online-container">
   <!-- 顶部标题 -->
   <view class="header">
     <text class="title">五子棋</text>
@@ -19,7 +19,7 @@
     <view class="modal-card" catchtap="onModalTap">
       <view class="modal-title">本地对战</view>
       <view class="modal-subtitle">选择对战模式</view>
-      <view class="local-mode-btn" bindtap="onStartDual">
+      <view class="wood-key local-mode-btn" bindtap="onStartDual">
         <view class="local-mode-main">
           <text class="local-mode-name">双人对战</text>
           <text class="local-mode-desc">两位玩家轮流落子</text>
@@ -28,21 +28,21 @@
       </view>
       <text class="section-label" style="margin-top: 8rpx;">人机对战</text>
       <view class="local-difficulty-row">
-        <view class="diff-btn" data-difficulty="easy" bindtap="onStartAi">
+        <view class="wood-key diff-btn" data-difficulty="easy" bindtap="onStartAi">
           <text class="diff-name">简单</text>
           <text class="diff-desc">会犯错</text>
         </view>
-        <view class="diff-btn" data-difficulty="medium" bindtap="onStartAi">
+        <view class="wood-key diff-btn" data-difficulty="medium" bindtap="onStartAi">
           <text class="diff-name">普通</text>
           <text class="diff-desc">攻守兼备</text>
         </view>
-        <view class="diff-btn" data-difficulty="hard" bindtap="onStartAi">
+        <view class="wood-key diff-btn" data-difficulty="hard" bindtap="onStartAi">
           <text class="diff-name">困难</text>
           <text class="diff-desc">深度计算</text>
         </view>
       </view>
       <view class="modal-actions" style="margin-top: 28rpx;">
-        <view class="modal-btn cancel-btn" bindtap="onCancelLocalModal">取消</view>
+        <view class="wood-key modal-btn" bindtap="onCancelLocalModal">取消</view>
       </view>
     </view>
   </view>
@@ -64,13 +64,14 @@
       <input
         class="modal-input"
         placeholder="例如：好友对战房间"
+        placeholder-class="modal-input-ph"
         maxlength="20"
         value="{{roomNameInput}}"
         bindinput="onRoomNameInput"
       />
       <view class="modal-actions">
-        <view class="modal-btn cancel-btn" bindtap="onCancelRoomName">取消</view>
-        <view class="modal-btn confirm-btn" bindtap="onConfirmRoomName">创建</view>
+        <view class="wood-key modal-btn" bindtap="onCancelRoomName">取消</view>
+        <view class="wood-key wood-key-red modal-btn" bindtap="onConfirmRoomName">创建</view>
       </view>
     </view>
   </view>
@@ -94,7 +95,7 @@
       <text class="empty-text">暂无房间</text>
       <text class="empty-hint">创建一个新房间<br/>开始游戏吧</text>
       <view class="empty-action">
-        <view class="empty-action-btn" bindtap="onCreateRoom">创建房间</view>
+        <view class="wood-key wood-key-red empty-action-btn" bindtap="onCreateRoom">创建房间</view>
       </view>
     </view>
 
@@ -114,7 +115,7 @@
         </view>
       </view>
       <view class="room-actions">
-        <view class="join-btn" data-room-id="{{item._id}}" data-room-name="{{item.name}}" bindtap="onJoinRoom">
+        <view class="wood-key wood-key-red join-btn" data-room-id="{{item._id}}" data-room-name="{{item.name}}" bindtap="onJoinRoom">
           加入
         </view>
       </view>

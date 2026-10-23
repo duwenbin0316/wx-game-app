@@ -230,6 +230,7 @@ const openid = wxContext.OPENID;  // Always use this
 - **Rematch**: request/approve via `requestRestart` / `respondRestart` (`pendingRestart`); `restartRoom` is kept only for old clients. `flipTable` ends the game.
 - **Online sync**: `db.watch()` on the room document with auto-retry, plus a 2-second polling fallback
 - **Legacy data**: `repairRooms` / `normalizeRoomBoardIfNeeded` backfill missing `pendingUndo` / `undoCounts` and fix malformed boards
+- **Look**: lobby and game page use the shared wood theme (`styles/wood.wxss`: `wood-bg` scrolling background, wood plates/keys, plaque result dialog); the board frame is a CSS walnut rim with brass nails around the canvas
 
 ### Cloud Database Schema
 
