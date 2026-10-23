@@ -4,6 +4,7 @@
 // 美术是木质 3D 风格(utils/wood-art.js):棋盘是胡桃木托盘,蛇身是一串染色木块。
 const { drawClawd, GRID_COLS, GRID_ROWS } = require('../../utils/clawd');
 const { buildCubeAtlas, drawCubeAt, trayMetrics, buildTray } = require('../../utils/wood-art.js');
+const { createWoodPlayer } = require('../../utils/wood-sfx.js');
 
 const COLS = 17;              // 横向格数（纵向按画布高度自适应）
 const TICK_START = 230;       // 初始每步毫秒（起步慢一点，方便熟悉操作）
@@ -608,6 +609,8 @@ Page({
     } catch (e) {
       this._ac = null;
     }
+    // 音效是木头声(utils/wood-sfx.js),背景音乐用木琴音色
+    this._sfxPlayer = this._ac ? createWoodPlayer(this._ac, ['eat', 'eatGold', 'crash']) : null;
     this._bgmPlaying = false;
     this._bgmTimer = null;
   },
@@ -615,6 +618,24 @@ Page({
   _note(freq, startTime, dur, vol = 0.15, type = 'square', useBgmGain = false) {
     if (!this._ac || freq === 0) return;
     const ac = this._ac;
+    const dest = useBgmGain && this._bgmGain ? this._bgmGain : ac.destination;
+    if (type === 'wood') {
+      // 木琴音色:基音正弦 + 约 4 倍频的泛音(衰减快),比方波柔和
+      [[1, 1, 1], [3.93, 0.3, 0.25]].forEach(([k, a, d]) => {
+        const o = ac.createOscillator();
+        const gg = ac.createGain();
+        o.type = 'sine';
+        o.frequency.value = freq * k;
+        gg.gain.setValueAtTime(0.0001, startTime);
+        gg.gain.exponentialRampToValueAtTime(vol * a * 1.6, startTime + 0.004);
+        gg.gain.exponentialRampToValueAtTime(0.001, startTime + Math.max(0.03, dur * d * 1.6));
+        o.connect(gg);
+        gg.connect(dest);
+        o.start(startTime);
+        o.stop(startTime + dur * 1.6);
+      });
+      return;
+    }
     const osc = ac.createOscillator();
     const g = ac.createGain();
     osc.connect(g);
@@ -627,7 +648,7 @@ Page({
     osc.stop(startTime + dur);
   },
 
-  // BGM：8-bit 轻快小循环（16 拍）
+  // BGM：木琴轻快小循环（16 拍）
   _scheduleBGM() {
     if (!this._ac || !this._bgmPlaying) return;
     const ac = this._ac;
@@ -637,8 +658,8 @@ Page({
     const mel = [440,523,587,523, 440,523,587,659, 587,523,440,392, 440,392,349,0];
     const bas = [220,0,220,0, 175,0,175,0, 196,0,196,0, 220,0,220,0];
 
-    mel.forEach((f, i) => this._note(f, now + i * S, S * 0.75, 0.10, 'square', true));
-    bas.forEach((f, i) => this._note(f, now + i * S, S * 0.6, 0.07, 'triangle', true));
+    mel.forEach((f, i) => this._note(f, now + i * S, S * 0.75, 0.10, 'wood', true));
+    bas.forEach((f, i) => this._note(f, now + i * S, S * 0.6, 0.08, 'wood', true));
 
     const loopMs = mel.length * S * 1000;
     this._bgmTimer = setTimeout(() => this._scheduleBGM(), loopMs - 80);
@@ -664,27 +685,10 @@ Page({
   },
 
   _sfxEat(isGold) {
-    if (!this._ac) return;
-    const now = this._ac.currentTime;
-    if (isGold) {
-      [659, 784, 1047].forEach((f, i) => this._note(f, now + i * 0.07, 0.1, 0.2));
-    } else {
-      const osc = this._ac.createOscillator();
-      const g = this._ac.createGain();
-      osc.connect(g); g.connect(this._ac.destination);
-      osc.type = 'square';
-      osc.frequency.setValueAtTime(420, now);
-      osc.frequency.exponentialRampToValueAtTime(840, now + 0.08);
-      g.gain.setValueAtTime(0.2, now);
-      g.gain.exponentialRampToValueAtTime(0.001, now + 0.1);
-      osc.start(now);
-      osc.stop(now + 0.1);
-    }
+    if (this._sfxPlayer) this._sfxPlayer.play(isGold ? 'eatGold' : 'eat');
   },
 
   _sfxDie() {
-    if (!this._ac) return;
-    const now = this._ac.currentTime;
-    [330, 262, 220, 165].forEach((f, i) => this._note(f, now + i * 0.12, 0.15, 0.22, 'sawtooth'));
+    if (this._sfxPlayer) this._sfxPlayer.play('crash');
   },
 });

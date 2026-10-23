@@ -1,11 +1,11 @@
 // ─── 木质 2048 ───────────────────────────────────────────
 // 四方向滑动合并数字。滑块平滑位移 + 合并脉冲 + 新块弹出 + 飘分。
 // 美术是木质 3D 风格(utils/wood-art.js):棋盘是一块带凹槽的木板,
-// 数字块是烙了字的染色木块;滑动 / 合并用木头敲击声(utils/tetris-sfx.js)。
+// 数字块是烙了字的染色木块;滑动 / 合并用木头敲击声(utils/wood-sfx.js)。
 const {
   drawSlab, drawSocket, drawCube, drawCastShadow, drawBurnedText, rng,
 } = require('../../utils/wood-art.js');
-const { renderSfx } = require('../../utils/tetris-sfx.js');
+const { createWoodPlayer } = require('../../utils/wood-sfx.js');
 
 const SIZE = 4;              // 4×4 棋盘
 const SLIDE_MS = 110;        // 滑动位移动画时长
@@ -617,49 +617,12 @@ Page({
     } catch (e) {
       this._ac = null;
     }
-    // 木头敲击声:合成进 buffer,播的时候按块值变调
-    this._wood = {};
-    if (this._ac) {
-      ['move', 'lock', 'rotate'].forEach(name => {
-        try {
-          const data = renderSfx(name, this._ac.sampleRate);
-          const buf = this._ac.createBuffer(1, data.length, this._ac.sampleRate);
-          const ch = buf.getChannelData(0);
-          for (let i = 0; i < data.length; i++) ch[i] = data[i];
-          this._wood[name] = buf;
-        } catch (e) {}
-      });
-    }
+    // 木头敲击声(utils/wood-sfx.js),播的时候按块值变调
+    this._sfxPlayer = this._ac ? createWoodPlayer(this._ac, ['move', 'lock', 'rotate', 'win', 'crash']) : null;
   },
 
   _woodSfx(name, rate, vol) {
-    const buf = this._wood && this._wood[name];
-    if (!this._ac || !buf) return;
-    try {
-      const src = this._ac.createBufferSource();
-      src.buffer = buf;
-      src.playbackRate.value = rate;
-      const g = this._ac.createGain();
-      g.gain.value = vol;
-      src.connect(g);
-      g.connect(this._ac.destination);
-      src.start();
-    } catch (e) {}
-  },
-
-  _note(freq, startTime, dur, vol = 0.15, type = 'square') {
-    if (!this._ac || freq === 0) return;
-    const ac = this._ac;
-    const osc = ac.createOscillator();
-    const g = ac.createGain();
-    osc.connect(g);
-    g.connect(ac.destination);
-    osc.type = type;
-    osc.frequency.value = freq;
-    g.gain.setValueAtTime(vol, startTime);
-    g.gain.exponentialRampToValueAtTime(0.001, startTime + dur * 0.88);
-    osc.start(startTime);
-    osc.stop(startTime + dur);
+    if (this._sfxPlayer) this._sfxPlayer.play(name, rate, vol);
   },
 
   // 合并:两块木头撞在一起,块越大音越高越响
@@ -676,15 +639,13 @@ Page({
     this._woodSfx('move', 0.8, 0.9);
   },
 
+  // 拼出 2048:木琴琶音
   _sfxWin() {
-    if (!this._ac) return;
-    const now = this._ac.currentTime;
-    [523, 659, 784, 1047, 1319].forEach((f, i) => this._note(f, now + i * 0.09, 0.14, 0.2));
+    this._woodSfx('win', 1, 1);
   },
 
+  // 格子满了:木块撞碎,压低一点音量
   _sfxOver() {
-    if (!this._ac) return;
-    const now = this._ac.currentTime;
-    [330, 262, 220, 165].forEach((f, i) => this._note(f, now + i * 0.12, 0.15, 0.22, 'sawtooth'));
+    this._woodSfx('crash', 1, 0.7);
   },
 });

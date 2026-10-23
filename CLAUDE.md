@@ -35,7 +35,7 @@ wx-game-app/
 │   │   ├── gomoku-ai.js          # Gomoku AI: 5-tuple eval, easy/medium greedy, hard alpha-beta (pure, node-testable)
 │   │   ├── gomoku-board.js       # Gomoku canvas renderer (wood board, stones, drop/win animations, hit test)
 │   │   ├── wood-art.js           # Shared wooden 3D canvas art: wood grain, cube atlases (any palette), tray (floor/rim), slab, socket, burned text
-│   │   ├── tetris-sfx.js         # Tetris wood SFX synthesis (modal impacts, cracks, debris, boom; pure, node-testable)
+│   │   ├── wood-sfx.js           # Shared wood SFX synthesis (modal impacts, cracks, debris, boom, marimba; pure) + createWoodPlayer (WebAudio buffers + compressed bus)
 │   │   ├── runner-wood.js        # Runner wooden stage scenery (backdrop, moon, clouds, town strip, ground tile; pure)
 │   │   ├── sky-data.js           # Sky Wing data: enemies, flight paths, stage scripts, bosses, upgrades (pure, node-testable)
 │   │   ├── sky-art.js            # Sky Wing vector sprite atlas (3×, outlined ships, bosses, FX) + flash/shadow variants
@@ -59,7 +59,7 @@ wx-game-app/
 │   └── upload.yml                # Upload mini program on miniprogram/** push (version in APP_VERSION)
 │
 ├── scripts/
-│   └── gen-tetris-sfx.js         # Bakes Tetris wood SFX fallback mp3s (needs ffmpeg)
+│   │   ├── wood-sfx.js           # Shared wood SFX synthesis (modal impacts, cracks, debris, boom, marimba; pure) + createWoodPlayer (WebAudio buffers + compressed bus)
 ├── openspec/                     # OpenSpec specs (specs/) and change proposals (changes/)
 ├── docs/superpowers/             # Design specs and implementation plans
 ├── .mini-wiki/wiki/              # Auto-generated architecture docs (mermaid diagrams)
@@ -109,7 +109,7 @@ Cloud environment ID comes from `miniprogram/envList.js` and `cloudbaserc.json` 
 |-------|-----------|
 | Frontend | WeChat Mini Program (native WXML/WXSS/JS) |
 | Rendering | Canvas 2D (`<canvas type="2d">` node API) for all games, including the Gomoku board |
-| Audio | WeChat `InnerAudioContext` |
+| Audio | WebAudio (`wx.createWebAudioContext`): wood SFX from `utils/wood-sfx.js` via `createWoodPlayer` (page field `_sfxPlayer`), marimba-voiced BGM in Snake/Runner; `InnerAudioContext` for mp3 fallbacks and Gomoku stone sounds |
 | Backend | Serverless Node.js (Tencent CloudBase) |
 | Database | Cloud Database (MongoDB-compatible): `gameRooms` |
 | Real-time | `db.watch()` with 2-second polling fallback |
@@ -265,11 +265,11 @@ All render on a `<canvas type="2d">` node (queried via `wx.createSelectorQuery()
 
 | Game | Notes | Local storage key |
 |------|-------|-------------------|
-| Tetris | SRS rotations + wall kicks, T-Spin / B2B / combo, hold/next, controller-style buttons with auto-repeat, chiptune BGM + SFX. Wooden 3D look: blocks are oblique-projected wooden cubes (top face lifted up-left by `h`, south/east sides visible) drawn row-by-row top→bottom so later cubes occlude earlier sides; tray floor drawn under cubes, rim over them; board cells store type + grain variant (e.g. `'T2'`). Line clears are tiered via `CLEAR_FX` (1–4 lines: duration, column sweep, wood-chip particles, shake, label size; 4 lines adds gold shockwave/sparks) with a gravity "settle" of the rows above; all piece SFX (move/rotate/hold/lock/hard drop/clears) are physically-modelled wood sounds from `utils/tetris-sfx.js` (modal wood impacts, fracture crackle, splinter debris, boom), rendered into WebAudio buffers at load and played through a compressed SFX bus; clears escalate crack → smash → wooden explosion, combo raises playbackRate; without WebAudio the mp3s baked by `scripts/gen-tetris-sfx.js` are used | `tetris_best` |
+| Tetris | SRS rotations + wall kicks, T-Spin / B2B / combo, hold/next, controller-style buttons with auto-repeat, chiptune BGM + SFX. Wooden 3D look: blocks are oblique-projected wooden cubes (top face lifted up-left by `h`, south/east sides visible) drawn row-by-row top→bottom so later cubes occlude earlier sides; tray floor drawn under cubes, rim over them; board cells store type + grain variant (e.g. `'T2'`). Line clears are tiered via `CLEAR_FX` (1–4 lines: duration, column sweep, wood-chip particles, shake, label size; 4 lines adds gold shockwave/sparks) with a gravity "settle" of the rows above; all piece SFX (move/rotate/hold/lock/hard drop/clears) are physically-modelled wood sounds from `utils/wood-sfx.js` (modal wood impacts, fracture crackle, splinter debris, boom), rendered into WebAudio buffers at load and played through a compressed SFX bus; clears escalate crack → smash → wooden explosion, combo raises playbackRate; without WebAudio the mp3s baked by `scripts/gen-wood-sfx.js` are used | `tetris_best` |
 | Runner | Endless runner: coin combos, coffee shield, death animation. Wooden dusk-stage look from `utils/runner-wood.js` (painted plank backdrop with nail stars + maple moon, plywood clouds, 2-screen town strip, tiling oak-beam ground), baked once and blitted; scroll distance in `_woodScroll` | `runner_best` |
 | Sokoban | 10 verified levels, level data inline in `index.js`. Wooden look: per-level floor layer (oak parquet + burned target rings), walnut wall / crate cubes from an atlas with `decorateBlock` (planks, brace, nails, burned check when on target), drawn row by row and column-sorted within a row so 3D sides occlude correctly; controls stay in layout (hidden, not removed) so the canvas never stretches | `sokoban_best`, `sokoban_unlocked` |
 | Snake | Clawd eats bugs. Wooden look: walnut tray via `trayMetrics`/`buildTray` (rows fitted to the canvas), body is a chain of orange-stained wood cubes darkening toward the tail, head cube carries Clawd eyes | `snake_best` |
-| 2048 | Swipe merge, off-screen canvas share card. Wooden look: board is a `drawSlab` with carved sockets (baked once), tiles are stained-wood blocks with burned numbers cached per value; slide/merge use wood SFX buffers from `tetris-sfx.js` | `game2048_best` |
+| 2048 | Swipe merge, off-screen canvas share card. Wooden look: board is a `drawSlab` with carved sockets (baked once), tiles are stained-wood blocks with burned numbers cached per value; slide/merge use wood SFX buffers from `wood-sfx.js` | `game2048_best` |
 | Sky Wing | Vertical shmup in virtual 360-wide coords; plane follows the finger, lifting it eases the battle into slow motion (`SLOW_SCALE`); terrain generated in 240-unit chunks at 2× resolution a few rows per frame (time-budgeted) and converted to images; sprite atlas drawn at 3× with dark outlines; stars bought upgrades in the hangar; per-stage medals (kill 70% / 100% / no damage); boss core opens only after all parts are destroyed | `skywing_save` (stars, upgrades, unlocked, medals, best) |
 
 ### Sharing

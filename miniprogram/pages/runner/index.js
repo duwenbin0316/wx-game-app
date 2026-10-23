@@ -15,6 +15,7 @@ const { GRID_COLS, GRID_ROWS, drawClawd } = require('../../utils/clawd');
 // 木质舞台布景(背板 / 月亮 / 云 / 远景小镇 / 木梁地面),见 utils/runner-wood.js
 const { buildRunnerArt } = require('../../utils/runner-wood.js');
 const { drawSlab } = require('../../utils/wood-art.js');
+const { createWoodPlayer } = require('../../utils/wood-sfx.js');
 const PLAYER_PS = 1.3;  // 单格边长：视觉约 31×26px，居中于 32×32 碰撞框
 
 
@@ -1066,6 +1067,10 @@ Page({
     } catch(e) {
       this._ac = null;
     }
+    // 音效是木头声(utils/wood-sfx.js),背景音乐用木琴音色
+    this._sfxPlayer = this._ac
+      ? createWoodPlayer(this._ac, ['jump', 'jump2', 'coin', 'shield', 'shieldBreak', 'milestone', 'crash'])
+      : null;
     this._bgmPlaying = false;
     this._bgmTimer   = null;
   },
@@ -1074,6 +1079,24 @@ Page({
   _note(freq, startTime, dur, vol = 0.18, type = 'square', useBgmGain = false) {
     if (!this._ac || freq === 0) return;
     const ac  = this._ac;
+    const dest = useBgmGain ? this._bgmGain : ac.destination;
+    if (type === 'wood') {
+      // 木琴音色:基音正弦 + 约 4 倍频的泛音(衰减快),比方波柔和
+      [[1, 1, 1], [3.93, 0.3, 0.25]].forEach(([k, a, d]) => {
+        const o = ac.createOscillator();
+        const gg = ac.createGain();
+        o.type = 'sine';
+        o.frequency.value = freq * k;
+        gg.gain.setValueAtTime(0.0001, startTime);
+        gg.gain.exponentialRampToValueAtTime(vol * a * 1.6, startTime + 0.004);
+        gg.gain.exponentialRampToValueAtTime(0.001, startTime + Math.max(0.03, dur * d * 1.6));
+        o.connect(gg);
+        gg.connect(dest);
+        o.start(startTime);
+        o.stop(startTime + dur * 1.6);
+      });
+      return;
+    }
     const osc = ac.createOscillator();
     const g   = ac.createGain();
     osc.connect(g);
@@ -1086,7 +1109,7 @@ Page({
     osc.stop(startTime + dur);
   },
 
-  // BGM：8-bit 风格循环(两段 16 拍乐句交替,C大调五声音阶)
+  // BGM：木琴循环(两段 16 拍乐句交替,C大调五声音阶),鼓点是木鱼
   _scheduleBGM() {
     if (!this._ac || !this._bgmPlaying) return;
     const ac  = this._ac;
@@ -1102,10 +1125,10 @@ Page({
       : [262,0,262,0, 294,0,294,0, 262,0,262,0, 330,0,330,0];
     const drm = [1,0,0,0, 1,0,1,0, 1,0,0,0, 1,0,1,0];
 
-    mel.forEach((f, i) => this._note(f, now + i*S, S*0.78, 0.14, 'square',   true));
-    bas.forEach((f, i) => this._note(f, now + i*S, S*0.65, 0.09, 'sawtooth', true));
+    mel.forEach((f, i) => this._note(f, now + i*S, S*0.78, 0.13, 'wood', true));
+    bas.forEach((f, i) => this._note(f / 2, now + i*S, S*0.65, 0.12, 'wood', true));
     drm.forEach((v, i) => {
-      if (v) this._note(220, now + i*S, 0.03, 0.06, 'sawtooth', true);
+      if (v) this._note(880, now + i*S, 0.05, 0.05, 'wood', true);
     });
 
     const loopMs = mel.length * S * 1000;
@@ -1133,72 +1156,33 @@ Page({
     }
   },
 
-  // 跳跃音效：仿超级马里奥，方波频率指数上扫
+  // 跳:两声往上走的木头"嘀嗒",二段跳更高
   _sfxJump(isDouble) {
-    if (!this._ac) return;
-    const ac  = this._ac;
-    const osc = ac.createOscillator();
-    const g   = ac.createGain();
-    osc.connect(g); g.connect(ac.destination);
-    osc.type = 'square';
-    const now = ac.currentTime;
-    // 一段跳：160→640Hz（两个八度），约 0.1s；二段跳起始稍高
-    const f0 = isDouble ? 240 : 160;
-    const f1 = isDouble ? 960 : 640;
-    osc.frequency.setValueAtTime(f0, now);
-    osc.frequency.exponentialRampToValueAtTime(f1, now + 0.1);
-    g.gain.setValueAtTime(0.28, now);
-    g.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
-    osc.start(now);
-    osc.stop(now + 0.12);
+    if (this._sfxPlayer) this._sfxPlayer.play(isDouble ? 'jump2' : 'jump');
   },
 
-  // 死亡音效：下降四音
+  // 撞到 Bug:木块撞碎 + 往下走的木琴
   _sfxGameOver() {
-    if (!this._ac) return;
-    const now = this._ac.currentTime;
-    [392, 330, 294, 220].forEach((f, i) => {
-      this._note(f, now + i * 0.14, 0.16, 0.22);
-    });
+    if (this._sfxPlayer) this._sfxPlayer.play('crash');
   },
 
-  // 金币:随连击升调的双音
+  // 金币:木琴,连击越高音越高(最多高一个八度)
   _sfxCoin(combo) {
-    if (!this._ac) return;
-    const now = this._ac.currentTime;
-    const f = 660 * Math.pow(2, Math.min(combo - 1, 12) / 12);
-    this._note(f, now, 0.06, 0.14);
-    this._note(f * 1.5, now + 0.05, 0.06, 0.10);
+    if (this._sfxPlayer) this._sfxPlayer.play('coin', Math.pow(2, Math.min(Math.max(combo - 1, 0), 12) / 12));
   },
 
-  // 咖啡入手:上行琶音
+  // 咖啡入手:空心木块 + 上行琶音
   _sfxShield() {
-    if (!this._ac) return;
-    const now = this._ac.currentTime;
-    [523, 784, 1046].forEach((f, i) => this._note(f, now + i * 0.06, 0.08, 0.16));
+    if (this._sfxPlayer) this._sfxPlayer.play('shield');
   },
 
-  // 护盾破碎:低频下扫
+  // 护盾破碎:木条折断
   _sfxShieldBreak() {
-    if (!this._ac) return;
-    const ac = this._ac;
-    const osc = ac.createOscillator();
-    const g = ac.createGain();
-    osc.connect(g); g.connect(ac.destination);
-    osc.type = 'square';
-    const now = ac.currentTime;
-    osc.frequency.setValueAtTime(360, now);
-    osc.frequency.exponentialRampToValueAtTime(90, now + 0.18);
-    g.gain.setValueAtTime(0.22, now);
-    g.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
-    osc.start(now);
-    osc.stop(now + 0.2);
+    if (this._sfxPlayer) this._sfxPlayer.play('shieldBreak');
   },
 
-  // 里程碑:小号三连音
+  // 里程碑:木琴琶音
   _sfxMilestone() {
-    if (!this._ac) return;
-    const now = this._ac.currentTime;
-    [784, 988, 1175].forEach((f, i) => this._note(f, now + i * 0.07, 0.09, 0.15));
+    if (this._sfxPlayer) this._sfxPlayer.play('milestone');
   }
 });

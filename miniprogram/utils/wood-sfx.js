@@ -1,11 +1,12 @@
-// ─── 俄罗斯方块 · 木头音效合成 ─────────────────────────────
-// 全部音效用"物理建模"现算出来,保证落地、硬降、消行是同一种木头的声音:
+// ─── 木头音效合成(各游戏共用)─────────────────────────────
+// 全部音效用"物理建模"现算出来,保证各个游戏都是同一种木头的声音:
 //   impact  木块撞击:自由梁的非谐波模态(1 : 2.76 : 5.40 : 8.93…)指数衰减,
 //           木头阻尼大、高频衰减更快;再叠一个几毫秒的接触噪声
 //   crackle 木头断裂:成簇的微裂纹"咔哒"(短噪声 + 高频小振铃)
 //   tear    纤维撕裂:带通噪声,幅度随机抖动
 //   debris  木屑:很多小碎块落地并弹跳,间隔和力度逐次衰减
 //   boom    爆炸:扫频低通噪声 + 往下滑的次低音
+//   marimba 木琴音:基音 + 约 4 倍频泛音,用于加分 / 过关这类带音高的提示
 // 最后过一道 tanh 软饱和让声音更"厚",再按每个音效的目标峰值归一化。
 // 纯函数,不依赖 wx:页面运行时直接合成进 WebAudio buffer;
 // scripts/gen-tetris-sfx.js 用同一份代码离线导出 mp3,给不支持 WebAudio 时兜底。
@@ -162,6 +163,16 @@ function boom(out, sr, t0, o, rand) {
   }
 }
 
+// 木琴音:基音 + 3.93 倍和 9.2 倍泛音(衰减越来越快)+ 一下槌头敲击
+function marimba(out, sr, t0, f, gain, dur, rand) {
+  addModes(out, sr, t0, [
+    { f, a: 1, tau: dur * 0.32 },
+    { f: f * 3.93, a: 0.32, tau: dur * 0.07 },
+    { f: f * 9.2, a: 0.08, tau: dur * 0.025 },
+  ], gain);
+  addNoise(out, sr, t0, { dur: 0.003, f: 3000, q: 0.8, gain: gain * 0.25, curve: 2 }, rand);
+}
+
 // ── 音效配方 ──────────────────────────────────────────────
 // 每个配方:时长、目标峰值、饱和驱动、内容
 const RECIPES = {
@@ -237,6 +248,83 @@ const RECIPES = {
   whoosh: { dur: 0.3, peak: 0.4, drive: 1, make(out, sr, r) {
     addNoise(out, sr, 0, { dur: 0.28, f: 350, fTo: 2600, q: 1.6, gain: 1, attack: 0.12, curve: 1.2 }, r);
   } },
+
+  // ── 贪吃蛇 / 跑酷 / 推箱子 ──
+  // 吃到 Bug:木头"嗒"+ 一声木琴
+  eat: { dur: 0.4, peak: 0.5, drive: 1, make(out, sr, r) {
+    impact(out, sr, 0, { f: 1250, hard: 0.5, gain: 0.6 }, r);
+    marimba(out, sr, 0.008, 880, 0.9, 0.4, r);
+  } },
+  // 金 Bug:三声上行木琴
+  eatGold: { dur: 0.6, peak: 0.6, drive: 1, make(out, sr, r) {
+    impact(out, sr, 0, { f: 1250, hard: 0.5, gain: 0.5 }, r);
+    [880, 1108, 1318].forEach((f, i) => marimba(out, sr, 0.008 + i * 0.065, f, 0.85, 0.42, r));
+  } },
+  // 撞死:木块撞碎 + 三声往下走的木琴
+  crash: { dur: 1.1, peak: 0.8, drive: 2, make(out, sr, r) {
+    impact(out, sr, 0, { f: 300, hard: 0.85, gain: 1.1, maxTau: 0.14 }, r);
+    thump(out, sr, 0, { f: 100, tau: 0.08, gain: 1 });
+    crackle(out, sr, 0, { dur: 0.12, density: 450, gain: 0.55 }, r);
+    debris(out, sr, 0.03, { count: 7, spread: 0.3, fLo: 1100, fHi: 2800, gain: 0.22 }, r);
+    [392, 330, 262].forEach((f, i) => marimba(out, sr, 0.22 + i * 0.15, f, 0.5, 0.5, r));
+  } },
+  // 跳:两声往上走的木头"嘀嗒"
+  jump: { dur: 0.16, peak: 0.36, drive: 1, make(out, sr, r) {
+    impact(out, sr, 0, { f: 640, hard: 0.6, gain: 1 }, r);
+    impact(out, sr, 0.035, { f: 980, hard: 0.6, gain: 0.85 }, r);
+  } },
+  jump2: { dur: 0.16, peak: 0.36, drive: 1, make(out, sr, r) {
+    impact(out, sr, 0, { f: 900, hard: 0.6, gain: 1 }, r);
+    impact(out, sr, 0.03, { f: 1380, hard: 0.6, gain: 0.85 }, r);
+  } },
+  // 金币:清脆木琴(连击时页面会升调)
+  coin: { dur: 0.32, peak: 0.42, drive: 1, make(out, sr, r) {
+    impact(out, sr, 0, { f: 2000, hard: 0.4, gain: 0.3 }, r);
+    marimba(out, sr, 0.004, 1046.5, 1, 0.32, r);
+  } },
+  // 接到咖啡护盾:空心木块"咚"+ 上行琶音
+  shield: { dur: 0.6, peak: 0.5, drive: 1, make(out, sr, r) {
+    impact(out, sr, 0, { f: 240, hard: 0.4, gain: 0.9, maxTau: 0.12 }, r);
+    [523.25, 783.99, 1046.5].forEach((f, i) => marimba(out, sr, 0.02 + i * 0.055, f, 0.6, 0.45, r));
+  } },
+  // 护盾碎了:木条折断
+  shieldBreak: { dur: 0.6, peak: 0.72, drive: 2.4, make(out, sr, r) {
+    impact(out, sr, 0, { f: 760, hard: 0.95, gain: 0.9 }, r);
+    crackle(out, sr, 0, { dur: 0.07, density: 420, gain: 0.55 }, r);
+    tear(out, sr, 0.006, { dur: 0.09, gain: 0.35 }, r);
+    debris(out, sr, 0.04, { count: 4, spread: 0.2, fLo: 1300, fHi: 3000, gain: 0.2 }, r);
+  } },
+  // 里程碑:四声木琴琶音
+  milestone: { dur: 0.8, peak: 0.55, drive: 1, make(out, sr, r) {
+    [523.25, 659.25, 783.99, 1046.5].forEach((f, i) => marimba(out, sr, i * 0.07, f, 0.8, 0.5, r));
+  } },
+  // 推箱子:走一步是轻轻的木地板声
+  step: { dur: 0.07, peak: 0.16, drive: 1, make(out, sr, r) {
+    impact(out, sr, 0, { f: 900, hard: 0.3, gain: 1 }, r);
+  } },
+  // 推箱子:木箱在木地板上蹭过去,最后顿一下
+  push: { dur: 0.28, peak: 0.45, drive: 1.4, make(out, sr, r) {
+    addNoise(out, sr, 0, { dur: 0.15, f: 650, fTo: 480, q: 0.9, gain: 0.8, attack: 0.012, curve: 1.2, jitter: 0.6 }, r);
+    impact(out, sr, 0.1, { f: 360, hard: 0.45, gain: 0.9 }, r);
+    thump(out, sr, 0.1, { f: 120, tau: 0.04, gain: 0.5 });
+  } },
+  // 木箱推到位:两声木琴"叮"
+  ding: { dur: 0.5, peak: 0.5, drive: 1, make(out, sr, r) {
+    impact(out, sr, 0, { f: 1500, hard: 0.4, gain: 0.3 }, r);
+    marimba(out, sr, 0.004, 1046.5, 0.9, 0.4, r);
+    marimba(out, sr, 0.06, 1568, 0.7, 0.4, r);
+  } },
+  // 撤销:往下走的两声木头
+  undo: { dur: 0.17, peak: 0.3, drive: 1, make(out, sr, r) {
+    impact(out, sr, 0, { f: 1000, hard: 0.4, gain: 1 }, r);
+    impact(out, sr, 0.05, { f: 760, hard: 0.4, gain: 0.9 }, r);
+  } },
+  // 过关:五声木琴琶音 + 一下木块收尾
+  win: { dur: 1.1, peak: 0.6, drive: 1, make(out, sr, r) {
+    [523.25, 659.25, 783.99, 1046.5, 1318.5].forEach((f, i) => marimba(out, sr, i * 0.08, f, 0.8, 0.55, r));
+    impact(out, sr, 0.42, { f: 300, hard: 0.5, gain: 0.6 }, r);
+    thump(out, sr, 0.42, { f: 110, tau: 0.06, gain: 0.5 });
+  } },
 };
 
 const SFX_NAMES = Object.keys(RECIPES);
@@ -262,4 +350,61 @@ function renderSfx(name, sr, seed) {
   return out;
 }
 
-module.exports = { SFX_NAMES, renderSfx };
+// 页面用的播放器:后台逐个(每 16ms 一个)把音效合成进 WebAudio buffer,
+// 播放时走一条带压缩器的总线;还没合成到的音效第一次播放时现场合成
+function createWoodPlayer(wac, names, busGain) {
+  const bufs = {};
+  let bus = null;
+  const build = name => {
+    if (bufs[name] || !RECIPES[name]) return bufs[name];
+    const data = renderSfx(name, wac.sampleRate);
+    const buf = wac.createBuffer(1, data.length, wac.sampleRate);
+    const ch = buf.getChannelData(0);
+    for (let i = 0; i < data.length; i++) ch[i] = data[i];
+    bufs[name] = buf;
+    return buf;
+  };
+  const queue = names.slice();
+  const next = () => {
+    if (!queue.length) return;
+    try { build(queue.shift()); } catch (e) {}
+    setTimeout(next, 16);
+  };
+  next();
+  const getBus = () => {
+    if (!bus) {
+      bus = wac.createGain();
+      bus.gain.value = busGain || 0.8;
+      try {
+        const comp = wac.createDynamicsCompressor();
+        comp.threshold.value = -10;
+        comp.ratio.value = 8;
+        comp.attack.value = 0.002;
+        comp.release.value = 0.15;
+        bus.connect(comp);
+        comp.connect(wac.destination);
+      } catch (e) {
+        bus.connect(wac.destination);
+      }
+    }
+    return bus;
+  };
+  return {
+    play(name, rate, vol) {
+      try {
+        const buf = build(name);
+        if (!buf) return;
+        const src = wac.createBufferSource();
+        src.buffer = buf;
+        src.playbackRate.value = (rate || 1) * (0.98 + Math.random() * 0.04);
+        const g = wac.createGain();
+        g.gain.value = vol === undefined ? 1 : vol;
+        src.connect(g);
+        g.connect(getBus());
+        src.start();
+      } catch (e) {}
+    },
+  };
+}
+
+module.exports = { SFX_NAMES, renderSfx, createWoodPlayer };

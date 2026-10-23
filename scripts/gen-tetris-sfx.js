@@ -1,11 +1,11 @@
-// 把 miniprogram/utils/tetris-sfx.js 合成的木头音效导出成 mp3,
+// 把 miniprogram/utils/wood-sfx.js 合成的木头音效导出成 mp3,
 // 作为不支持 WebAudio 时的兜底(页面里有 WebAudio 会直接现场合成,不读这些文件)。
 // 用法:node scripts/gen-tetris-sfx.js   (需要本机有 ffmpeg,带 libmp3lame)
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
 const { execFileSync } = require('child_process');
-const { renderSfx } = require('../miniprogram/utils/tetris-sfx.js');
+const { renderSfx } = require('../miniprogram/utils/wood-sfx.js');
 
 const NAMES = ['lock', 'harddrop', 'clear1', 'clear2', 'clear3', 'clear4'];
 const SR = 44100;

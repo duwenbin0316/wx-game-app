@@ -7,7 +7,7 @@
 const {
   WOOD, VARIANTS, buildCubeAtlas, drawCubeAt, trayMetrics, buildTray, drawPanel,
 } = require('../../utils/wood-art.js');
-const { SFX_NAMES, renderSfx } = require('../../utils/tetris-sfx.js');
+const { SFX_NAMES, renderSfx } = require('../../utils/wood-sfx.js');
 
 const COLS = 10;
 const VISIBLE_ROWS = 20;

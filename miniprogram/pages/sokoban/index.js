@@ -5,6 +5,7 @@
 // 带斜撑的木箱(到位变金色 + 烙勾)、烙在地板上的目标圈。
 const { GRID_COLS, GRID_ROWS, drawClawd } = require('../../utils/clawd');
 const { buildCubeAtlas, drawCubeAt, woodFill, rng, shade, toHex } = require('../../utils/wood-art.js');
+const { createWoodPlayer } = require('../../utils/wood-sfx.js');
 
 // '#' 墙  ' ' 地板  '@' 玩家  '$' 箱子  '.' 目标  '*' 箱=目标  '+' 玩家=目标
 const LEVELS = [
@@ -916,57 +917,23 @@ Page({
     drawClawd(ctx, x + (C - GRID_COLS * ps) / 2, y + (C - GRID_ROWS * ps) / 2, ps, { closed });
   },
 
-  // ─── 音频（Web Audio 合成，不支持时静默降级）───────────
+  // ─── 音频:木头音效(utils/wood-sfx.js),不支持 WebAudio 时静默 ───
   _initAudio() {
     try {
       this._ac = wx.createWebAudioContext();
     } catch (e) {
       this._ac = null;
     }
+    this._sfxPlayer = this._ac ? createWoodPlayer(this._ac, ['step', 'push', 'ding', 'undo', 'win']) : null;
   },
 
-  _note(freq, startTime, dur, vol = 0.15, type = 'square') {
-    if (!this._ac || freq === 0) return;
-    const ac = this._ac;
-    const osc = ac.createOscillator();
-    const g = ac.createGain();
-    osc.connect(g);
-    g.connect(ac.destination);
-    osc.type = type;
-    osc.frequency.value = freq;
-    g.gain.setValueAtTime(vol, startTime);
-    g.gain.exponentialRampToValueAtTime(0.001, startTime + dur * 0.88);
-    osc.start(startTime);
-    osc.stop(startTime + dur);
+  _sfx(name) {
+    if (this._sfxPlayer) this._sfxPlayer.play(name);
   },
 
-  _sfxStep() {
-    if (!this._ac) return;
-    this._note(170, this._ac.currentTime, 0.04, 0.05, 'triangle');
-  },
-
-  _sfxPush() {
-    if (!this._ac) return;
-    this._note(110, this._ac.currentTime, 0.08, 0.13, 'square');
-  },
-
-  _sfxDing() {
-    if (!this._ac) return;
-    const now = this._ac.currentTime;
-    this._note(880, now, 0.09, 0.16);
-    this._note(1320, now + 0.06, 0.12, 0.12);
-  },
-
-  _sfxUndo() {
-    if (!this._ac) return;
-    const now = this._ac.currentTime;
-    this._note(300, now, 0.06, 0.1, 'triangle');
-    this._note(220, now + 0.05, 0.07, 0.1, 'triangle');
-  },
-
-  _sfxWin() {
-    if (!this._ac) return;
-    const now = this._ac.currentTime;
-    [523, 659, 784, 1047].forEach((f, i) => this._note(f, now + i * 0.1, 0.14, 0.18));
-  },
+  _sfxStep() { this._sfx('step'); },   // 走一步:木地板轻响
+  _sfxPush() { this._sfx('push'); },   // 推箱子:木箱蹭过地板
+  _sfxDing() { this._sfx('ding'); },   // 推到位:木琴"叮"
+  _sfxUndo() { this._sfx('undo'); },
+  _sfxWin()  { this._sfx('win'); },
 });
