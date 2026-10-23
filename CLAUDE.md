@@ -34,12 +34,14 @@ wx-game-app/
 │   │   ├── clawd.js              # Shared Clawd sprite (COLORS, GRID_COLS/ROWS, buildSprite, drawClawd)
 │   │   ├── gomoku-ai.js          # Gomoku AI: 5-tuple eval, easy/medium greedy, hard alpha-beta (pure, node-testable)
 │   │   ├── gomoku-board.js       # Gomoku canvas renderer (wood board, stones, drop/win animations, hit test)
-│   │   ├── tetris-wood.js        # Tetris wooden 3D art: stained-wood cube atlas, walnut tray (floor/rim layers), side panels
+│   │   ├── wood-art.js           # Shared wooden 3D canvas art: wood grain, cube atlases (any palette), tray (floor/rim), slab, socket, burned text
 │   │   ├── tetris-sfx.js         # Tetris wood SFX synthesis (modal impacts, cracks, debris, boom; pure, node-testable)
 │   │   ├── sky-data.js           # Sky Wing data: enemies, flight paths, stage scripts, bosses, upgrades (pure, node-testable)
 │   │   ├── sky-art.js            # Sky Wing vector sprite atlas (3×, outlined ships, bosses, FX) + flash/shadow variants
 │   │   ├── sky-terrain.js        # Sky Wing procedural terrain chunks (fbm heightfield, hillshade, contours, villages/roads/stations)
 │   │   └── sky-audio.js          # Sky Wing WebAudio SFX + step-sequencer music (battle / boss)
+│   ├── styles/
+│   │   └── wood.wxss             # Shared wooden UI theme: wood-page/header/knob/plate/console/key, overlay plaque
 │   ├── components/
 │   │   └── cloudTipModal/        # Reusable modal for cloud setup tips
 │   ├── assets/sounds/            # Gomoku place sounds + Tetris SFX (level-up/game-over + baked wood SFX fallbacks)

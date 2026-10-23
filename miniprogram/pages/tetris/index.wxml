@@ -1,22 +1,22 @@
-<view class="tetris-page">
+<view class="wood-page">
   <!-- 顶部信息栏 -->
-  <view class="game-header">
+  <view class="wood-header">
     <view class="header-left">
-      <text class="header-lv-label">LV.</text><text class="header-lv-num">{{level}}</text>
+      <text class="header-lv-label">LV.</text><text class="header-lv-num head-gold">{{level}}</text>
     </view>
     <view class="header-center">
-      <view class="header-pause-btn" catchtouchstart="onPause" wx:if="{{gameState === 'playing'}}">
+      <view class="wood-knob" catchtouchstart="onPause" wx:if="{{gameState === 'playing'}}">
         <view class="pause-bar"></view>
         <view class="pause-bar"></view>
       </view>
-      <view class="header-pause-btn header-pause-disabled" wx:else></view>
-      <view class="header-mute-btn" catchtouchstart="onToggleMute">
+      <view class="wood-knob wood-knob-disabled" wx:else></view>
+      <view class="wood-knob" catchtouchstart="onToggleMute">
         <text class="mute-icon">{{muted ? '🔇' : '🔊'}}</text>
       </view>
     </view>
     <view class="header-right">
-      <text class="header-score-label">SCORE</text>
-      <text class="header-score">{{score}}</text>
+      <text class="head-label">SCORE</text>
+      <text class="head-value">{{score}}</text>
     </view>
   </view>
 
@@ -31,23 +31,23 @@
 
     <view class="side-panel">
       <view class="side-section" catchtouchend="onHold">
-        <text class="side-label">HOLD</text>
+        <text class="wood-label">HOLD</text>
         <canvas id="hold-canvas" type="2d" class="hold-canvas"></canvas>
       </view>
 
       <view class="side-section">
-        <text class="side-label">NEXT</text>
+        <text class="wood-label">NEXT</text>
         <canvas id="next-canvas" type="2d" class="next-canvas"></canvas>
       </view>
 
-      <view class="stats">
+      <view class="wood-plate stats">
         <view class="stat-row">
-          <text class="stat-label">LINES</text>
-          <text class="stat-value">{{lines}}</text>
+          <text class="plate-label">LINES</text>
+          <text class="plate-value">{{lines}}</text>
         </view>
         <view class="stat-row">
-          <text class="stat-label">BEST</text>
-          <text class="stat-value">{{best}}</text>
+          <text class="plate-label">BEST</text>
+          <text class="plate-value">{{best}}</text>
         </view>
       </view>
     </view>
@@ -55,40 +55,40 @@
 
   <!-- 操作区:左移动/软降,右旋转/硬降。
        非游戏中只隐藏不移除:移除会让棋盘区变高,画布被拉伸 -->
-  <view class="controls {{gameState === 'playing' ? '' : 'controls-hidden'}}" catchtouchend="noop">
+  <view class="wood-console controls {{gameState === 'playing' ? '' : 'controls-hidden'}}" catchtouchend="noop">
     <view class="ctrl-cluster">
       <view class="ctrl-row">
-        <view class="cbtn" catchtouchstart="onLeft" catchtouchend="onMoveEnd" catchtouchcancel="onMoveEnd">
+        <view class="wood-key cbtn" catchtouchstart="onLeft" catchtouchend="onMoveEnd" catchtouchcancel="onMoveEnd">
           <view class="arr arr-left"></view>
         </view>
-        <view class="cbtn" catchtouchstart="onRight" catchtouchend="onMoveEnd" catchtouchcancel="onMoveEnd">
+        <view class="wood-key cbtn" catchtouchstart="onRight" catchtouchend="onMoveEnd" catchtouchcancel="onMoveEnd">
           <view class="arr arr-right"></view>
         </view>
       </view>
       <view class="ctrl-row">
-        <view class="cbtn cbtn-wide" catchtouchstart="onDown" catchtouchend="onDownEnd" catchtouchcancel="onDownEnd">
+        <view class="wood-key cbtn cbtn-wide" catchtouchstart="onDown" catchtouchend="onDownEnd" catchtouchcancel="onDownEnd">
           <view class="arr arr-down"></view>
-          <text class="cbtn-hint">软降</text>
+          <text class="wood-key-text">软降</text>
         </view>
       </view>
     </view>
 
     <view class="ctrl-cluster">
       <view class="ctrl-row">
-        <view class="cbtn" catchtouchstart="onRotCCW">
+        <view class="wood-key cbtn" catchtouchstart="onRotCCW">
           <text class="rot-glyph">⟲</text>
         </view>
-        <view class="cbtn cbtn-rot" catchtouchstart="onRotCW">
+        <view class="wood-key cbtn" catchtouchstart="onRotCW">
           <text class="rot-glyph rot-main">⟳</text>
         </view>
       </view>
       <view class="ctrl-row">
-        <view class="cbtn cbtn-wide cbtn-drop" catchtouchstart="onDrop">
+        <view class="wood-key wood-key-red cbtn cbtn-wide" catchtouchstart="onDrop">
           <view class="drop-glyph">
             <view class="arr arr-down drop-arr"></view>
             <view class="drop-bar"></view>
           </view>
-          <text class="cbtn-hint hint-drop">硬降</text>
+          <text class="wood-key-text wood-key-text-light">硬降</text>
         </view>
       </view>
     </view>

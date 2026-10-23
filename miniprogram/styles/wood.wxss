@@ -1,0 +1,400 @@
+/* ─── 木质 3D 主题(各游戏共用)─────────────────────────────
+   页面 wxss 开头 import 本文件(路径 ../../styles/wood.wxss),然后用这些类:
+   wood-page 桌面背景 · wood-header 顶部木条 · wood-knob 顶栏小木钮
+   wood-label 刻字标签 · wood-plate 小木牌(plate-label / plate-value)
+   wood-console 底部控制台 · wood-key 木键帽(wood-key-red 红色染木)
+   arr arr-left/right/up/down 刻进木头的三角箭头
+   overlay + plaque 弹窗木牌(plaque-head / plaque-body / score-num /
+   stat-grid / btn-col + wbtn 等) */
+
+/* ── 桌面:木板拼缝 + 细木纹 + 中间亮四周暗 ── */
+.wood-page {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background-color: #26150A;
+  background-image:
+    repeating-linear-gradient(90deg, rgba(0, 0, 0, 0.28) 0, rgba(0, 0, 0, 0.28) 2rpx, transparent 2rpx, transparent 188rpx),
+    repeating-linear-gradient(90deg, rgba(255, 214, 160, 0.035) 0, rgba(255, 214, 160, 0.035) 5rpx, transparent 5rpx, transparent 13rpx, rgba(0, 0, 0, 0.05) 13rpx, rgba(0, 0, 0, 0.05) 17rpx, transparent 17rpx, transparent 29rpx),
+    radial-gradient(ellipse at 50% 35%, #45291A 0%, #2C180C 60%, #1C0F07 100%);
+  color: #F3DDB6;
+  display: flex;
+  flex-direction: column;
+  font-family: monospace;
+  touch-action: manipulation;
+  box-sizing: border-box;
+}
+
+/* ── 顶部木条 ── */
+.wood-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14rpx 32rpx;
+  background-color: #7E4C27;
+  background-image:
+    repeating-linear-gradient(180deg, rgba(60, 30, 10, 0.16) 0, rgba(60, 30, 10, 0.16) 2rpx, transparent 2rpx, transparent 9rpx, rgba(255, 220, 170, 0.06) 9rpx, rgba(255, 220, 170, 0.06) 11rpx, transparent 11rpx, transparent 17rpx),
+    linear-gradient(180deg, #A06838 0%, #844F29 55%, #6C3F1F 100%);
+  border-bottom: 4rpx solid #3A200E;
+  box-shadow: inset 0 3rpx 0 rgba(255, 228, 185, 0.4), 0 8rpx 18rpx rgba(0, 0, 0, 0.5);
+  flex-shrink: 0;
+  position: relative;
+  z-index: 1;
+}
+
+/* 顶栏上的小标签 / 数字 */
+.head-label {
+  font-size: 18rpx;
+  color: #F3D3A0;
+  letter-spacing: 2rpx;
+  font-family: monospace;
+  text-shadow: 0 2rpx 0 rgba(50, 25, 8, 0.7);
+}
+
+.head-value {
+  font-size: 36rpx;
+  font-weight: 700;
+  color: #FFF0D2;
+  font-family: monospace;
+  text-shadow: 0 3rpx 0 #4A2810;
+}
+
+.head-gold {
+  color: #FFD46A;
+  text-shadow: 0 3rpx 0 #4A2810, 0 0 10rpx rgba(255, 200, 90, 0.35);
+}
+
+/* ── 小木钮(顶栏的暂停 / 静音 / 重开) ── */
+.wood-knob {
+  width: 64rpx;
+  height: 60rpx;
+  border-radius: 14rpx;
+  background: linear-gradient(180deg, #D3A06A 0%, #B07740 60%, #9A6434 100%);
+  border: 2rpx solid #5A3218;
+  box-shadow: 0 6rpx 0 #4A2810, 0 8rpx 10rpx rgba(0, 0, 0, 0.4), inset 0 2rpx 0 rgba(255, 240, 210, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8rpx;
+  transform: translateY(-3rpx);
+  color: #4A2810;
+  font-weight: 700;
+  box-sizing: border-box;
+}
+
+.wood-knob:active {
+  transform: translateY(3rpx);
+  box-shadow: 0 1rpx 0 #4A2810, 0 2rpx 4rpx rgba(0, 0, 0, 0.4), inset 0 2rpx 0 rgba(255, 240, 210, 0.4);
+}
+
+.wood-knob-disabled { opacity: 0.35; }
+
+/* ── 刻字标签:暗字 + 下方一道亮边 ── */
+.wood-label {
+  font-size: 22rpx;
+  font-weight: 700;
+  color: #E9C48C;
+  letter-spacing: 4rpx;
+  font-family: monospace;
+  text-shadow: 0 -2rpx 0 rgba(0, 0, 0, 0.65), 0 2rpx 0 rgba(255, 220, 170, 0.12);
+}
+
+/* ── 小木牌 ── */
+.wood-plate {
+  border-radius: 14rpx;
+  background-color: #8A5530;
+  background-image:
+    repeating-linear-gradient(180deg, rgba(60, 30, 10, 0.18) 0, rgba(60, 30, 10, 0.18) 2rpx, transparent 2rpx, transparent 8rpx),
+    linear-gradient(160deg, #A86F3E 0%, #85502A 100%);
+  border: 2rpx solid #4A2810;
+  box-shadow: 0 6rpx 0 #4A2810, 0 10rpx 14rpx rgba(0, 0, 0, 0.45), inset 0 2rpx 0 rgba(255, 230, 190, 0.45);
+  box-sizing: border-box;
+}
+
+.plate-label {
+  font-size: 18rpx;
+  color: #F6DDB0;
+  letter-spacing: 2rpx;
+  font-family: monospace;
+  text-shadow: 0 2rpx 0 rgba(50, 25, 8, 0.6);
+}
+
+.plate-value {
+  font-size: 30rpx;
+  font-weight: 700;
+  color: #FFF2DA;
+  font-family: monospace;
+  text-shadow: 0 2rpx 0 #4A2810;
+}
+
+/* ── 底部木质控制台 ── */
+.wood-console {
+  background-color: #6A3E1F;
+  background-image:
+    repeating-linear-gradient(180deg, rgba(50, 25, 8, 0.18) 0, rgba(50, 25, 8, 0.18) 2rpx, transparent 2rpx, transparent 10rpx, rgba(255, 220, 170, 0.05) 10rpx, rgba(255, 220, 170, 0.05) 12rpx, transparent 12rpx, transparent 19rpx),
+    linear-gradient(180deg, #7C4924 0%, #5E361A 100%);
+  border-top: 4rpx solid #3A200E;
+  box-shadow: inset 0 3rpx 0 rgba(255, 220, 170, 0.3), 0 -8rpx 18rpx rgba(0, 0, 0, 0.45);
+  flex-shrink: 0;
+  box-sizing: border-box;
+}
+
+/* ── 木键帽:浅色枫木,下方 10rpx 木色厚度,按下整个键沉下去 ── */
+.wood-key {
+  border-radius: 18rpx;
+  background-color: #C08A52;
+  background-image:
+    repeating-linear-gradient(180deg, rgba(110, 60, 20, 0.12) 0, rgba(110, 60, 20, 0.12) 2rpx, transparent 2rpx, transparent 9rpx),
+    linear-gradient(180deg, #E2B37A 0%, #C48C52 60%, #AE7640 100%);
+  border: 2rpx solid #5E3519;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  gap: 12rpx;
+  user-select: none;
+  box-shadow: 0 10rpx 0 #5A3218, 0 14rpx 16rpx rgba(0, 0, 0, 0.45), inset 0 3rpx 0 rgba(255, 244, 220, 0.6), inset 0 -4rpx 0 rgba(110, 60, 20, 0.25);
+  transform: translateY(-5rpx);
+  box-sizing: border-box;
+  color: #5A3216;
+  font-weight: 700;
+}
+
+.wood-key:active {
+  transform: translateY(5rpx);
+  background-image:
+    repeating-linear-gradient(180deg, rgba(110, 60, 20, 0.12) 0, rgba(110, 60, 20, 0.12) 2rpx, transparent 2rpx, transparent 9rpx),
+    linear-gradient(180deg, #D3A26A 0%, #B57D46 60%, #A06A37 100%);
+  box-shadow: 0 1rpx 0 #5A3218, 0 3rpx 5rpx rgba(0, 0, 0, 0.4), inset 0 3rpx 6rpx rgba(80, 40, 10, 0.35);
+}
+
+/* 红色染木键 */
+.wood-key-red {
+  background-color: #B5503A;
+  background-image:
+    repeating-linear-gradient(180deg, rgba(80, 20, 10, 0.14) 0, rgba(80, 20, 10, 0.14) 2rpx, transparent 2rpx, transparent 9rpx),
+    linear-gradient(180deg, #DA7458 0%, #B9533B 60%, #9E4230 100%);
+  border-color: #561C10;
+  color: #FFEBD2;
+  box-shadow: 0 10rpx 0 #5A1F12, 0 14rpx 16rpx rgba(0, 0, 0, 0.45), inset 0 3rpx 0 rgba(255, 220, 200, 0.5), inset 0 -4rpx 0 rgba(80, 20, 10, 0.25);
+}
+
+.wood-key-red:active {
+  background-image:
+    repeating-linear-gradient(180deg, rgba(80, 20, 10, 0.14) 0, rgba(80, 20, 10, 0.14) 2rpx, transparent 2rpx, transparent 9rpx),
+    linear-gradient(180deg, #C9654B 0%, #A84833 60%, #8E3A2A 100%);
+  box-shadow: 0 1rpx 0 #5A1F12, 0 3rpx 5rpx rgba(0, 0, 0, 0.4), inset 0 3rpx 6rpx rgba(60, 15, 5, 0.4);
+}
+
+.wood-key-text {
+  font-size: 22rpx;
+  font-weight: 700;
+  color: #5A3216;
+  font-family: monospace;
+  letter-spacing: 2rpx;
+  text-shadow: 0 2rpx 0 rgba(255, 238, 210, 0.5);
+}
+
+.wood-key-text-light {
+  color: #FFEBD2;
+  text-shadow: 0 2rpx 0 rgba(70, 20, 10, 0.6);
+}
+
+/* 刻进木头里的三角箭头 */
+.arr { display: block; width: 0; height: 0; }
+.arr-left  { border-top: 14rpx solid transparent; border-bottom: 14rpx solid transparent; border-right: 20rpx solid #4E2A10; }
+.arr-right { border-top: 14rpx solid transparent; border-bottom: 14rpx solid transparent; border-left:  20rpx solid #4E2A10; }
+.arr-down  { border-left: 14rpx solid transparent; border-right: 14rpx solid transparent; border-top:   20rpx solid #4E2A10; }
+.arr-up    { border-left: 14rpx solid transparent; border-right: 14rpx solid transparent; border-bottom: 20rpx solid #4E2A10; }
+
+/* ── 弹层:挂在暗处的一块木牌 ── */
+.overlay {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(14, 7, 2, 0.84);
+  -webkit-backdrop-filter: blur(8rpx);
+  backdrop-filter: blur(8rpx);
+  z-index: 10;
+}
+
+@keyframes plaque-in {
+  from { opacity: 0; transform: translateY(48rpx) scale(0.94); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.plaque {
+  position: relative;
+  width: 540rpx;
+  border-radius: 28rpx;
+  overflow: hidden;
+  background: linear-gradient(170deg, #B47E4B 0%, #9A6537 50%, #84522B 100%);
+  border: 4rpx solid #4A2810;
+  box-shadow:
+    0 14rpx 0 #3A1F0C,
+    0 30rpx 60rpx rgba(0, 0, 0, 0.65),
+    inset 0 3rpx 0 rgba(255, 236, 205, 0.45);
+  animation: plaque-in 0.32s cubic-bezier(0.2, 1.2, 0.4, 1) both;
+}
+
+/* 四角黄铜钉,和棋盘托盘呼应 */
+.nail {
+  position: absolute;
+  width: 18rpx;
+  height: 18rpx;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 35%, #FFF1C2 0%, #D9A93F 45%, #7A5212 100%);
+  box-shadow: 1rpx 2rpx 2rpx rgba(20, 8, 0, 0.6);
+  z-index: 2;
+}
+.nail-tl { top: 18rpx; left: 18rpx; }
+.nail-tr { top: 18rpx; right: 18rpx; }
+.nail-bl { bottom: 18rpx; left: 18rpx; }
+.nail-br { bottom: 18rpx; right: 18rpx; }
+
+/* 顶部深色横条:标题刻在上面 */
+.plaque-head {
+  padding: 26rpx 0 24rpx;
+  text-align: center;
+  background: linear-gradient(180deg, #6A3D1D 0%, #55301A 100%);
+  border-bottom: 3rpx solid #3A1F0C;
+  box-shadow: 0 3rpx 0 rgba(255, 228, 185, 0.22);
+}
+
+.plaque-title {
+  font-size: 36rpx;
+  font-weight: 700;
+  color: #F6DDB0;
+  letter-spacing: 14rpx;
+  padding-left: 14rpx;
+  text-shadow: 0 -2rpx 0 rgba(0, 0, 0, 0.6);
+}
+
+.plaque-body {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 36rpx 44rpx 48rpx;
+}
+
+.score-label {
+  font-size: 22rpx;
+  color: #F6DDB0;
+  letter-spacing: 6rpx;
+  padding-left: 6rpx;
+  height: 40rpx;
+  line-height: 40rpx;
+}
+
+.newbest-badge {
+  height: 40rpx;
+  padding: 0 22rpx;
+  border-radius: 20rpx;
+  background: linear-gradient(180deg, #FFE18A 0%, #E0A93E 100%);
+  box-shadow: 0 3rpx 0 #7A5212, inset 0 2rpx 0 rgba(255, 250, 230, 0.7);
+  display: flex;
+  align-items: center;
+}
+
+.newbest-text {
+  font-size: 22rpx;
+  font-weight: 700;
+  color: #5A3A08;
+  letter-spacing: 4rpx;
+  padding-left: 4rpx;
+}
+
+.score-num {
+  margin-top: 6rpx;
+  font-size: 104rpx;
+  font-weight: 700;
+  font-family: monospace;
+  line-height: 1.05;
+  color: #FFD96E;
+  text-shadow: 0 6rpx 0 #4A2810, 0 0 24rpx rgba(255, 210, 100, 0.3);
+}
+
+/* 三格数据:凹进木牌里的小槽 */
+.stat-grid {
+  display: flex;
+  flex-direction: row;
+  width: 100%;
+  gap: 14rpx;
+  margin: 30rpx 0 40rpx;
+}
+
+.stat-cell {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 14rpx 0 12rpx;
+  border-radius: 14rpx;
+  background: rgba(50, 24, 6, 0.32);
+  box-shadow: inset 0 3rpx 6rpx rgba(20, 8, 0, 0.45), 0 2rpx 0 rgba(255, 230, 190, 0.22);
+}
+
+.cell-label {
+  font-size: 20rpx;
+  color: #EBCB98;
+  letter-spacing: 2rpx;
+}
+
+.cell-value {
+  margin-top: 4rpx;
+  font-size: 32rpx;
+  font-weight: 700;
+  font-family: monospace;
+  color: #FFF2DA;
+  text-shadow: 0 2rpx 0 rgba(60, 30, 10, 0.7);
+}
+
+/* 两个等宽按钮上下排 */
+.btn-col {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  gap: 28rpx;
+}
+
+.btn-col-gap { margin-top: 44rpx; }
+
+.btn-col .wbtn {
+  width: 100%;
+  height: 88rpx;
+  line-height: 88rpx;
+  margin: 0;
+  padding: 0;
+  border-radius: 18rpx;
+  text-align: center;
+  font-size: 30rpx;
+  font-weight: 700;
+  letter-spacing: 6rpx;
+  color: #4E2A10;
+  background: linear-gradient(180deg, #E2B37A 0%, #C48C52 60%, #AE7640 100%);
+  border: 2rpx solid #5E3519;
+  text-shadow: 0 2rpx 0 rgba(255, 238, 210, 0.5);
+  box-shadow: 0 8rpx 0 #5A3218, 0 12rpx 14rpx rgba(0, 0, 0, 0.35), inset 0 3rpx 0 rgba(255, 244, 220, 0.6);
+  box-sizing: border-box;
+  user-select: none;
+}
+
+.btn-col .wbtn-primary {
+  color: #FFF1E0;
+  background: linear-gradient(180deg, #DA7458 0%, #B9533B 60%, #9E4230 100%);
+  border-color: #561C10;
+  text-shadow: 0 2rpx 0 rgba(70, 20, 10, 0.6);
+  box-shadow: 0 8rpx 0 #5A1F12, 0 12rpx 14rpx rgba(0, 0, 0, 0.35), inset 0 3rpx 0 rgba(255, 220, 200, 0.5);
+}
+
+.btn-col .wbtn:active {
+  transform: translateY(6rpx);
+  box-shadow: 0 2rpx 0 #5A3218, 0 3rpx 5rpx rgba(0, 0, 0, 0.35), inset 0 3rpx 6rpx rgba(80, 40, 10, 0.35);
+}
+
+.btn-col .wbtn-primary:active {
+  box-shadow: 0 2rpx 0 #5A1F12, 0 3rpx 5rpx rgba(0, 0, 0, 0.35), inset 0 3rpx 6rpx rgba(60, 15, 5, 0.4);
+}
+
+.wbtn-share::after { border: none; }

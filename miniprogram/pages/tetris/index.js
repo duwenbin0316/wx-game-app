@@ -6,7 +6,7 @@
 // 美术是木质 3D 风格(utils/tetris-wood.js):染色木块 + 胡桃木托盘。
 const {
   WOOD, VARIANTS, buildCubeAtlas, drawCubeAt, trayMetrics, buildTray, drawPanel,
-} = require('../../utils/tetris-wood.js');
+} = require('../../utils/wood-art.js');
 const { SFX_NAMES, renderSfx } = require('../../utils/tetris-sfx.js');
 
 const COLS = 10;

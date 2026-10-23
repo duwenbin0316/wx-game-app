@@ -1,8 +1,9 @@
-// ─── 俄罗斯方块 · 木质 3D 美术 ─────────────────────────────
-// 斜 45° 俯视,光从左上来:每个格子是一块有厚度的染色木块
+// ─── 木质 3D 美术(各游戏共用)────────────────────────────
+// 斜 45° 俯视,光从左上来:格子里是一块有厚度的染色木块
 // (顶面 + 南 / 东两个侧面),棋盘是一只带围边的胡桃木托盘。
 // 方块按尺寸预渲染进离屏图集;托盘拆成"底板"(画在方块下面)
 // 和"围边"(画在方块上面,正好挡住最右列 / 最底行的侧面)两层。
+// 另有木板(drawSlab)、凹槽(drawSocket)、烙字(drawBurnedText)等零件。
 // createCanvas(w, h) 由调用方提供(小程序里是 wx.createOffscreenCanvas),
 // 纯绘图逻辑,不依赖 wx,可在浏览器里预览。
 
@@ -175,8 +176,9 @@ function woodFill(g, x, y, w, h, base, rand, opts) {
 // 精灵坐标:顶面占 [0, c]²,南 / 东侧面往右下伸出 h,精灵总边长 c + h。
 // 落在格子 (px, py) 上时,精灵画在 (px - h, py - h):顶面"抬高"后
 // 往左上偏 h,侧面正好落在格子自己的范围里,相邻木块彼此遮挡关系正确。
-function drawCube(g, ox, oy, c, h, base, rand) {
+function drawCube(g, ox, oy, c, h, base, rand, opts) {
   const lw = Math.max(0.6, c / 26);
+  const o = opts || {};
 
   // 南侧面(朝向镜头,半阴影)
   g.save();
@@ -213,7 +215,7 @@ function drawCube(g, ox, oy, c, h, base, rand) {
   g.restore();
 
   // 顶面:木纹 + 打光 + 倒角 + 清漆高光
-  const r = c * 0.12;
+  const r = c * (o.radius === undefined ? 0.12 : o.radius);
   g.save();
   g.beginPath();
   roundRectPath(g, ox, oy, c, c, r);
@@ -257,8 +259,8 @@ function drawCube(g, ox, oy, c, h, base, rand) {
   g.restore();
 }
 
-function cubeDepth(cell) {
-  return Math.max(2, Math.round(cell * 0.24));
+function cubeDepth(cell, ratio) {
+  return Math.max(2, Math.round(cell * (ratio || 0.24)));
 }
 
 // 投在底板上的软影(左上来光 → 落在右下),叠三层越来越偏的半透明方块
@@ -275,27 +277,34 @@ function drawCastShadow(g, ox, oy, c, h, s) {
 }
 
 // 某一尺寸的木块图集:行 = 木种,列 = 纹理变体。
-// 每格 = 木块 + 右下的投影,精灵边长 S = cell + h + s
-function buildCubeAtlas(createCanvas, cell, dpr) {
-  const h = cubeDepth(cell);
+// 每格 = 木块 + 右下的投影,精灵边长 S = cell + h + s。
+// palette 默认是俄罗斯方块七色;opts.depth 是厚度比例,opts.radius 是顶面圆角比例,
+// opts.decorate(g, key, cell) 可以在每块顶面上再画东西(如木箱的条板)
+function buildCubeAtlas(createCanvas, cell, dpr, palette, opts) {
+  const pal = palette || WOOD;
+  const o = opts || {};
+  const keys = Object.keys(pal);
+  const variants = o.variants || VARIANTS;
+  const h = cubeDepth(cell, o.depth);
   const sh = Math.max(1, Math.round(h * 0.8));
   const S = cell + h + sh;
   const slot = Math.ceil(S * dpr) + 2;
-  const canvas = createCanvas(slot * VARIANTS, slot * WOOD_TYPES.length);
+  const canvas = createCanvas(slot * variants, slot * keys.length);
   const g = canvas.getContext('2d');
-  WOOD_TYPES.forEach((type, row) => {
-    for (let v = 0; v < VARIANTS; v++) {
+  keys.forEach((key, row) => {
+    for (let v = 0; v < variants; v++) {
       g.save();
       g.translate(v * slot + 1, row * slot + 1);
       g.scale(dpr, dpr);
       drawCastShadow(g, 0, 0, cell, h, sh);
-      drawCube(g, 0, 0, cell, h, WOOD[type], rng(row * 131 + v * 17 + 7));
+      drawCube(g, 0, 0, cell, h, pal[key], rng(row * 131 + v * 17 + 7), { radius: o.radius });
+      if (o.decorate) o.decorate(g, key, cell, rng(row * 71 + v * 13 + 3));
       g.restore();
     }
   });
   return {
-    canvas, cell, h, S, slot,
-    rowOf: WOOD_TYPES.reduce((m, t, i) => { m[t] = i; return m; }, {}),
+    canvas, cell, h, S, slot, variants,
+    rowOf: keys.reduce((m, t, i) => { m[t] = i; return m; }, {}),
   };
 }
 
@@ -313,16 +322,17 @@ function drawCubeAt(ctx, atlas, img, type, variant, px, py, alpha, scale) {
   const dy = cy - (cell / 2) * k;
   const prev = ctx.globalAlpha;
   if (alpha !== undefined && alpha !== 1) ctx.globalAlpha = prev * alpha;
-  ctx.drawImage(img || atlas.canvas, (variant % VARIANTS) * slot + 1, row * slot + 1, slot - 2, slot - 2, dx, dy, size, size);
+  ctx.drawImage(img || atlas.canvas, (variant % (atlas.variants || VARIANTS)) * slot + 1, row * slot + 1, slot - 2, slot - 2, dx, dy, size, size);
   ctx.globalAlpha = prev;
 }
 
 // ── 托盘 ──────────────────────────────────────────────────
 // 根据可用画布尺寸算格子与托盘各部分厚度
-function trayMetrics(W, H, cols, rows) {
+function trayMetrics(W, H, cols, rows, opts) {
+  const o = opts || {};
   // 横向占用 ≈ cols + 2*0.6(围边)+ 0.4(外侧面);纵向同理
-  const cell = Math.max(8, Math.min(30, Math.floor(Math.min(W / (cols + 1.65), H / (rows + 1.65)))));
-  const h = cubeDepth(cell);
+  const cell = Math.max(8, Math.min(o.maxCell || 30, Math.floor(Math.min(W / (cols + 1.65), H / (rows + 1.65)))));
+  const h = cubeDepth(cell, o.depth);
   const F = Math.max(5, Math.round(cell * 0.6));
   const D = h + Math.max(2, Math.round(cell * 0.16));
   const width = cell * cols;
@@ -332,7 +342,7 @@ function trayMetrics(W, H, cols, rows) {
   // (x, y) 是底板格子区的左上角;围边的开口比它整体往左上偏 h
   const x = Math.floor((W - totalW) / 2) + F + h;
   const y = Math.floor((H - totalH) / 2) + F + h;
-  return { cell, h, F, D, width, height, x, y, cols, rows };
+  return { cell, h, F, D, width, height, x, y, cols, rows, floorWood: o.floorWood, grid: o.grid };
 }
 
 function frameBox(m) {
@@ -374,7 +384,7 @@ function drawTrayFloor(g, m, rand) {
   const plankW = cell * 2;
   for (let i = 0; i * plankW < width + h; i++) {
     const px = hx + i * plankW;
-    const base = toHex(shade(FLOOR_WOOD, (rand() - 0.5) * 0.18));
+    const base = toHex(shade(m.floorWood || FLOOR_WOOD, (rand() - 0.5) * 0.18));
     woodFill(g, px, hy, plankW, height + h, base, rand, { vertical: true, lines: 5, lineWidth: lw, knot: 0.35 });
     g.fillStyle = 'rgba(12, 5, 0, 0.6)';
     g.fillRect(px - 0.5, hy, 1, height + h);
@@ -382,14 +392,14 @@ function drawTrayFloor(g, m, rand) {
 
   // 刻槽网格(格子落点):深线 + 右下一条亮线
   g.globalAlpha = 1;
-  for (let c = 1; c < cols; c++) {
+  for (let c = 1; c < (m.grid === false ? 0 : cols); c++) {
     const gx = x + c * cell;
     g.fillStyle = 'rgba(10, 4, 0, 0.32)';
     g.fillRect(gx - 0.5, y, 1, height);
     g.fillStyle = 'rgba(255, 210, 160, 0.06)';
     g.fillRect(gx + 0.5, y, 1, height);
   }
-  for (let r = 1; r < rows; r++) {
+  for (let r = 1; r < (m.grid === false ? 0 : rows); r++) {
     const gy = y + r * cell;
     g.fillStyle = 'rgba(10, 4, 0, 0.32)';
     g.fillRect(x, gy - 0.5, width, 1);
@@ -613,13 +623,194 @@ function drawPanel(g, w, h) {
   g.restore();
 }
 
+// ── 通用零件 ──────────────────────────────────────────────
+
+// 凸起的木板(棋盘底座 / 木牌):顶面 + 右下两个侧面 + 桌面投影,可选四角铜钉
+function drawSlab(g, x, y, w, h, o) {
+  const opt = o || {};
+  const base = opt.base || FRAME_WOOD;
+  const d = opt.depth === undefined ? Math.max(3, Math.round(Math.min(w, h) * 0.03)) : opt.depth;
+  const r = opt.radius === undefined ? Math.min(w, h) * 0.05 : opt.radius;
+  const rand = rng(opt.seed || 91);
+  const lw = Math.max(0.6, Math.min(w, h) / 300);
+
+  // 桌面投影
+  g.save();
+  g.shadowColor = 'rgba(0, 0, 0, 0.5)';
+  g.shadowBlur = d * 3;
+  g.shadowOffsetX = d * 0.8;
+  g.shadowOffsetY = d * 1.4;
+  g.fillStyle = '#2A170B';
+  g.beginPath();
+  roundRectPath(g, x + d * 0.5, y + d * 0.5, w, h, r);
+  g.fill();
+  g.restore();
+
+  // 侧面:整块往右下错开 d 画一遍深色,再盖顶面
+  g.save();
+  g.beginPath();
+  roundRectPath(g, x + d, y + d, w, h, r);
+  g.clip();
+  woodFill(g, x, y, w + d, h + d, toHex(shade(base, -0.42)), rand, { lines: 6, lineWidth: lw, knot: 0 });
+  g.fillStyle = 'rgba(20, 8, 0, 0.25)';
+  g.fillRect(x, y, w + d, h + d);
+  g.restore();
+  for (let i = 1; i < d; i++) {
+    g.save();
+    g.beginPath();
+    roundRectPath(g, x + i, y + i, w, h, r);
+    g.fillStyle = toHex(shade(base, -0.38 - 0.1 * (i / d)));
+    g.globalAlpha = 0.9;
+    g.fill();
+    g.restore();
+  }
+
+  // 顶面
+  g.save();
+  g.beginPath();
+  roundRectPath(g, x, y, w, h, r);
+  g.clip();
+  woodFill(g, x, y, w, h, base, rand, { lines: opt.lines || 12, lineWidth: lw * 1.2, knot: 0.6 });
+  const lg = g.createLinearGradient(x, y, x + w, y + h);
+  lg.addColorStop(0, 'rgba(255, 236, 200, 0.2)');
+  lg.addColorStop(0.5, 'rgba(255, 236, 200, 0)');
+  lg.addColorStop(1, 'rgba(30, 12, 0, 0.22)');
+  g.fillStyle = lg;
+  g.fillRect(x, y, w, h);
+  g.restore();
+
+  // 倒角:左上亮、右下暗
+  const e = Math.max(1, d * 0.4);
+  g.save();
+  g.lineWidth = e;
+  g.strokeStyle = 'rgba(255, 230, 190, 0.32)';
+  g.beginPath();
+  g.moveTo(x + e / 2, y + h - r);
+  g.lineTo(x + e / 2, y + r);
+  g.arcTo(x + e / 2, y + e / 2, x + r, y + e / 2, Math.max(0, r - e / 2));
+  g.lineTo(x + w - r, y + e / 2);
+  g.stroke();
+  g.strokeStyle = 'rgba(25, 10, 0, 0.35)';
+  g.beginPath();
+  g.moveTo(x + w - e / 2, y + r);
+  g.lineTo(x + w - e / 2, y + h - r);
+  g.arcTo(x + w - e / 2, y + h - e / 2, x + w - r, y + h - e / 2, Math.max(0, r - e / 2));
+  g.lineTo(x + r, y + h - e / 2);
+  g.stroke();
+  g.restore();
+
+  if (opt.nails) {
+    const nr = Math.max(1.5, opt.nails);
+    const inset = nr * 2.4;
+    [[x + inset, y + inset], [x + w - inset, y + inset], [x + inset, y + h - inset], [x + w - inset, y + h - inset]]
+      .forEach(([nx, ny]) => drawNail(g, nx, ny, nr));
+  }
+}
+
+// 黄铜钉
+function drawNail(g, nx, ny, nr) {
+  g.save();
+  g.fillStyle = 'rgba(20, 8, 0, 0.45)';
+  g.beginPath();
+  g.arc(nx + nr * 0.25, ny + nr * 0.35, nr, 0, Math.PI * 2);
+  g.fill();
+  const ng = g.createRadialGradient(nx - nr * 0.35, ny - nr * 0.35, nr * 0.1, nx, ny, nr);
+  ng.addColorStop(0, '#FFF1C2');
+  ng.addColorStop(0.45, '#D9A93F');
+  ng.addColorStop(1, '#7A5212');
+  g.fillStyle = ng;
+  g.beginPath();
+  g.arc(nx, ny, nr, 0, Math.PI * 2);
+  g.fill();
+  g.strokeStyle = 'rgba(70, 40, 5, 0.7)';
+  g.lineWidth = Math.max(0.5, nr * 0.25);
+  g.beginPath();
+  g.moveTo(nx - nr * 0.55, ny + nr * 0.55);
+  g.lineTo(nx + nr * 0.55, ny - nr * 0.55);
+  g.stroke();
+  g.restore();
+}
+
+// 挖进木板里的方槽:深色底 + 上 / 左内壁阴影 + 下 / 右沿一道亮边
+function drawSocket(g, x, y, s, o) {
+  const opt = o || {};
+  const r = s * (opt.radius === undefined ? 0.1 : opt.radius);
+  const base = opt.base || PANEL_WOOD;
+  const rand = rng(opt.seed || Math.round(x * 7 + y * 13));
+  const d = Math.max(2, s * 0.08);
+  g.save();
+  g.beginPath();
+  roundRectPath(g, x, y, s, s, r);
+  g.clip();
+  woodFill(g, x, y, s, s, base, rand, { lines: 4, lineWidth: Math.max(0.6, s / 60), knot: 0 });
+  const ts = g.createLinearGradient(0, y, 0, y + d * 2.2);
+  ts.addColorStop(0, 'rgba(8, 3, 0, 0.7)');
+  ts.addColorStop(1, 'rgba(8, 3, 0, 0)');
+  g.fillStyle = ts;
+  g.fillRect(x, y, s, d * 2.2);
+  const ls = g.createLinearGradient(x, 0, x + d * 1.8, 0);
+  ls.addColorStop(0, 'rgba(8, 3, 0, 0.5)');
+  ls.addColorStop(1, 'rgba(8, 3, 0, 0)');
+  g.fillStyle = ls;
+  g.fillRect(x, y, d * 1.8, s);
+  g.restore();
+  g.save();
+  g.strokeStyle = 'rgba(255, 225, 180, 0.22)';
+  g.lineWidth = 1;
+  g.beginPath();
+  g.moveTo(x + s - 0.5, y + r);
+  g.lineTo(x + s - 0.5, y + s - r);
+  g.moveTo(x + r, y + s - 0.5);
+  g.lineTo(x + s - r, y + s - 0.5);
+  g.stroke();
+  g.restore();
+}
+
+// 烙在木头上的字:深色字 + 下方一道亮边(刻痕的受光面);
+// light 为真时是嵌进深色木头里的浅色字
+function drawBurnedText(g, text, cx, cy, size, opt) {
+  const o = opt || {};
+  g.save();
+  g.font = `bold ${Math.round(size)}px ${o.font || 'monospace'}`;
+  g.textAlign = 'center';
+  g.textBaseline = 'middle';
+  const off = Math.max(0.8, size * 0.05);
+  if (o.light) {
+    g.fillStyle = 'rgba(30, 12, 2, 0.6)';
+    g.fillText(text, cx, cy - off);
+    g.fillStyle = o.color || '#FFF2DA';
+    g.fillText(text, cx, cy);
+  } else {
+    g.fillStyle = 'rgba(255, 238, 205, 0.45)';
+    g.fillText(text, cx, cy + off);
+    g.fillStyle = o.color || '#3A1F0C';
+    g.fillText(text, cx, cy);
+  }
+  g.restore();
+}
+
 module.exports = {
   WOOD,
   VARIANTS,
+  FLOOR_WOOD,
+  FRAME_WOOD,
+  PANEL_WOOD,
+  rng,
+  shade,
+  toHex,
+  roundRectPath,
+  poly,
+  woodFill,
+  drawCube,
+  drawCastShadow,
   cubeDepth,
   buildCubeAtlas,
   drawCubeAt,
   trayMetrics,
   buildTray,
   drawPanel,
+  drawSlab,
+  drawNail,
+  drawSocket,
+  drawBurnedText,
 };
