@@ -258,7 +258,7 @@ All render on a `<canvas type="2d">` node (queried via `wx.createSelectorQuery()
 
 | Game | Notes | Local storage key |
 |------|-------|-------------------|
-| Tetris | SRS rotations + wall kicks, T-Spin / B2B / combo, hold/next, controller-style buttons with auto-repeat, chiptune BGM + SFX. Wooden 3D look: blocks are oblique-projected wooden cubes (top face lifted up-left by `h`, south/east sides visible) drawn row-by-row top→bottom so later cubes occlude earlier sides; tray floor drawn under cubes, rim over them; board cells store type + grain variant (e.g. `'T2'`) | `tetris_best` |
+| Tetris | SRS rotations + wall kicks, T-Spin / B2B / combo, hold/next, controller-style buttons with auto-repeat, chiptune BGM + SFX. Wooden 3D look: blocks are oblique-projected wooden cubes (top face lifted up-left by `h`, south/east sides visible) drawn row-by-row top→bottom so later cubes occlude earlier sides; tray floor drawn under cubes, rim over them; board cells store type + grain variant (e.g. `'T2'`). Line clears are tiered via `CLEAR_FX` (1–4 lines: duration, column sweep, wood-chip particles, shake, label size; 4 lines adds gold shockwave/sparks) with a gravity "settle" of the rows above; clear sounds are WebAudio-synthesized marimba arpeggios (more notes per tier, minor key for T-Spin, +1 semitone per combo), falling back to the mp3s without WebAudio | `tetris_best` |
 | Runner | Endless runner: coin combos, coffee shield, death animation | `runner_best` |
 | Sokoban | 10 verified levels, level data inline in `index.js` | `sokoban_best`, `sokoban_unlocked` |
 | Snake | Clawd eats bugs | `snake_best` |

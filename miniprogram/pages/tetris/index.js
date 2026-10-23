@@ -19,7 +19,6 @@ const SOFT_DAS_MS = 170; // 按住软降后开始连降前的延迟(点一下只
 const SOFT_MS = 50;      // 软降连降每行间隔
 const LOCK_MS = 500;     // 触底锁定延迟
 const LOCK_RESETS = 15;  // 锁定延迟最多重置次数
-const CLEAR_MS = 300;    // 消行动画时长
 const OVER_FILL_MS = 600;// 结束时灰块淹没动画
 const STORAGE_KEY = 'tetris_best';
 
@@ -85,7 +84,21 @@ const CLEAR_SCORES = { 1: 100, 2: 300, 3: 500, 4: 800 };
 const TSPIN_SCORES = { 0: 400, 1: 800, 2: 1200, 3: 1600 };
 const TSPIN_MINI_SCORES = { 0: 100, 1: 200, 2: 400 };
 const PERFECT_SCORES = { 1: 800, 2: 1200, 3: 1800, 4: 2000 };
-const CLEAR_LABELS = { 2: '双消!', 3: '三消!', 4: 'TETRIS!' };
+
+// 消行特效分档:消得越多,动画越长、木屑越多、震得越狠。
+// stagger:各列依次"崩开"的时间差(占动画时长比例),0 表示一整行同时崩;
+// 4 行从中间向两边崩,另加金色冲击波和火花
+const CLEAR_FX = {
+  1: { ms: 300, shake: 0,   chips: 2, flash: 0.6,  stagger: 0,    settleMs: 130, label: null },
+  2: { ms: 380, shake: 1.5, chips: 3, flash: 0.75, stagger: 0.26, settleMs: 150, label: { text: '双消!', color: '#FFE7C2', size: 0.95 } },
+  3: { ms: 440, shake: 3,   chips: 4, flash: 0.85, stagger: 0.3,  settleMs: 170, label: { text: '三消!', color: '#FFB25E', size: 1.12 } },
+  4: { ms: 580, shake: 6,   chips: 6, flash: 1,    stagger: 0.28, settleMs: 210, label: { text: 'TETRIS!', color: '#FFD46A', size: 1.45 }, gold: true },
+};
+const MAX_PARTICLES = 280;
+
+// 消行音效音阶(Hz):普通消行用 C 大调琶音,T-Spin 用 D 小调,听感上一亮一暗
+const CHIME_MAJOR = [523.25, 659.25, 783.99, 1046.5, 1318.51, 1567.98];
+const CHIME_MINOR = [587.33, 698.46, 880.0, 1174.66, 1396.91, 1760.0];
 
 function shuffle(list) {
   const arr = list.slice();
@@ -287,7 +300,11 @@ Page({
     this._state = 'play';
     this._now = this._now || 0;
     this._input = { dir: 0, das: 0, arr: 0, soft: false, softWait: 0 };
-    this._fx = { labels: [], trail: null, shake: 0, clearRows: [], clearSet: new Set(), clearStart: 0, overStart: 0 };
+    this._fx = {
+      labels: [], trail: null, shake: 0, overStart: 0,
+      clearRows: [], clearSet: new Set(), clearStart: 0, clearMs: 300, clearTier: 1, clearTspin: false,
+      particles: [], pops: [], wave: null, settle: null, lastDraw: 0,
+    };
   },
 
   _startGame() {
@@ -523,18 +540,102 @@ Page({
     for (let r = 0; r < ROWS; r++) {
       if (this._board[r].every(cell => !!cell)) rows.push(r);
     }
-    this._scoreLock(rows.length, tspin);
+    const pts = this._scoreLock(rows.length, tspin);
 
     if (rows.length) {
+      const n = Math.min(4, rows.length);
+      const tier = CLEAR_FX[n];
+      const fx = this._fx;
       this._state = 'clearing';
-      this._fx.clearRows = rows;
-      this._fx.clearSet = new Set(rows);
-      this._fx.clearStart = this._now;
-      if (rows.length >= 4) this._fx.shake = 5;
-      this._playSfx(rows.length >= 4 ? 'tetris' : 'clear');
+      fx.clearRows = rows;
+      fx.clearSet = new Set(rows);
+      fx.clearStart = this._now;
+      fx.clearMs = tier.ms + (tspin ? 60 : 0);
+      fx.clearTier = n;
+      fx.clearTspin = !!tspin;
+      fx.shake = Math.max(fx.shake, tier.shake + (tspin ? 1.5 : 0));
+      this._spawnClearFx(rows, tier, pts);
+      this._playClearSfx(n, !!tspin, this._combo);
     } else {
-      this._playSfx('drop');
+      if (tspin) this._playClearSfx(0, true, 0);
+      else this._playSfx('drop');
       this._spawn();
+    }
+  },
+
+  // 某列在消行动画里"崩开"的时刻(占动画时长的比例)
+  _clearPopAt(c) {
+    const fx = this._fx;
+    const st = CLEAR_FX[fx.clearTier].stagger;
+    const mid = (COLS - 1) / 2;
+    const k = fx.clearTier >= 4 ? Math.abs(c - mid) / mid : c / (COLS - 1);
+    return 0.2 + st * k;
+  },
+
+  // 消行粒子:每个木块崩出几片木屑(带木块自己的颜色),3 行以上加木粉,
+  // 4 行加金色火花和冲击波;再在消行位置飘一个 +分数
+  _spawnClearFx(rows, tier, pts) {
+    const fx = this._fx;
+    const m = this._rect;
+    if (!m) return;
+    const { x, y, cell } = m;
+    const h = this._art ? m.h : 0;
+    const ms = fx.clearMs;
+    const now = this._now;
+    const vis = rows.filter(r => r >= HIDDEN_ROWS);
+    const list = fx.particles;
+    const rnd = (a, b) => a + Math.random() * (b - a);
+    const midX = x - h + (COLS * cell) / 2;
+    vis.forEach(r => {
+      const cy = y + (r - HIDDEN_ROWS) * cell - h + cell / 2;
+      for (let c = 0; c < COLS; c++) {
+        const key = this._board[r][c];
+        if (!key) continue;
+        const base = WOOD[key[0]] || WOOD.X;
+        const cx = x + c * cell - h + cell / 2;
+        const born = now + this._clearPopAt(c) * ms;
+        const out = tier.gold ? Math.sign(cx - midX) || 1 : 0;
+        for (let i = 0; i < tier.chips; i++) {
+          if (list.length >= MAX_PARTICLES) break;
+          list.push({
+            kind: 'chip', born, life: rnd(450, 800),
+            x: cx + rnd(-0.3, 0.3) * cell, y: cy + rnd(-0.3, 0.3) * cell,
+            vx: (rnd(-1, 1) + out * rnd(0.5, 1.5)) * cell * 5,
+            vy: -rnd(4, 9 + tier.chips) * cell,
+            g: cell * 32,
+            rot: rnd(0, Math.PI), vr: rnd(-14, 14),
+            w: cell * rnd(0.2, 0.38), hgt: cell * rnd(0.08, 0.15),
+            color: Math.random() < 0.5 ? base : tint(base, Math.random() < 0.5 ? 0.3 : -0.3),
+          });
+        }
+        if (tier.chips >= 4 && list.length < MAX_PARTICLES) {
+          list.push({
+            kind: 'dust', born, life: rnd(380, 560),
+            x: cx, y: cy, vx: rnd(-1, 1) * cell, vy: -rnd(0.5, 1.5) * cell, g: 0,
+            r0: cell * 0.15, r1: cell * rnd(0.45, 0.65), color: '#FFE9C8',
+          });
+        }
+        if (tier.gold) {
+          for (let i = 0; i < 2 && list.length < MAX_PARTICLES; i++) {
+            list.push({
+              kind: 'spark', born: born + rnd(0, 80), life: rnd(500, 900),
+              x: cx, y: cy,
+              vx: rnd(-1, 1) * cell * 9, vy: -rnd(3, 12) * cell, g: cell * 14,
+              size: cell * rnd(0.08, 0.16),
+              color: Math.random() < 0.6 ? '#FFE08A' : '#FFFFFF',
+            });
+          }
+        }
+      }
+    });
+    if (!vis.length) return;
+    const top = Math.min(...vis);
+    const bottom = Math.max(...vis);
+    const rowsCy = y + ((top + bottom + 1) / 2 - HIDDEN_ROWS) * cell - h;
+    if (tier.gold) fx.wave = { start: now + 0.18 * ms, x: midX, y: rowsCy };
+    if (pts > 0) {
+      fx.pops.push({ text: `+${pts}`, x: midX, y: rowsCy, start: now + 0.3 * ms, big: tier.gold || fx.clearTspin });
+      if (fx.pops.length > 3) fx.pops.shift();
     }
   },
 
@@ -545,39 +646,49 @@ Page({
       const table = tspin === 'mini' ? TSPIN_MINI_SCORES : TSPIN_SCORES;
       pts += (table[n] || 0) * lv;
       const tag = n === 3 ? 'T-SPIN 三消!' : (n === 2 ? 'T-SPIN 双消!' : 'T-SPIN!');
-      this._label(tspin === 'mini' ? 'T-SPIN MINI' : tag, '#A855F7');
+      this._label(tspin === 'mini' ? 'T-SPIN MINI' : tag, '#D7A6FF', tspin === 'mini' ? 0.9 : 1.2 + n * 0.08);
     } else if (n > 0) {
       pts += CLEAR_SCORES[n] * lv;
-      if (CLEAR_LABELS[n]) this._label(CLEAR_LABELS[n], n >= 4 ? '#F5C842' : '#C0C0E8');
+      const lb = CLEAR_FX[Math.min(4, n)].label;
+      if (lb) this._label(lb.text, lb.color, lb.size);
     }
 
     if (n > 0) {
       const difficult = n >= 4 || !!tspin;
       if (difficult && this._b2b) {
         pts = Math.floor(pts * 1.5);
-        this._label('B2B ×1.5', '#60C0FF');
+        this._label('B2B ×1.5', '#8FD3FF', 0.8);
       }
       this._b2b = difficult;
 
       this._combo += 1;
       if (this._combo >= 1) {
         pts += 50 * this._combo * lv;
-        this._label(`COMBO ×${this._combo + 1}`, '#D97757');
+        this._label(`COMBO ×${this._combo + 1}`, '#FF9A6B', Math.min(1.1, 0.75 + this._combo * 0.05));
       }
     } else {
       this._combo = -1;
     }
     if (pts > 0) this._addScore(pts);
+    return pts;
   },
 
   _finishClear() {
     const n = this._fx.clearRows.length;
     const kept = [];
+    const shift = [];   // 留下的每行要往下掉几行,给"落下"动画用
+    let below = n;
     for (let r = 0; r < ROWS; r++) {
-      if (!this._fx.clearSet.has(r)) kept.push(this._board[r]);
+      if (this._fx.clearSet.has(r)) { below -= 1; continue; }
+      kept.push(this._board[r]);
+      shift.push(below);
     }
-    while (kept.length < ROWS) kept.unshift(Array(COLS).fill(''));
+    while (kept.length < ROWS) { kept.unshift(Array(COLS).fill('')); shift.unshift(0); }
     this._board = kept;
+    if (shift.some(v => v > 0)) {
+      const tier = CLEAR_FX[Math.min(4, n)];
+      this._fx.settle = { start: this._now, ms: tier.settleMs, shift, landShake: Math.min(3, n * 0.7) };
+    }
     this._fx.clearRows = [];
     this._fx.clearSet = new Set();
     this._computeStackTop();
@@ -585,7 +696,8 @@ Page({
     // 全清奖励
     if (this._stackTop >= ROWS) {
       this._addScore((PERFECT_SCORES[n] || 0) * this._level);
-      this._label('全清 PERFECT!', '#FFFFFF');
+      this._label('全清 PERFECT!', '#FFFFFF', 1.3);
+      this._playChord(CHIME_MAJOR.slice(2, 6), 0.05, 0.16, 1.2);
     }
 
     this._lines += n;
@@ -593,7 +705,7 @@ Page({
     if (nextLevel !== this._level) {
       this._level = nextLevel;
       this._gravMs = this._gravityMs(nextLevel);
-      this._label(`LEVEL ${nextLevel}`, '#F5C842');
+      this._label(`LEVEL ${nextLevel}`, '#F5C842', 1);
       this._playSfx('levelup');
     }
     this.setData({ lines: this._lines, level: this._level });
@@ -649,8 +761,8 @@ Page({
     });
   },
 
-  _label(text, color) {
-    this._fx.labels.push({ text, color, start: this._now });
+  _label(text, color, size) {
+    this._fx.labels.push({ text, color, size: size || 1, start: this._now });
     if (this._fx.labels.length > 4) this._fx.labels.shift();
   },
 
@@ -719,9 +831,16 @@ Page({
         this._lockMs = 0;
       }
     } else if (this._state === 'clearing') {
-      if (ts - this._fx.clearStart >= CLEAR_MS) this._finishClear();
+      if (ts - this._fx.clearStart >= this._fx.clearMs) this._finishClear();
     } else if (this._state === 'overAnim') {
       if (ts - this._fx.overStart >= OVER_FILL_MS + 250) this._finishOver();
+    }
+
+    // 剩下的行落地那一下轻震
+    const st = this._fx.settle;
+    if (st && ts - st.start >= st.ms) {
+      this._fx.shake = Math.max(this._fx.shake, st.landShake);
+      this._fx.settle = null;
     }
 
     // HUD 按需同步
@@ -860,26 +979,57 @@ Page({
     }
     const curAlpha = this._lockMs > 0 ? 0.82 : 1;
     const clearing = this._state === 'clearing';
-    const p = clearing ? Math.min(1, (ts - fx.clearStart) / CLEAR_MS) : 0;
+    const p = clearing ? Math.min(1, (ts - fx.clearStart) / fx.clearMs) : 0;
+    const popAt = [];
+    if (clearing) for (let c = 0; c < COLS; c++) popAt.push(this._clearPopAt(c));
+    // 消行后上面的行像受重力一样加速落下(只是视觉偏移,逻辑棋盘已经更新)
+    const st = fx.settle;
+    const fall = st ? Math.min(1, (ts - st.start) / st.ms) : 1;
+    // 消行行的闪光颜色:普通暖白、T-Spin 淡紫、4 行金色
+    const glowRGB = fx.clearTspin ? '230, 200, 255' : (fx.clearTier >= 4 ? '255, 222, 130' : '255, 246, 222');
     for (let r = HIDDEN_ROWS; r < ROWS; r++) {
-      const py = y + (r - HIDDEN_ROWS) * cell;
-      const shrink = clearing && fx.clearSet.has(r) && p >= 0.35 ? 1 - (p - 0.35) / 0.65 : 1;
+      const off = st && st.shift[r] ? -st.shift[r] * cell * (1 - fall * fall) : 0;
+      const py = y + (r - HIDDEN_ROWS) * cell + off;
+      const isClear = clearing && fx.clearSet.has(r);
       for (let c = 0; c < COLS; c++) {
         const px = x + c * cell;
         const t = this._board[r][c];
         if (t) {
-          this._cube(ctx, atlas, atlasImg, t, px, py, cell, 1, shrink);
+          if (isClear) {
+            // 扫到这一列时先亮一下,随后缩小崩成木屑
+            const k = (p - popAt[c]) / 0.22;
+            const scale = k <= 0 ? 1 : 1 - Math.min(1, k);
+            this._cube(ctx, atlas, atlasImg, t, px, py, cell, 1, scale);
+            const glow = Math.max(0, 1 - Math.abs(p - popAt[c]) / 0.12);
+            if (glow > 0 && scale > 0) {
+              ctx.fillStyle = `rgba(${glowRGB}, ${0.85 * glow})`;
+              const sz = cell * Math.max(scale, 0.3);
+              ctx.fillRect(px - h + (cell - sz) / 2, py - h + (cell - sz) / 2, sz, sz);
+            }
+          } else {
+            this._cube(ctx, atlas, atlasImg, t, px, py, cell, 1);
+          }
         } else if (curAt[r * COLS + c] !== undefined) {
           const i = curAt[r * COLS + c];
           this._cube(ctx, atlas, atlasImg, this._cur.type + this._cur.vars[i], px, py, cell, curAlpha);
         }
       }
     }
-    if (clearing && p < 0.35) {
-      ctx.fillStyle = `rgba(255, 246, 220, ${0.85 * (1 - p / 0.35)})`;
-      fx.clearRows.forEach(r => {
-        if (r >= HIDDEN_ROWS) ctx.fillRect(x - h, y + (r - HIDDEN_ROWS) * cell - h, width, cell + h);
-      });
+    if (clearing) {
+      // 整行闪光:档位越高越亮
+      const flash = CLEAR_FX[fx.clearTier].flash;
+      if (p < 0.2) {
+        ctx.fillStyle = `rgba(${glowRGB}, ${flash * (1 - p / 0.2)})`;
+        fx.clearRows.forEach(r => {
+          if (r >= HIDDEN_ROWS) ctx.fillRect(x - h, y + (r - HIDDEN_ROWS) * cell - h, width, cell + h);
+        });
+      }
+      // 4 行:整盘泛一层金光
+      if (fx.clearTier >= 4) {
+        const a = 0.22 * Math.max(0, 1 - p / 0.7);
+        ctx.fillStyle = `rgba(255, 205, 90, ${a})`;
+        ctx.fillRect(x - h, y - h, width, height);
+      }
     }
 
     // 硬降拖尾
@@ -912,30 +1062,145 @@ Page({
     // 托盘围边盖在最上面:挡住最右列 / 最底行木块的侧面
     if (art) ctx.drawImage(art.img.rim || art.rim, 0, 0, this._W, this._H);
 
-    // 浮动大字(TETRIS! / T-SPIN! / COMBO…)
+    // 消行特效:冲击波、木屑 / 木粉 / 火花、+分数,都盖在围边上面
+    const pdt = fx.lastDraw ? Math.min(50, ts - fx.lastDraw) / 1000 : 0.016;
+    fx.lastDraw = ts;
+    this._drawWave(ctx, ts, width);
+    this._drawParticles(ctx, ts, pdt);
+    this._drawPops(ctx, ts, cell);
+
+    // 浮动大字(TETRIS! / T-SPIN! / COMBO…):弹出时先放大再回弹,档位越高字越大
     for (let i = fx.labels.length - 1; i >= 0; i--) {
       const lb = fx.labels[i];
       const age = ts - lb.start;
-      if (age > 900) { fx.labels.splice(i, 1); continue; }
-      const t01 = age / 900;
+      const life = 750 + lb.size * 300;
+      if (age > life) { fx.labels.splice(i, 1); continue; }
+      const t01 = age / life;
+      const k = Math.min(1, age / 220);
+      const back = 1 + 2.7 * Math.pow(k - 1, 3) + 1.7 * Math.pow(k - 1, 2);
+      const scale = 0.35 + 0.65 * back;
       ctx.save();
-      ctx.globalAlpha = t01 < 0.15 ? t01 / 0.15 : 1 - (t01 - 0.15) / 0.85;
-      ctx.font = `bold ${Math.round(cell * 0.9)}px monospace`;
+      ctx.globalAlpha = Math.max(0, Math.min(1, age / 60, (1 - t01) / 0.3));
+      const fs = Math.round(cell * 0.9 * lb.size * scale);
+      ctx.font = `bold ${fs}px monospace`;
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       const lx = x - h + width / 2;
-      const ly = y + height * 0.3 - t01 * 40 + i * cell * 1.1;
+      const ly = y + height * 0.3 - t01 * 30 + i * cell * 1.15;
       ctx.lineJoin = 'round';
-      ctx.lineWidth = Math.max(3, cell * 0.16);
+      ctx.lineWidth = Math.max(3, fs * 0.18);
       ctx.strokeStyle = '#2A1408';
       ctx.strokeText(lb.text, lx + 1.5, ly + 2);
       ctx.strokeText(lb.text, lx, ly);
       ctx.fillStyle = lb.color;
       ctx.fillText(lb.text, lx, ly);
+      if (lb.size >= 1.3) {
+        // 大字顶部一道高光,更像烫金
+        ctx.save();
+        ctx.beginPath();
+        ctx.rect(lx - width / 2, ly - fs / 2, width, fs * 0.42);
+        ctx.clip();
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.45)';
+        ctx.fillText(lb.text, lx, ly);
+        ctx.restore();
+      }
       ctx.restore();
     }
 
     ctx.restore();
+  },
+
+  // 4 行消除的金色冲击波:两道圆环从消行中心扩散
+  _drawWave(ctx, ts, width) {
+    const w = this._fx.wave;
+    if (!w) return;
+    const age = ts - w.start;
+    if (age < 0) return;
+    if (age > 520) { this._fx.wave = null; return; }
+    ctx.save();
+    [0, 90].forEach(lag => {
+      const t = (age - lag) / 430;
+      if (t <= 0 || t >= 1) return;
+      const e = 1 - Math.pow(1 - t, 3);
+      ctx.globalAlpha = (1 - t) * 0.85;
+      ctx.strokeStyle = lag ? '#FFFFFF' : '#FFD46A';
+      ctx.lineWidth = Math.max(1, (1 - t) * 7);
+      ctx.beginPath();
+      ctx.arc(w.x, w.y, 6 + e * width * 0.85, 0, Math.PI * 2);
+      ctx.stroke();
+    });
+    ctx.restore();
+  },
+
+  _drawParticles(ctx, ts, dt) {
+    const list = this._fx.particles;
+    if (!list.length) return;
+    ctx.save();
+    for (let i = list.length - 1; i >= 0; i--) {
+      const q = list[i];
+      const age = ts - q.born;
+      if (age < 0) continue;
+      if (age > q.life) { list.splice(i, 1); continue; }
+      q.vy += q.g * dt;
+      q.x += q.vx * dt;
+      q.y += q.vy * dt;
+      const t = age / q.life;
+      if (q.kind === 'chip') {
+        q.rot += q.vr * dt;
+        ctx.globalAlpha = t < 0.7 ? 1 : (1 - t) / 0.3;
+        const c = Math.cos(q.rot);
+        const sn = Math.sin(q.rot);
+        ctx.setTransform(c * this._dpr, sn * this._dpr, -sn * this._dpr, c * this._dpr, q.x * this._dpr, q.y * this._dpr);
+        ctx.fillStyle = 'rgba(30, 14, 4, 0.5)';
+        ctx.fillRect(-q.w / 2 + 0.6, -q.hgt / 2 + 0.6, q.w, q.hgt);
+        ctx.fillStyle = q.color;
+        ctx.fillRect(-q.w / 2, -q.hgt / 2, q.w, q.hgt);
+      } else if (q.kind === 'dust') {
+        ctx.setTransform(this._dpr, 0, 0, this._dpr, 0, 0);
+        ctx.globalAlpha = 0.16 * (1 - t) * (1 - t);
+        ctx.fillStyle = q.color;
+        ctx.beginPath();
+        ctx.arc(q.x, q.y, q.r0 + (q.r1 - q.r0) * t, 0, Math.PI * 2);
+        ctx.fill();
+      } else {
+        // 火花:闪烁的小亮点,拖一点尾巴
+        ctx.setTransform(this._dpr, 0, 0, this._dpr, 0, 0);
+        ctx.globalAlpha = (1 - t) * (0.6 + 0.4 * Math.sin(age / 30));
+        ctx.strokeStyle = q.color;
+        ctx.lineWidth = q.size;
+        ctx.beginPath();
+        ctx.moveTo(q.x, q.y);
+        ctx.lineTo(q.x - q.vx * 0.025, q.y - q.vy * 0.025);
+        ctx.stroke();
+      }
+    }
+    ctx.restore();
+  },
+
+  // +分数:从消行位置往上飘
+  _drawPops(ctx, ts, cell) {
+    const pops = this._fx.pops;
+    for (let i = pops.length - 1; i >= 0; i--) {
+      const pp = pops[i];
+      const age = ts - pp.start;
+      if (age < 0) continue;
+      if (age > 800) { pops.splice(i, 1); continue; }
+      const t = age / 800;
+      const fs = Math.round(cell * (pp.big ? 0.8 : 0.62));
+      ctx.save();
+      ctx.globalAlpha = Math.min(1, age / 80, (1 - t) / 0.35);
+      ctx.font = `bold ${fs}px monospace`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      const py = pp.y - (1 - Math.pow(1 - t, 2)) * cell * 1.6;
+      ctx.lineJoin = 'round';
+      ctx.lineWidth = Math.max(2.5, fs * 0.2);
+      ctx.strokeStyle = '#2A1408';
+      ctx.strokeText(pp.text, pp.x, py);
+      ctx.fillStyle = pp.big ? '#FFE9A8' : '#FFF4E0';
+      ctx.fillText(pp.text, pp.x, py);
+      ctx.restore();
+    }
   },
 
   // 平面方块:离屏 canvas 不可用时的兜底画法
@@ -1291,6 +1556,151 @@ Page({
       gain.connect(this._wac.destination);
       osc.start(t);
       osc.stop(t + dur);
+    } catch (e) {}
+  },
+
+  // ── 消行音效:木琴音色合成,行数越多越丰富 ─────────────
+  // 1 行:木块"嗒"+ 一个音;2 行:两音上行;3 行:三和弦琶音 + 低频闷响;
+  // 4 行:五音快速琶音 + 重低音 + 镲声 + 和弦余音 + 高音闪烁。
+  // T-Spin 换成小调并加一声"嗖";连击每多一次整体升高一个半音。
+  // 没有 WebAudio 时退回原来的 mp3。
+  _playClearSfx(n, tspin, combo) {
+    if (this.data.muted) return;
+    const wac = this._wac;
+    if (!wac) {
+      if (n > 0) this._playSfx(n >= 4 ? 'tetris' : 'clear');
+      return;
+    }
+    try {
+      const t = wac.currentTime + 0.01;
+      const up = Math.pow(2, Math.min(Math.max(combo, 0), 8) / 12);
+      const scale = (tspin ? CHIME_MINOR : CHIME_MAJOR).map(f => f * up);
+      if (tspin) this._whoosh(t, 0.22);
+      if (n === 0) {
+        this._marimba(scale[0], t + 0.12, 0.2, 0.45);
+        return;
+      }
+      this._knock(t, 0.3 + n * 0.08);
+      const steps = n >= 4 ? 5 : n;
+      const gap = n >= 4 ? 0.055 : 0.075;
+      const at0 = t + (tspin ? 0.12 : 0.03);
+      for (let i = 0; i < steps; i++) {
+        this._marimba(scale[i], at0 + i * gap, 0.2 + i * 0.015, n >= 4 ? 0.7 : 0.45);
+      }
+      if (n >= 3) this._boom(t, n >= 4 ? 0.55 : 0.3);
+      if (n >= 4) {
+        this._crash(t + 0.02, 0.18);
+        const end = at0 + steps * gap;
+        this._playChord([scale[2], scale[3], scale[4]], 0, 0.09, 1.1, end);
+        for (let i = 0; i < 6; i++) {
+          this._ping(scale[5] * (1 + Math.random() * 0.5), end + 0.05 + i * 0.07, 0.05);
+        }
+      }
+    } catch (e) {}
+  },
+
+  _noiseBuffer() {
+    if (!this._noiseBuf) {
+      const wac = this._wac;
+      const len = Math.floor(wac.sampleRate * 0.6);
+      this._noiseBuf = wac.createBuffer(1, len, wac.sampleRate);
+      const ch = this._noiseBuf.getChannelData(0);
+      for (let i = 0; i < len; i++) ch[i] = Math.random() * 2 - 1;
+    }
+    return this._noiseBuf;
+  },
+
+  // 噪声 → (带通滤波,不支持就直出)→ 包络
+  _noiseHit(at, dur, vol, freq, q, sweepTo) {
+    const wac = this._wac;
+    const src = wac.createBufferSource();
+    src.buffer = this._noiseBuffer();
+    const gain = wac.createGain();
+    gain.gain.setValueAtTime(vol, at);
+    gain.gain.exponentialRampToValueAtTime(0.001, at + dur);
+    let head = src;
+    try {
+      const bp = wac.createBiquadFilter();
+      bp.type = 'bandpass';
+      bp.Q.value = q;
+      bp.frequency.setValueAtTime(freq, at);
+      if (sweepTo) bp.frequency.exponentialRampToValueAtTime(sweepTo, at + dur);
+      src.connect(bp);
+      head = bp;
+    } catch (e) {
+      gain.gain.setValueAtTime(vol * 0.4, at);
+    }
+    head.connect(gain);
+    gain.connect(wac.destination);
+    src.start(at);
+    src.stop(at + dur);
+  },
+
+  // 木块敲击声:短促的带通噪声 + 一点低频
+  _knock(at, vol) {
+    this._noiseHit(at, 0.05, vol, 1700, 4);
+    this._osc('triangle', 180, at, 0.06, vol * 0.6);
+  },
+
+  _whoosh(at, vol) {
+    this._noiseHit(at, 0.22, vol, 500, 2.5, 3200);
+  },
+
+  _crash(at, vol) {
+    this._noiseHit(at, 0.5, vol, 5200, 0.8);
+  },
+
+  // 低音"咚":正弦从 120Hz 往下滑
+  _boom(at, vol) {
+    const wac = this._wac;
+    const osc = wac.createOscillator();
+    const gain = wac.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(120, at);
+    osc.frequency.exponentialRampToValueAtTime(42, at + 0.35);
+    gain.gain.setValueAtTime(vol, at);
+    gain.gain.exponentialRampToValueAtTime(0.001, at + 0.4);
+    osc.connect(gain);
+    gain.connect(wac.destination);
+    osc.start(at);
+    osc.stop(at + 0.42);
+  },
+
+  _osc(type, freq, at, dur, vol) {
+    const wac = this._wac;
+    const osc = wac.createOscillator();
+    const gain = wac.createGain();
+    osc.type = type;
+    osc.frequency.value = freq;
+    gain.gain.setValueAtTime(0.0001, at);
+    gain.gain.exponentialRampToValueAtTime(vol, at + 0.005);
+    gain.gain.exponentialRampToValueAtTime(0.001, at + dur);
+    osc.connect(gain);
+    gain.connect(wac.destination);
+    osc.start(at);
+    osc.stop(at + dur + 0.02);
+  },
+
+  // 木琴:基音 + 约 4 倍频的泛音(衰减快),听起来像敲木条
+  _marimba(freq, at, vol, dur) {
+    this._osc('sine', freq, at, dur, vol);
+    this._osc('sine', freq * 3.93, at, dur * 0.18, vol * 0.35);
+  },
+
+  _ping(freq, at, vol) {
+    this._osc('triangle', freq, at, 0.12, vol);
+  },
+
+  // 和弦余音(全清 / 4 行收尾)
+  _playChord(freqs, gap, vol, dur, at) {
+    const wac = this._wac;
+    if (!wac || this.data.muted) return;
+    try {
+      const t0 = at || wac.currentTime + 0.01;
+      freqs.forEach((f, i) => {
+        this._osc('triangle', f, t0 + i * gap, dur, vol);
+        this._osc('sine', f * 2, t0 + i * gap, dur * 0.6, vol * 0.3);
+      });
     } catch (e) {}
   },
 });
