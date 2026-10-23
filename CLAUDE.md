@@ -222,7 +222,7 @@ const openid = wxContext.OPENID;  // Always use this
 ### Gomoku (online + offline)
 
 - **Flow**: `home` → `online` (lobby: room list, create/join) → `gomoku` (board)
-- **Board**: 15×15 array of `'black'` | `'white'` | `''` in `data.board`, drawn on `<canvas id="board-canvas">` by `utils/gomoku-board.js`. The page wraps `setData` so every update redraws the board; taps go through `onBoardTouch` → `hitTest` → `onCellTap(row, col)`
+- **Board**: 15×15 array of `'black'` | `'white'` | `''` in `data.board`, drawn on `<canvas id="board-canvas">` by `utils/gomoku-board.js` (kaya-grain board + slate/clamshell stone sprites baked to offscreen canvases; stone-drop + ripple animation). The page wraps `setData` so every update redraws the board. Touch: press-and-drag aims (`onBoardTouchStart/Move/End` → renderer `nearest` → `aim` state with guide lines, haptic tick per new point, 2× loupe above the finger after 140 ms); release calls `onCellTap(row, col)`. In confirm mode a ghost appears and a large 落子/取消 bar (`ghostLabel`) replaces the tip line
 - **Local features**: tap-to-confirm placement, move numbers (prefs in `gomoku_prefs`), 3 hints per game, post-game review from move history, AI win/loss record (`gomoku_ai_record`)
 - **AI**: `chooseMove(board, color, level)` in `utils/gomoku-ai.js`; hard uses iterative-deepening alpha-beta with a time budget (keeps iOS responsive)
 - **Win detection**: `checkWinner()` in the cloud function checks 4 directions from the last move; 5+ consecutive pieces wins

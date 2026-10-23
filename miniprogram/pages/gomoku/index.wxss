@@ -233,7 +233,25 @@ page {
   justify-content: space-between;
   gap: 12rpx;
   margin-bottom: 26rpx;
-  min-height: 52rpx;
+  min-height: 96rpx;   /* 和"落子"按钮一样高,切换时下面的按钮不跳 */
+}
+
+/* 预落子确认条:取消 + 大号落子 */
+.ghost-bar {
+  gap: 20rpx;
+}
+
+.ghost-cancel {
+  width: 200rpx;
+  height: 88rpx;
+  font-size: 30rpx;
+}
+
+.ghost-confirm {
+  flex: 1;
+  height: 88rpx;
+  font-size: 34rpx;
+  letter-spacing: 4rpx;
 }
 
 .board-tip {

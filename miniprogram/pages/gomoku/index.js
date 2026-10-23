@@ -49,6 +49,7 @@ Page({
     confirmMode: true,
     showNumbers: false,
     ghostTip: '',
+    ghostLabel: '',        // 有预落子时的坐标(如 'H8'),显示大号"落子"按钮
     // 提示(本地 / 人机)
     hintLeft: HINTS_PER_GAME,
     // 复盘
@@ -65,12 +66,14 @@ Page({
     // 所有 setData 之后顺手重绘棋盘:棋盘状态散落在十几处 setData 里,
     // 统一在这里接管,不用每个调用点都记得刷新 canvas
     const rawSetData = this.setData;
+    this._rawSetData = rawSetData;
     this.setData = (patch, cb) => {
       rawSetData.call(this, patch, cb);
       this.renderBoard();
     };
     this._ghost = null;
     this._hint = null;
+    this._aim = null;
     this.loadPrefs();
     this.initAudio();
     this.pendingMove = null;
@@ -117,7 +120,10 @@ Page({
         const ctx = canvas.getContext('2d');
         ctx.scale(dpr, dpr);
         this._boardRect = { left: info.left, top: info.top };
-        this._renderer = new BoardRenderer(canvas, ctx, info.width);
+        this._renderer = new BoardRenderer(canvas, ctx, info.width, {
+          dpr,
+          createCanvas: (w, h) => wx.createOffscreenCanvas({ type: '2d', width: w, height: h }),
+        });
         this.renderBoard();
       });
   },
@@ -319,6 +325,9 @@ Page({
     // 预落子点被占了(比如对手先下到那里)就作废
     if (this._ghost && board[this._ghost.r] && board[this._ghost.r][this._ghost.c]) this._ghost = null;
     if (this._hint && board[this._hint.r] && board[this._hint.r][this._hint.c]) this._hint = null;
+    // 大号"落子"按钮跟着预落子走(用原始 setData,免得又触发重绘)
+    const ghostLabel = this._ghost && !d.reviewMode ? `${LETTERS[this._ghost.c]}${size - this._ghost.r}` : '';
+    if (ghostLabel !== d.ghostLabel && this._rawSetData) this._rawSetData.call(this, { ghostLabel });
 
     renderer.setState({
       board,
@@ -326,16 +335,19 @@ Page({
       winCells,
       numbers,
       ghost: d.reviewMode ? null : this._ghost,
+      aim: d.reviewMode ? null : this._aim,
       hint: d.reviewMode ? null : this._hint,
       dim: d.mode === 'online' && d.roomInfo && d.roomInfo.status === 'waiting',
       noAnim: d.reviewMode,
     });
   },
 
-  // 触点 → 交叉点
-  onBoardTouch(e) {
-    const t = e.changedTouches && e.changedTouches[0];
-    if (!t || !this._renderer) return;
+  // ── 触摸:按住拖动瞄准,松手落子 / 预落子 ──────────────────
+  // 手指会挡住小小的交叉点,所以按住时画十字引导线,按住超过 140ms 或拖动后
+  // 在手指上方弹出 2 倍放大镜;每换一个交叉点轻震一下。
+  _touchPoint(e, list) {
+    const t = e[list] && e[list][0];
+    if (!t) return null;
     let x = t.x;
     let y = t.y;
     // canvas 触摸事件一般带相对 canvas 的 x/y;没有就用 clientX 减去 canvas 位置
@@ -343,8 +355,96 @@ Page({
       x = t.clientX - this._boardRect.left;
       y = t.clientY - this._boardRect.top;
     }
-    const cell = this._renderer.hitTest(x, y);
-    if (cell) this.onCellTap(cell.r, cell.c);
+    return typeof x === 'number' ? { x, y } : null;
+  },
+
+  // 现在轮不轮到自己点棋盘(轮不到就走老逻辑,让 onCellTap 给出提示)
+  _canAim() {
+    const d = this.data;
+    if (d.winner || d.reviewMode || d.isFlipping) return false;
+    if (d.mode === 'online' && !d.canPlay) return false;
+    if (d.isAiMode && d.currentPlayer === 'white') return false;
+    return true;
+  },
+
+  _redrawAim() {
+    if (this._renderer) this._renderer.setState({ aim: this._aim });
+  },
+
+  onBoardTouchStart(e) {
+    const p = this._touchPoint(e, 'touches');
+    if (!p || !this._renderer || !this._canAim()) {
+      this._aim = null;
+      return;
+    }
+    const cell = this._renderer.nearest(p.x, p.y);
+    this._aimStart = { x: p.x, y: p.y };
+    this._aimDragged = false;
+    this._aim = { r: cell.r, c: cell.c, color: this.data.currentPlayer, touch: null, at: p };
+    clearTimeout(this._loupeTimer);
+    this._loupeTimer = setTimeout(() => {
+      if (this._aim) {
+        this._aim.touch = this._aim.at;
+        this._redrawAim();
+      }
+    }, 140);
+    this._redrawAim();
+  },
+
+  onBoardTouchMove(e) {
+    if (!this._aim) return;
+    const p = this._touchPoint(e, 'touches');
+    if (!p) return;
+    const dx = p.x - this._aimStart.x;
+    const dy = p.y - this._aimStart.y;
+    if (!this._aimDragged && dx * dx + dy * dy > 64) this._aimDragged = true;
+    const cell = this._renderer.nearest(p.x, p.y);
+    if (cell.r !== this._aim.r || cell.c !== this._aim.c) {
+      try { wx.vibrateShort({ type: 'light' }); } catch (err) {}
+    }
+    this._aim.r = cell.r;
+    this._aim.c = cell.c;
+    this._aim.at = p;
+    if (this._aimDragged) this._aim.touch = p;
+    this._redrawAim();
+  },
+
+  onBoardTouchEnd(e) {
+    clearTimeout(this._loupeTimer);
+    const aim = this._aim;
+    this._aim = null;
+    if (!aim) {
+      // 轮不到自己:按老逻辑点一下,让 onCellTap 提示"不是你的回合"之类
+      const p = this._touchPoint(e, 'changedTouches');
+      const cell = p && this._renderer && this._renderer.hitTest(p.x, p.y);
+      if (cell) this.onCellTap(cell.r, cell.c);
+      return;
+    }
+    this._redrawAim();
+    const board = this.data.board;
+    if (!board[aim.r] || board[aim.r][aim.c] !== '') return;
+    // 落子确认模式下:拖着瞄准后松手停在预落子上,只是"再看一眼",不直接落子
+    const g = this._ghost;
+    const sameAsGhost = g && g.r === aim.r && g.c === aim.c;
+    if (this.data.confirmMode && sameAsGhost && this._aimDragged) return;
+    this.onCellTap(aim.r, aim.c);
+  },
+
+  onBoardTouchCancel() {
+    clearTimeout(this._loupeTimer);
+    this._aim = null;
+    this._redrawAim();
+  },
+
+  // 大号"落子"按钮:确认预落子
+  onGhostConfirm() {
+    const g = this._ghost;
+    if (g) this.onCellTap(g.r, g.c);
+  },
+
+  onGhostCancel() {
+    this._ghost = null;
+    this.setData({ ghostTip: '' });
   },
 
   // ── 偏好:落子确认 / 手数 ─────────────────────────────────
@@ -1174,7 +1274,7 @@ Page({
       if (!g || g.r !== row || g.c !== col) {
         this._ghost = { r: row, c: col, color: this.data.currentPlayer };
         try { wx.vibrateShort({ type: 'light' }); } catch (e) {}
-        this.setData({ ghostTip: `${LETTERS[col]}${this.data.boardSize - row} · 再点一次落子` });
+        this.setData({ ghostTip: `${LETTERS[col]}${this.data.boardSize - row} · 点「落子」确认` });
         return;
       }
     }

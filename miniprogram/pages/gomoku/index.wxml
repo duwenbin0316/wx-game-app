@@ -40,11 +40,20 @@
 
   <!-- 棋盘:Canvas 绘制(木纹、棋子、落子动画、连五金线) -->
   <view class="game-board {{isFlipping ? 'flipping' : ''}}">
-    <canvas type="2d" id="board-canvas" class="board-canvas" bindtouchend="onBoardTouch"></canvas>
+    <canvas type="2d" id="board-canvas" class="board-canvas"
+            bindtouchstart="onBoardTouchStart"
+            catchtouchmove="onBoardTouchMove"
+            bindtouchend="onBoardTouchEnd"
+            bindtouchcancel="onBoardTouchCancel"></canvas>
   </view>
 
-  <view class="board-bar">
-    <text class="board-tip {{ghostTip ? 'tip-on' : ''}}">{{reviewMode ? '复盘中 · 第 ' + reviewStep + ' / ' + reviewTotal + ' 手' : (ghostTip || (confirmMode ? '点选位置,再点一次落子' : '点击交叉点落子'))}}</text>
+  <!-- 有预落子时:大号"落子"/"取消",不用再去点那个小小的交叉点 -->
+  <view class="board-bar ghost-bar" wx:if="{{ghostLabel && !reviewMode}}">
+    <view class="wood-key ghost-cancel" bindtap="onGhostCancel">取消</view>
+    <view class="wood-key wood-key-red ghost-confirm" bindtap="onGhostConfirm">落子 {{ghostLabel}}</view>
+  </view>
+  <view class="board-bar" wx:else>
+    <text class="board-tip {{ghostTip ? 'tip-on' : ''}}">{{reviewMode ? '复盘中 · 第 ' + reviewStep + ' / ' + reviewTotal + ' 手' : (ghostTip || (confirmMode ? '按住拖动瞄准,松手预览' : '按住拖动瞄准,松手落子'))}}</text>
     <view class="toggle-row">
       <view class="wood-key toggle {{confirmMode ? 'toggle-on' : ''}}" bindtap="onToggleConfirm">落子确认</view>
       <view class="wood-key toggle {{showNumbers ? 'toggle-on' : ''}}" bindtap="onToggleNumbers">手数</view>
