@@ -1,8 +1,10 @@
-// ─── 像素推箱子 ──────────────────────────────────────────
+// ─── 推箱子 ──────────────────────────────────────────────
 // 10 关谜题（含经典 Microban 布局），全部经 BFS 求解器验证可解，
-// par 为最少步数。砖纹墙 + 木箱 + 发光目标点 + 推动滑动动画 +
-// 8-bit 音效；进度与个人纪录本地保存，支持选关。
+// par 为最少步数。推动滑动动画 + 8-bit 音效；进度与个人纪录本地保存，支持选关。
+// 美术是木质 3D 风格(utils/wood-art.js):橡木拼花地板、胡桃木墙块、
+// 带斜撑的木箱(到位变金色 + 烙勾)、烙在地板上的目标圈。
 const { GRID_COLS, GRID_ROWS, drawClawd } = require('../../utils/clawd');
+const { buildCubeAtlas, drawCubeAt, woodFill, rng, shade, toHex } = require('../../utils/wood-art.js');
 
 // '#' 墙  ' ' 地板  '@' 玩家  '$' 箱子  '.' 目标  '*' 箱=目标  '+' 玩家=目标
 const LEVELS = [
@@ -143,6 +145,83 @@ const C_DONE    = '#F5C842';
 const C_DONE_D  = '#C9992B';
 const C_TARGET  = '#5C87C9';
 
+// 木质:W 墙(胡桃木)、B 木箱、D 到位的木箱(金色染木)
+const SOKO_WOOD = { W: '#6E4226', B: '#C68C52', D: '#E6B84A' };
+const FLOOR_OAK = '#B4875A';
+
+// 木箱 / 墙块顶面的装饰:箱子是边框 + 斜撑 + 四角钉,到位再烙个勾;墙是横向拼板
+function decorateBlock(g, key, c) {
+  g.save();
+  const lw = Math.max(0.8, c * 0.035);
+  if (key === 'W') {
+    g.strokeStyle = 'rgba(15, 6, 0, 0.55)';
+    g.lineWidth = lw;
+    [1 / 3, 2 / 3].forEach(t => {
+      g.beginPath();
+      g.moveTo(c * 0.06, c * t);
+      g.lineTo(c * 0.94, c * t);
+      g.stroke();
+    });
+    g.strokeStyle = 'rgba(255, 220, 170, 0.12)';
+    [1 / 3, 2 / 3].forEach(t => {
+      g.beginPath();
+      g.moveTo(c * 0.06, c * t + lw);
+      g.lineTo(c * 0.94, c * t + lw);
+      g.stroke();
+    });
+    g.restore();
+    return;
+  }
+  const f = c * 0.17;
+  // 边框四条板:颜色略浅,内沿一道深线
+  g.fillStyle = 'rgba(255, 236, 200, 0.14)';
+  g.fillRect(c * 0.05, c * 0.05, c * 0.9, f);
+  g.fillRect(c * 0.05, c * 0.95 - f, c * 0.9, f);
+  g.fillRect(c * 0.05, c * 0.05 + f, f, c * 0.9 - f * 2);
+  g.fillRect(c * 0.95 - f, c * 0.05 + f, f, c * 0.9 - f * 2);
+  g.strokeStyle = 'rgba(40, 18, 4, 0.6)';
+  g.lineWidth = lw;
+  g.strokeRect(c * 0.05 + f, c * 0.05 + f, c * 0.9 - f * 2, c * 0.9 - f * 2);
+  // 斜撑
+  g.save();
+  g.beginPath();
+  g.rect(c * 0.05 + f, c * 0.05 + f, c * 0.9 - f * 2, c * 0.9 - f * 2);
+  g.clip();
+  g.translate(c / 2, c / 2);
+  g.rotate(-Math.PI / 4);
+  g.fillStyle = 'rgba(255, 236, 200, 0.16)';
+  g.fillRect(-c, -f * 0.5, c * 2, f);
+  g.strokeStyle = 'rgba(40, 18, 4, 0.55)';
+  g.strokeRect(-c, -f * 0.5, c * 2, f);
+  g.restore();
+  // 四角钉
+  g.fillStyle = 'rgba(40, 20, 6, 0.75)';
+  [[0.14, 0.14], [0.86, 0.14], [0.14, 0.86], [0.86, 0.86]].forEach(([u, v]) => {
+    g.beginPath();
+    g.arc(c * u, c * v, Math.max(0.8, c * 0.035), 0, Math.PI * 2);
+    g.fill();
+  });
+  if (key === 'D') {
+    // 烙上去的勾
+    g.lineCap = 'round';
+    g.lineJoin = 'round';
+    g.lineWidth = Math.max(1.5, c * 0.1);
+    g.strokeStyle = 'rgba(255, 245, 210, 0.55)';
+    g.beginPath();
+    g.moveTo(c * 0.3, c * 0.53 + lw);
+    g.lineTo(c * 0.45, c * 0.68 + lw);
+    g.lineTo(c * 0.72, c * 0.36 + lw);
+    g.stroke();
+    g.strokeStyle = '#5A3A08';
+    g.beginPath();
+    g.moveTo(c * 0.3, c * 0.53);
+    g.lineTo(c * 0.45, c * 0.68);
+    g.lineTo(c * 0.72, c * 0.36);
+    g.stroke();
+  }
+  g.restore();
+}
+
 Page({
   data: {
     gameState: 'playing',   // 'playing' | 'win'
@@ -187,6 +266,7 @@ Page({
         this._W      = w;
         this._H      = h;
 
+        this._atlases = {};
         this._initAudio();
         this._loadLevel(Math.min(this._unlocked, LEVELS.length - 1));
         this._startLoop();
@@ -319,9 +399,12 @@ Page({
     this._interior = this._floodInterior(map, px, py);
 
     const rows = map.length;
-    this._cell  = Math.min(64, Math.floor(Math.min(this._W / cols, this._H / rows)));
-    this._offX  = Math.round((this._W - cols * this._cell) / 2);
-    this._offY  = Math.round((this._H - rows * this._cell) / 2);
+    // 留半格给木块的厚度和投影;整体往右下偏半个厚度,看上去居中
+    this._cell  = Math.min(64, Math.floor(Math.min(this._W / (cols + 0.5), this._H / (rows + 0.5))));
+    this._depth = Math.max(2, Math.round(this._cell * 0.26));
+    this._offX  = Math.round((this._W - cols * this._cell) / 2 + this._depth / 2);
+    this._offY  = Math.round((this._H - rows * this._cell) / 2 + this._depth / 2);
+    this._buildLevelArt();
 
     this.setData({
       gameState: 'playing',
@@ -460,7 +543,85 @@ Page({
     }
   },
 
+  // ─── 木质美术 ─────────────────────────────────────────
+  // 每关换格子大小时:取(或建)对应尺寸的木块图集,再把地板 + 目标烙印画进一层静态图。
+  // 离屏 canvas 不可用时 _art 为空,退回原来的平面画法
+  _buildLevelArt() {
+    this._art = null;
+    try {
+      const make = (w, h) => wx.createOffscreenCanvas({ type: '2d', width: w, height: h });
+      const C = this._cell;
+      if (!this._atlases[C]) {
+        this._atlases[C] = buildCubeAtlas(make, C, this._dpr, SOKO_WOOD, {
+          variants: 2, depth: 0.26, radius: 0.08, decorate: decorateBlock,
+        });
+      }
+      const floor = make(Math.round(this._W * this._dpr), Math.round(this._H * this._dpr));
+      const g = floor.getContext('2d');
+      g.scale(this._dpr, this._dpr);
+      this._paintFloor(g);
+      this._art = { atlas: this._atlases[C], floor };
+    } catch (e) {
+      this._art = null;
+    }
+  },
+
+  // 橡木拼花地板:相邻格纹理方向交替;目标点是烙进地板的圆圈
+  _paintFloor(g) {
+    const { _map: map, _cell: C, _offX: ox, _offY: oy } = this;
+    const cols = map[0].length;
+    const lw = Math.max(0.6, C / 40);
+    map.forEach((row, r) => row.forEach((ch, c) => {
+      if (ch === '#' || !this._interior.has(r * cols + c)) return;
+      const x = ox + c * C;
+      const y = oy + r * C;
+      const rand = rng(r * 31 + c * 7 + 5);
+      const base = toHex(shade(FLOOR_OAK, (rand() - 0.5) * 0.16));
+      g.save();
+      g.beginPath();
+      g.rect(x, y, C, C);
+      g.clip();
+      woodFill(g, x, y, C, C, base, rand, { vertical: (r + c) % 2 === 0, lines: 4, lineWidth: lw, knot: 0.12 });
+      // 拼缝:左上一道暗线、右下一道亮线
+      g.fillStyle = 'rgba(40, 18, 4, 0.45)';
+      g.fillRect(x, y, C, 1);
+      g.fillRect(x, y, 1, C);
+      g.fillStyle = 'rgba(255, 230, 190, 0.12)';
+      g.fillRect(x, y + C - 1, C, 1);
+      g.fillRect(x + C - 1, y, 1, C);
+      g.restore();
+      if (ch === '.' || ch === '*' || ch === '+') this._paintTargetBurn(g, x + C / 2, y + C / 2, C);
+    }));
+  },
+
+  _paintTargetBurn(g, cx, cy, C) {
+    g.save();
+    const halo = g.createRadialGradient(cx, cy, C * 0.1, cx, cy, C * 0.42);
+    halo.addColorStop(0, 'rgba(60, 25, 5, 0.35)');
+    halo.addColorStop(1, 'rgba(60, 25, 5, 0)');
+    g.fillStyle = halo;
+    g.fillRect(cx - C / 2, cy - C / 2, C, C);
+    g.lineWidth = Math.max(1.5, C * 0.07);
+    g.strokeStyle = 'rgba(255, 230, 190, 0.25)';
+    g.beginPath();
+    g.arc(cx, cy + 1, C * 0.24, 0, Math.PI * 2);
+    g.stroke();
+    g.strokeStyle = '#4A2208';
+    g.beginPath();
+    g.arc(cx, cy, C * 0.24, 0, Math.PI * 2);
+    g.stroke();
+    g.fillStyle = '#4A2208';
+    g.beginPath();
+    g.arc(cx, cy, C * 0.07, 0, Math.PI * 2);
+    g.fill();
+    g.restore();
+  },
+
   _draw(now) {
+    if (this._art) {
+      this._drawWood(now);
+      return;
+    }
     const { _ctx: ctx, _map: map, _cell: C, _offX: ox, _offY: oy } = this;
     if (!ctx || !map) return;
     const cols = map[0].length;
@@ -527,6 +688,100 @@ Page({
       pyPix = oy + lerp(anim.fy, anim.ty) * C;
     }
     this._drawPlayer(ctx, pxPix, pyPix, C, now);
+  },
+
+  // 木质画法:地板静态图 → 目标点呼吸光 → 逐行(行内按列)画墙块 / 木箱 / Clawd,
+  // 后画的(下方 / 右方)盖住前面伸出来的侧面
+  _drawWood(now) {
+    const { _ctx: ctx, _map: map, _cell: C, _offX: ox, _offY: oy } = this;
+    if (!ctx || !map) return;
+    const { atlas, floor } = this._art;
+    const h = atlas.h;
+    const cols = map[0].length;
+    const rows = map.length;
+
+    ctx.clearRect(0, 0, this._W, this._H);
+    ctx.drawImage(floor, 0, 0, this._W, this._H);
+
+    // 没被压住的目标点:暖光呼吸
+    const pulse = 0.5 + Math.sin(now / 450) * 0.5;
+    map.forEach((row, r) => row.forEach((ch, c) => {
+      if (ch !== '.' && ch !== '+') return;
+      const cx = ox + c * C + C / 2;
+      const cy = oy + r * C + C / 2;
+      const glow = ctx.createRadialGradient(cx, cy, 0, cx, cy, C * 0.42);
+      glow.addColorStop(0, `rgba(255, 200, 110, ${0.18 + pulse * 0.22})`);
+      glow.addColorStop(1, 'rgba(255, 200, 110, 0)');
+      ctx.fillStyle = glow;
+      ctx.fillRect(cx - C / 2, cy - C / 2, C, C);
+    }));
+
+    // 滑动动画插值
+    const anim = this._anim;
+    let t = 1;
+    if (anim) {
+      t = Math.min(1, (now - anim.start) / SLIDE_MS);
+      if (t >= 1) this._anim = null;
+    }
+    const lerp = (from, to) => to + (from - to) * (1 - t);
+
+    // 每行要画的东西:{ c(列,可带小数), draw() }
+    const lines = Array.from({ length: rows }, () => []);
+    map.forEach((row, r) => row.forEach((ch, c) => {
+      if (ch === '#') {
+        lines[r].push({ c, draw: () => drawCubeAt(ctx, atlas, null, 'W', (r * 3 + c) % 2, ox + c * C, oy + r * C) });
+      } else if (ch === '$' || ch === '*') {
+        let gx = c, gy = r;
+        if (anim && t < 1 && c === anim.btx && r === anim.bty) {
+          gx = lerp(anim.bfx, anim.btx);
+          gy = lerp(anim.bfy, anim.bty);
+        }
+        let scale = 1;
+        if (this._landPulse && this._landPulse.x === c && this._landPulse.y === r) {
+          const pt = (now - this._landPulse.at) / LAND_MS;
+          if (pt >= 0 && pt < 1) scale = 1 + Math.sin(pt * Math.PI) * 0.1;
+          else if (pt >= 1) this._landPulse = null;
+        }
+        const done = ch === '*';
+        lines[r].push({ c: gx, draw: () => {
+          const bx = ox + gx * C;
+          const by = oy + gy * C;
+          if (done && this._winAt) {
+            const a = 0.18 + 0.16 * Math.abs(Math.sin((now - this._winAt) / 180));
+            const glow = ctx.createRadialGradient(bx - h + C / 2, by - h + C / 2, C * 0.2, bx - h + C / 2, by - h + C / 2, C * 0.85);
+            glow.addColorStop(0, `rgba(255, 210, 100, ${a})`);
+            glow.addColorStop(1, 'rgba(255, 210, 100, 0)');
+            ctx.fillStyle = glow;
+            ctx.fillRect(bx - h - C * 0.4, by - h - C * 0.4, C * 1.8, C * 1.8);
+          }
+          drawCubeAt(ctx, atlas, null, done ? 'D' : 'B', (r + c) % 2, bx, by, 1, scale);
+        } });
+      }
+    }));
+    let pgx = this._px, pgy = this._py;
+    if (anim && t < 1) {
+      pgx = lerp(anim.fx, anim.tx);
+      pgy = lerp(anim.fy, anim.ty);
+    }
+    lines[this._py].push({ c: pgx, draw: () => {
+      const x = ox + pgx * C;
+      const y = oy + pgy * C;
+      // Clawd 站在地板上:脚下一圈影子,身体和木块顶面差不多高
+      ctx.save();
+      ctx.translate(x + C * 0.48, y + C * 0.8);
+      ctx.scale(1, 0.35);
+      ctx.fillStyle = 'rgba(12, 5, 0, 0.4)';
+      ctx.beginPath();
+      ctx.arc(0, 0, C * 0.34, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+      this._drawPlayer(ctx, x - h * 0.5, y - h * 0.6, C, now);
+    } });
+
+    lines.forEach(items => {
+      items.sort((a, b) => a.c - b.c);
+      items.forEach(it => it.draw());
+    });
   },
 
   // ── 墙（砖纹 + 立体棱边）──

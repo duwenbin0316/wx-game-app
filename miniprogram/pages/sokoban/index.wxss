@@ -1,66 +1,37 @@
-page {
-  background: #1A1A2E;
-}
+/* 木质 3D 主题:通用部分在 styles/wood.wxss,这里只放推箱子自己的布局 */
+@import "../../styles/wood.wxss";
 
-.sokoban-container {
-  position: fixed;
-  top: 0; left: 0; right: 0; bottom: 0;
-  background: #1A1A2E;
-  display: flex;
-  flex-direction: column;
-  touch-action: manipulation;
+page {
+  background: #26150A;
 }
 
 /* ── 顶部信息栏 ── */
-.game-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 14rpx 32rpx;
-  background: #1E1E38;
-  border-bottom: 2rpx solid #2E3A5C;
-  flex-shrink: 0;
-}
-
 .header-left {
   display: flex;
-  align-items: center;
+  align-items: baseline;
   gap: 14rpx;
 }
 
 .header-level {
-  font-size: 26rpx;
-  font-weight: 700;
-  color: #C0C0E8;
-  letter-spacing: 3rpx;
-  font-family: monospace;
+  font-size: 34rpx;
 }
 
 .header-name {
   font-size: 22rpx;
-  color: #4A6FA5;
-  font-family: monospace;
 }
 
 .header-steps {
-  font-size: 22rpx;
-  color: #D97757;
-  letter-spacing: 1rpx;
+  font-size: 24rpx;
+  font-weight: 700;
+  color: #FFF0D2;
   font-family: monospace;
+  text-shadow: 0 2rpx 0 #4A2810;
 }
 
 .header-select {
-  font-size: 22rpx;
-  color: #4A6FA5;
-  font-family: monospace;
-  background: #16162E;
-  border: 2rpx solid #2E3A5C;
-  padding: 8rpx 20rpx;
-  box-shadow: 3rpx 3rpx 0 #0A0A1A;
-}
-
-.header-select:active {
-  background: rgba(74, 111, 165, 0.2);
+  width: auto;
+  padding: 0 22rpx;
+  font-size: 24rpx;
 }
 
 /* ── 游戏画布 ── */
@@ -77,197 +48,69 @@ page {
   flex-direction: row;
   align-items: center;
   justify-content: space-between;
-  padding: 20rpx 40rpx 44rpx;
-  background: #1E1E38;
-  border-top: 2rpx solid #2E3A5C;
-  flex-shrink: 0;
+  padding: 24rpx 40rpx 44rpx;
 }
+
+.controls-hidden { visibility: hidden; }
 
 .dpad {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 6rpx;
+  gap: 12rpx;
 }
 
 .dpad-row {
   display: flex;
   flex-direction: row;
   align-items: center;
-  gap: 6rpx;
+  gap: 12rpx;
 }
 
-.dpad-up, .dpad-down, .dpad-left, .dpad-right {
+.dpad-key {
   width: 96rpx;
-  height: 96rpx;
-  background: #16162E;
-  border: 2rpx solid #2E3A5C;
-  border-radius: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  user-select: none;
-  box-shadow: 3rpx 3rpx 0 #0A0A1A;
+  height: 88rpx;
 }
-
-.dpad-up:active, .dpad-down:active,
-.dpad-left:active, .dpad-right:active {
-  background: rgba(217, 119, 87, 0.12);
-  border-color: #D97757;
-}
-
-/* CSS 像素三角箭头 */
-.arr { display: block; width: 0; height: 0; }
-.arr-up    { border-left: 14rpx solid transparent; border-right: 14rpx solid transparent; border-bottom: 20rpx solid #4A6FA5; }
-.arr-down  { border-left: 14rpx solid transparent; border-right: 14rpx solid transparent; border-top:    20rpx solid #4A6FA5; }
-.arr-left  { border-top: 14rpx solid transparent; border-bottom: 14rpx solid transparent; border-right:  20rpx solid #4A6FA5; }
-.arr-right { border-top: 14rpx solid transparent; border-bottom: 14rpx solid transparent; border-left:   20rpx solid #4A6FA5; }
 
 .dpad-center {
   width: 96rpx;
-  height: 96rpx;
+  height: 88rpx;
 }
 
 /* ── 撤销/重开按钮 ── */
 .side-btns {
   display: flex;
   flex-direction: column;
-  gap: 20rpx;
+  gap: 34rpx;
 }
 
-.undo-btn {
-  padding: 22rpx 40rpx;
-  background: #16162E;
-  border: 2rpx solid #2E3A5C;
-  border-radius: 0;
-  color: #4A6FA5;
-  font-size: 26rpx;
-  font-family: monospace;
-  letter-spacing: 2rpx;
-  user-select: none;
-  box-shadow: 3rpx 3rpx 0 #0A0A1A;
+.side-key {
+  width: 220rpx;
+  height: 88rpx;
 }
 
-.undo-btn:active {
-  background: rgba(74, 111, 165, 0.2);
-  border-color: #4A6FA5;
-}
-
-/* ── 通关 overlay ── */
-.overlay {
-  position: fixed;
-  top: 0; left: 0; right: 0; bottom: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: rgba(10, 10, 30, 0.78);
-  z-index: 10;
-}
-
-.win-card {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 56rpx 56rpx 44rpx;
-  background: rgba(30, 30, 60, 0.97);
-  border: 2rpx solid #F5C842;
-  border-radius: 0;
-  min-width: 520rpx;
-  box-shadow: 6rpx 6rpx 0 #0E0E22, 0 0 40rpx rgba(245,200,66,0.25);
-}
-
-.win-emoji {
-  font-size: 64rpx;
-  color: #F5C842;
-  margin-bottom: 16rpx;
-}
-
-.win-title {
-  font-size: 48rpx;
-  font-weight: 700;
-  color: #FFFFFF;
-  letter-spacing: 6rpx;
-  font-family: monospace;
-  margin-bottom: 14rpx;
-}
-
-.win-sub {
-  font-size: 22rpx;
-  color: #4A6FA5;
-  letter-spacing: 2rpx;
-  font-family: monospace;
-  margin-bottom: 12rpx;
-}
-
-.win-best {
-  font-size: 22rpx;
-  color: #F5C842;
-  font-family: monospace;
-  margin-bottom: 36rpx;
-}
-
-.win-btns {
-  display: flex;
-  gap: 20rpx;
-}
-
-.win-btn {
-  padding: 20rpx 44rpx;
-  border-radius: 0;
+.side-key .wood-key-text {
   font-size: 28rpx;
-  font-weight: 700;
-  font-family: monospace;
-  letter-spacing: 3rpx;
-  user-select: none;
-  box-shadow: 3rpx 3rpx 0 #0E0E22;
 }
 
-.retry-btn {
-  background: #1E1E38;
-  border: 2rpx solid #2E3A5C;
-  color: #4A6FA5;
+/* ── 通关 ── */
+.score-unit {
+  font-size: 40rpx;
 }
-
-.retry-btn:active { opacity: 0.7; }
-
-.next-btn {
-  background: #D97757;
-  color: #1A1A2E;
-}
-
-.next-btn:active { opacity: 0.8; }
 
 /* ── 选关面板 ── */
-.select-card {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 44rpx 36rpx 36rpx;
-  background: rgba(30, 30, 60, 0.97);
-  border: 2rpx solid #4A6FA5;
-  border-radius: 0;
+.select-plaque {
   width: 640rpx;
-  box-sizing: border-box;
-  box-shadow: 6rpx 6rpx 0 #0E0E22;
-}
-
-.select-title {
-  font-size: 34rpx;
-  font-weight: 700;
-  color: #C0C0E8;
-  font-family: monospace;
-  letter-spacing: 4rpx;
-  margin-bottom: 32rpx;
 }
 
 .select-grid {
   display: flex;
   flex-wrap: wrap;
-  gap: 16rpx;
+  gap: 18rpx;
   justify-content: center;
-  margin-bottom: 32rpx;
 }
 
+/* 每关一块小木片 */
 .select-item {
   width: 104rpx;
   height: 116rpx;
@@ -276,47 +119,46 @@ page {
   align-items: center;
   justify-content: center;
   gap: 4rpx;
-  background: #16162E;
-  border: 2rpx solid #2E3A5C;
-  box-shadow: 3rpx 3rpx 0 #0A0A1A;
+  border-radius: 14rpx;
+  background: linear-gradient(180deg, #E2B37A 0%, #C48C52 60%, #AE7640 100%);
+  border: 2rpx solid #5E3519;
+  box-shadow: 0 6rpx 0 #5A3218, 0 8rpx 10rpx rgba(0, 0, 0, 0.35), inset 0 2rpx 0 rgba(255, 244, 220, 0.6);
+  box-sizing: border-box;
 }
 
-.select-item:active { opacity: 0.7; }
+.select-item:active {
+  transform: translateY(5rpx);
+  box-shadow: 0 1rpx 0 #5A3218, inset 0 3rpx 6rpx rgba(80, 40, 10, 0.35);
+}
 
-.item-locked { opacity: 0.4; }
+.item-locked {
+  opacity: 0.45;
+  background: linear-gradient(180deg, #8F6A48 0%, #6E4E33 100%);
+}
 
 .item-current {
-  border-color: #D97757;
-  background: rgba(217, 119, 87, 0.10);
+  background: linear-gradient(180deg, #FFE18A 0%, #E0A93E 100%);
+  border-color: #7A5212;
+  box-shadow: 0 6rpx 0 #7A5212, 0 8rpx 10rpx rgba(0, 0, 0, 0.35), inset 0 2rpx 0 rgba(255, 250, 230, 0.7);
 }
 
 .select-num {
-  font-size: 32rpx;
+  font-size: 34rpx;
   font-weight: 700;
-  color: #D97757;
+  color: #4A2810;
   font-family: monospace;
+  text-shadow: 0 2rpx 0 rgba(255, 238, 210, 0.5);
 }
 
 .select-name {
   font-size: 17rpx;
-  color: #4A6FA5;
+  color: #5A3216;
   font-family: monospace;
 }
 
 .select-best {
   font-size: 16rpx;
-  color: #F5C842;
+  color: #7A2A14;
+  font-weight: 700;
   font-family: monospace;
 }
-
-.select-close {
-  padding: 16rpx 56rpx;
-  background: #1E1E38;
-  border: 2rpx solid #2E3A5C;
-  color: #4A6FA5;
-  font-size: 26rpx;
-  font-family: monospace;
-  box-shadow: 3rpx 3rpx 0 #0E0E22;
-}
-
-.select-close:active { opacity: 0.7; }
