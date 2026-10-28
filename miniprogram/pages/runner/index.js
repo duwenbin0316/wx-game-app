@@ -14,8 +14,8 @@ const PH = 32;
 const { GRID_COLS, GRID_ROWS, drawClawd } = require('../../utils/clawd');
 // 木质舞台布景(背板 / 月亮 / 云 / 远景小镇 / 木梁地面),见 utils/runner-wood.js
 const { buildRunnerArt } = require('../../utils/runner-wood.js');
-const { drawSlab } = require('../../utils/wood-art.js');
 const { createWoodPlayer } = require('../../utils/wood-sfx.js');
+const { buildShareImage } = require('../../utils/share-card.js');
 const PLAYER_PS = 1.3;  // 单格边长：视觉约 31×26px，居中于 32×32 碰撞框
 
 
@@ -117,15 +117,68 @@ Page({
     this._startGame();
   },
 
+  // 分享:5:4 分享卡,左边是木头小剧场里奔跑的 Clawd,右边木牌写分数
   onShareAppMessage() {
     const score = this.data.score || 0;
     const best  = this.data.bestScore || 0;
-    const result = {
-      title: `我在 Claude 快跑中得了 ${score} 分！最高 ${best} 分，来挑战我～`,
+    const base = {
+      title: score > 0
+        ? `我在 Claude 快跑中得了 ${score} 分！最高 ${best} 分，来挑战我～`
+        : 'Claude 快跑：躲 Bug 吃金币，来一局！',
       path: '/pages/runner/index'
     };
-    if (this._shareImagePath) result.imageUrl = this._shareImagePath;
-    return result;
+    return {
+      ...base,
+      promise: buildShareImage(wx, {
+        title: 'Claude 快跑',
+        score,
+        best,
+        idleLines: ['躲开 Bug', '冲击纪录'],
+        art: (g, box) => this._paintShareScene(g, box),
+      }).then(img => (img ? { ...base, imageUrl: img } : base)).catch(() => base),
+    };
+  },
+
+  // 分享卡左边:截取木头布景(含月亮)+ 小镇 + 地面,Clawd 在上面跑
+  _paintShareScene(g, box) {
+    const wd = this._wood;
+    if (!wd) return;
+    const dpr = this._dpr || 2;
+    const W = this._W;
+    const gY = this._groundY;
+    const skyH = box.h * 0.7;
+    // 背景按"铺满"缩放:宽和高都要盖住,多出来的上方 / 左边裁掉,底边对齐地平线
+    const k = Math.max(skyH / gY, box.w / W);
+    const srcW = Math.min(W, box.w / k);
+    const srcX = W - srcW;               // 取右边,带上月亮
+    g.save();
+    g.beginPath();
+    g.rect(box.x, box.y, box.w, box.h);
+    g.clip();
+    g.drawImage(wd.backdrop, srcX * dpr, 0, srcW * dpr, gY * dpr, box.x, box.y + skyH - gY * k, srcW * k, gY * k);
+    const town = wd.town;
+    g.drawImage(town.canvas, 0, 0, town.w * dpr, town.h * dpr, box.x, box.y + skyH - town.h * k, town.w * k, town.h * k);
+    const gr = wd.ground;
+    for (let x = 0; x < box.w; x += gr.w * k) {
+      g.drawImage(gr.canvas, 0, 0, gr.w * dpr, gr.h * dpr, box.x + x, box.y + skyH - 1, gr.w * k + 0.5, gr.h * k);
+    }
+    // Clawd 跑在地面上,前面一串金币
+    const ps = 2.4;
+    drawClawd(g, box.x + box.w * 0.22, box.y + skyH - GRID_ROWS * ps, ps, { legFrame: 1 });
+    g.fillStyle = '#F5C842';
+    [0.55, 0.68, 0.81].forEach((u, i) => {
+      const cx = box.x + box.w * u;
+      const cy = box.y + skyH - 40 - i * 8;
+      g.beginPath();
+      g.moveTo(cx, cy - 9); g.lineTo(cx + 6, cy); g.lineTo(cx, cy + 9); g.lineTo(cx - 6, cy);
+      g.closePath();
+      g.fill();
+    });
+    g.restore();
+    // 外框
+    g.strokeStyle = '#4A2810';
+    g.lineWidth = 3;
+    g.strokeRect(box.x, box.y, box.w, box.h);
   },
 
   // ─── 游戏控制 ──────────────────────────────────────────
@@ -876,54 +929,11 @@ Page({
     }
 
     // 用离屏 canvas 画分享卡截图，不污染主游戏画面
-    this._captureShareImage();
 
     this.setData({
       gameState:  'over',
       score:      this._scoreVal,
       bestScore:  this.bestScore
-    });
-  },
-
-  _captureShareImage() {
-    const dpr   = this._dpr;
-    const W     = this._W;
-    const score = this._scoreVal;
-    const best  = this.bestScore;
-
-    // 离屏 canvas：正方形，避免微信缩略图裁切
-    const cw = 240;
-    const ch = 240;
-    const offscreen = wx.createOffscreenCanvas({
-      type: '2d',
-      width:  Math.round(cw * dpr),
-      height: Math.round(ch * dpr)
-    });
-    const ctx = offscreen.getContext('2d');
-    ctx.scale(dpr, dpr);
-
-    // 卡片:深色桌面上一块钉了铜钉的木牌
-    ctx.fillStyle = '#2A170B';
-    ctx.fillRect(0, 0, cw, ch);
-    drawSlab(ctx, 14, 14, cw - 32, ch - 32, { base: '#A86F3E', depth: 5, radius: 14, seed: 12, nails: 3.5 });
-
-    ctx.textAlign = 'center';
-    const carve = (text, y, font, color) => {
-      ctx.font = font;
-      ctx.fillStyle = 'rgba(40, 18, 4, 0.7)';
-      ctx.fillText(text, cw / 2 - 7, y + 2);
-      ctx.fillStyle = color;
-      ctx.fillText(text, cw / 2 - 7, y);
-    };
-    carve('Claude 快跑', 52, 'bold 22px monospace', '#FFF0D2');
-    carve('S C O R E', 80, '12px monospace', '#F6DDB0');
-    carve(String(score), 126, 'bold 44px monospace', '#FFD46A');
-    carve('B E S T', 154, '12px monospace', '#F6DDB0');
-    carve(String(best), 186, 'bold 26px monospace', '#FFF2DA');
-
-    wx.canvasToTempFilePath({
-      canvas: offscreen,
-      success: res => { this._shareImagePath = res.tempFilePath; }
     });
   },
 

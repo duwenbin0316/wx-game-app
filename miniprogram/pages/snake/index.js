@@ -5,6 +5,7 @@
 const { drawClawd, GRID_COLS, GRID_ROWS } = require('../../utils/clawd');
 const { buildCubeAtlas, drawCubeAt, trayMetrics, buildTray } = require('../../utils/wood-art.js');
 const { createWoodPlayer } = require('../../utils/wood-sfx.js');
+const { buildShareImage } = require('../../utils/share-card.js');
 
 const COLS = 17;              // 横向格数（纵向按画布高度自适应）
 const TICK_START = 230;       // 初始每步毫秒（起步慢一点，方便熟悉操作）
@@ -118,13 +119,81 @@ Page({
     }
   },
 
+  // 分享:配一张分享卡(左边木托盘里的蛇,右边木牌写分数),不用页面截图
   onShareAppMessage() {
     const score = this.data.score || 0;
     const best  = this.data.bestScore || 0;
-    return {
-      title: `我的 Clawd 吃了 ${score} 只 Bug！最长 ${best} 分，来挑战我～`,
+    const base = {
+      title: score > 0
+        ? `我的 Clawd 吃 Bug 拿了 ${score} 分！最高 ${best} 分，来挑战我～`
+        : 'Clawd 贪吃蛇：吃掉 Bug 越吃越长，来一局！',
       path: '/pages/snake/index'
     };
+    return {
+      ...base,
+      promise: buildShareImage(wx, {
+        title: '贪吃蛇',
+        score,
+        best,
+        idleLines: ['吃掉 Bug', '越吃越长'],
+        art: (g, box) => this._paintShareBoard(g, box),
+      }).then(img => (img ? { ...base, imageUrl: img } : base)).catch(() => base),
+    };
+  },
+
+  // 分享卡左边:迷你托盘 + 当前的蛇和 Bug(还没玩时摆一条示意的蛇)。
+  // 整盘太大、蛇会很小,所以只取以蛇头为中心的 11×15 格窗口
+  _paintShareBoard(g, box) {
+    const make = (w, h) => wx.createOffscreenCanvas({ type: '2d', width: w, height: h });
+    const rows = this._rows || 24;
+    const VC = Math.min(11, COLS);
+    const VR = Math.min(15, rows);
+    const m = trayMetrics(box.w, box.h, VC, VR, { maxCell: 60 });
+    const tray = buildTray(make, box.w, box.h, 2, m);
+    const atlas = buildCubeAtlas(make, m.cell, 2, SNAKE_WOOD, { variants: 2, radius: 0.28, depth: 0.2 });
+    let snake = this._snake && this._snake.length ? this._snake : null;
+    if (!snake) {
+      const cy = Math.floor(rows / 2);
+      snake = [];
+      for (let i = 0; i < 7; i++) snake.push({ x: 10 - Math.min(i, 4), y: cy + Math.max(0, i - 4) });
+    }
+    const head = snake[0];
+    const vx = Math.max(0, Math.min(COLS - VC, head.x - Math.floor(VC / 2)));
+    const vy = Math.max(0, Math.min(rows - VR, head.y - Math.floor(VR / 2)));
+    const inView = p => p.x >= vx && p.x < vx + VC && p.y >= vy && p.y < vy + VR;
+    let bug = this._bug || { x: head.x + 3, y: head.y - 3 };
+    if (!inView(bug)) bug = null;
+    g.drawImage(tray.floor, box.x, box.y, box.w, box.h);
+    const ox = box.x + m.x - vx * m.cell;
+    const oy = box.y + m.y - vy * m.cell;
+    if (bug) {
+      const S = Math.max(2, Math.floor(m.cell / 8));
+      const bx = ox + bug.x * m.cell + (m.cell - 6 * S) / 2 - atlas.h / 2;
+      const by = oy + bug.y * m.cell + (m.cell - 5 * S) / 2 - atlas.h / 2;
+      g.fillStyle = '#FF6B6B';
+      BUG_PIXELS.forEach(([r, c]) => g.fillRect(bx + c * S, by + r * S, S, S));
+    }
+    const n = snake.length;
+    for (let i = n - 1; i >= 0; i--) {
+      const p = snake[i];
+      if (!inView(p)) continue;
+      const px = ox + p.x * m.cell;
+      const py = oy + p.y * m.cell;
+      if (i === 0) {
+        drawCubeAt(g, atlas, null, 'H', 0, px, py, 1, 1.1);
+      } else {
+        const step = Math.min(BODY_STEPS - 1, Math.floor((i / Math.max(1, n - 1)) * BODY_STEPS));
+        drawCubeAt(g, atlas, null, `B${step}`, i % 2, px, py, 1, i === n - 1 ? 0.78 : 0.9);
+      }
+    }
+    // 蛇头两只眼睛
+    const hx = ox + snake[0].x * m.cell - atlas.h + m.cell / 2;
+    const hy = oy + snake[0].y * m.cell - atlas.h + m.cell / 2;
+    const eye = Math.max(2, m.cell * 0.16);
+    g.fillStyle = '#000';
+    g.fillRect(hx + m.cell * 0.12 - eye / 2, hy - m.cell * 0.2 - eye / 2, eye, eye);
+    g.fillRect(hx + m.cell * 0.12 - eye / 2, hy + m.cell * 0.2 - eye / 2, eye, eye);
+    g.drawImage(tray.rim, box.x, box.y, box.w, box.h);
   },
 
   // ─── 交互 ──────────────────────────────────────────────

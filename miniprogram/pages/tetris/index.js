@@ -8,6 +8,7 @@ const {
   WOOD, VARIANTS, buildCubeAtlas, drawCubeAt, trayMetrics, buildTray, drawPanel,
 } = require('../../utils/wood-art.js');
 const { SFX_NAMES, renderSfx } = require('../../utils/wood-sfx.js');
+const { buildShareImage } = require('../../utils/share-card.js');
 
 const COLS = 10;
 const VISIBLE_ROWS = 20;
@@ -268,14 +269,52 @@ Page({
 
   noop() {},
 
+  // 分享:配一张自己画的分享卡(左边是当前盘面的木块快照,右边木牌写分数),
+  // 不然微信会截页面顶部一块,结算弹层只露半截
   onShareAppMessage() {
     const s = this._score || 0;
-    return {
+    const base = {
       title: s > 0
         ? `我在木质俄罗斯方块拿了 ${s} 分,来挑战我～`
         : '木头方块搭起来,T-Spin、连击都安排上了,来一局!',
       path: '/pages/tetris/index',
     };
+    return {
+      ...base,
+      promise: buildShareImage(wx, {
+        title: '俄罗斯方块',
+        score: s,
+        best: this._best,
+        idleLines: ['T-Spin', '连击冲高分'],
+        art: (g, box) => this._paintShareBoard(g, box),
+      }).then(img => (img ? { ...base, imageUrl: img } : base)).catch(() => base),
+    };
+  },
+
+  // 分享卡左边:迷你托盘 + 当前盘面(还没玩时摆一个示意盘面)
+  _paintShareBoard(g, box) {
+    const make = (w, h) => wx.createOffscreenCanvas({ type: '2d', width: w, height: h });
+    const m = trayMetrics(box.w, box.h, COLS, VISIBLE_ROWS);
+    const tray = buildTray(make, box.w, box.h, 2, m);
+    const atlas = buildCubeAtlas(make, m.cell, 2);
+    let board = this._board;
+    const hasCells = board && board.some(row => row.some(Boolean));
+    if (!hasCells) {
+      board = Array.from({ length: ROWS }, () => Array(COLS).fill(''));
+      const demo = ['..........', '....T.....', '...TTT..ZZ', 'LL.....ZZI', 'JLL.SS..OI', 'JJLSSOOOOI', 'JJTTTOOIII'];
+      demo.forEach((row, i) => row.split('').forEach((ch, c) => {
+        if (ch !== '.') board[ROWS - demo.length + i][c] = ch + ((i + c) % VARIANTS);
+      }));
+    }
+    g.drawImage(tray.floor, box.x, box.y, box.w, box.h);
+    for (let r = HIDDEN_ROWS; r < ROWS; r++) {
+      for (let c = 0; c < COLS; c++) {
+        const key = board[r][c];
+        if (!key) continue;
+        drawCubeAt(g, atlas, null, key[0], +key[1] || 0, box.x + m.x + c * m.cell, box.y + m.y + (r - HIDDEN_ROWS) * m.cell);
+      }
+    }
+    g.drawImage(tray.rim, box.x, box.y, box.w, box.h);
   },
 
   // ── 开局 / 状态 ─────────────────────────────────────────

@@ -36,6 +36,7 @@ wx-game-app/
 │   │   ├── gomoku-board.js       # Gomoku canvas renderer (wood board, stones, drop/win animations, hit test)
 │   │   ├── wood-art.js           # Shared wooden 3D canvas art: wood grain, cube atlases (any palette), tray (floor/rim), slab, socket, burned text
 │   │   ├── wood-sfx.js           # Shared wood SFX synthesis (modal impacts, cracks, debris, boom, marimba; pure) + createWoodPlayer (WebAudio buffers + compressed bus)
+│   │   ├── share-card.js         # 5:4 wooden share card (game snapshot via art(g, box) + score plaque) + buildShareImage
 │   │   ├── runner-wood.js        # Runner wooden stage scenery (backdrop, moon, clouds, town strip, ground tile; pure)
 │   │   ├── sky-data.js           # Sky Wing data: enemies, flight paths, stage scripts, bosses, upgrades (pure, node-testable)
 │   │   ├── sky-art.js            # Sky Wing vector sprite atlas (3×, outlined ships, bosses, FX) + flash/shadow variants
@@ -274,7 +275,7 @@ All render on a `<canvas type="2d">` node (queried via `wx.createSelectorQuery()
 
 ### Sharing
 
-Most game pages implement `onShareAppMessage` (not yet Sokoban). Share text reports the current run's result only after a game has started; otherwise it uses a plain invite message.
+Most game pages implement `onShareAppMessage` (not yet Sokoban). Share text reports the current run's result only after a game has started; otherwise it uses a plain invite message. Score games return a custom 5:4 image via the `promise` field (otherwise WeChat screenshots the page top, which cuts the result overlay in half): Tetris / Snake / Runner use `utils/share-card.js` with a per-game `_paintShareBoard` / `_paintShareScene` snapshot; 2048 draws its own card.
 
 ---
 
