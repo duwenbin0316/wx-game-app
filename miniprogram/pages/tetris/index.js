@@ -3,10 +3,12 @@
 // 三连预览、锁定延迟、T-Spin / B2B / 连击 / 全清计分。
 // rAF 主循环驱动重力与 DAS/ARR 按键手感,消行闪白收缩、
 // 硬降拖尾震屏、危险区红光等动画全部画在棋盘画布上。
-// 美术是木质 3D 风格(utils/tetris-wood.js):染色木块 + 胡桃木托盘。
+// 美术是木质透视 3D(utils/wood-3d.js):染色木块放在一只胡桃木槽里,
+// 镜头跟着方块和手机倾斜微微移动,侧面 / 槽壁随视角变化。
+const { WOOD, VARIANTS, drawPanel } = require('../../utils/wood-art.js');
 const {
-  WOOD, VARIANTS, buildCubeAtlas, drawCubeAt, trayMetrics, buildTray, drawPanel,
-} = require('../../utils/wood-art.js');
+  makeView, wellMetrics, buildBlockAtlas, drawBlocks, drawFloorShadows, buildWell, drawWell,
+} = require('../../utils/wood-3d.js');
 const { SFX_NAMES, renderSfx } = require('../../utils/wood-sfx.js');
 const { buildShareImage } = require('../../utils/share-card.js');
 
@@ -127,6 +129,40 @@ const MAX_PARTICLES = 280;
 const CHIME_MAJOR = [523.25, 659.25, 783.99, 1046.5, 1318.51, 1567.98];
 // 木头音效的 mp3 兜底(没有 WebAudio 时用;由 scripts/gen-tetris-sfx.js 导出)
 const SFX_FALLBACK = ['lock', 'harddrop', 'clear1', 'clear2', 'clear3', 'clear4'];
+
+// 镜头:默认在棋盘上方 30% 处(多数时候看到木块顶面),跟随当前方块横移一点,
+// 手机倾斜时再偏一点(偏移会慢慢回中,是"转一下手机看看侧面"的感觉)
+const CAM_Y_RATIO = 0.3;
+const CAM_FOLLOW = 0.3;
+const TILT_MAX_X = 2.5;
+const TILT_MAX_Y = 4;
+
+// 由 可见行 × 列 的格子表生成木块列表;cells[r][c] = { key, dy?, scale?, alpha? } 或 null。
+// 和邻居贴着(同一偏移、都没在收缩)的面标进 n,画的时候剔掉;贴着槽壁的面也剔掉
+function buildBlockList(cells) {
+  const list = [];
+  const rows = cells.length;
+  for (let r = 0; r < rows; r++) {
+    const cols = cells[r].length;
+    for (let c = 0; c < cols; c++) {
+      const it = cells[r][c];
+      if (!it) continue;
+      const dy = it.dy || 0;
+      const solid = it.scale === undefined || it.scale >= 1;
+      const same = (rr, cc) => {
+        const o = cells[rr] && cells[rr][cc];
+        return !!o && solid && (o.dy || 0) === dy && (o.scale === undefined || o.scale >= 1);
+      };
+      let n = 0;
+      if (same(r - 1, c)) n |= 1;
+      if (r === rows - 1 || same(r + 1, c)) n |= 2;
+      if (c === 0 || same(r, c - 1)) n |= 4;
+      if (c === cols - 1 || same(r, c + 1)) n |= 8;
+      list.push({ x: c, y: r + dy, key: it.key, scale: it.scale, alpha: it.alpha, n });
+    }
+  }
+  return list;
+}
 
 function shuffle(list) {
   const arr = list.slice();
@@ -285,6 +321,7 @@ Page({
       }
       this._computeMetrics();
       this._isReady = true;
+      this._startTilt();
       this._showMenu();
     });
   },
@@ -292,6 +329,7 @@ Page({
   onShow() {
     if (!this._isReady) return;
     this._startLoop();
+    this._startTilt();
     if (this._state === 'play' || this._state === 'clearing') this._playBgm();
   },
 
@@ -302,10 +340,12 @@ Page({
     }
     this._pauseBgm();
     this._stopLoop();
+    this._stopTilt();
   },
 
   onUnload() {
     this._stopLoop();
+    this._stopTilt();
     this._destroyAudio();
   },
 
@@ -345,9 +385,9 @@ Page({
   // 分享卡左边:迷你托盘 + 当前盘面(还没玩时摆一个示意盘面)
   _paintShareBoard(g, box) {
     const make = (w, h) => wx.createOffscreenCanvas({ type: '2d', width: w, height: h });
-    const m = trayMetrics(box.w, box.h, COLS, VISIBLE_ROWS);
-    const tray = buildTray(make, box.w, box.h, 2, m);
-    const atlas = buildCubeAtlas(make, m.cell, 2);
+    const m = wellMetrics(box.w, box.h, COLS, VISIBLE_ROWS);
+    const well = buildWell(make, box.w, box.h, 2, m);
+    const atlas = buildBlockAtlas(make, m.cell, 2);
     let board = this._board;
     const hasCells = board && board.some(row => row.some(Boolean));
     if (!hasCells) {
@@ -357,15 +397,17 @@ Page({
         if (ch !== '.') board[ROWS - demo.length + i][c] = ch + ((i + c) % VARIANTS);
       }));
     }
-    g.drawImage(tray.floor, box.x, box.y, box.w, box.h);
-    for (let r = HIDDEN_ROWS; r < ROWS; r++) {
-      for (let c = 0; c < COLS; c++) {
-        const key = board[r][c];
-        if (!key) continue;
-        drawCubeAt(g, atlas, null, key[0], +key[1] || 0, box.x + m.x + c * m.cell, box.y + m.y + (r - HIDDEN_ROWS) * m.cell);
-      }
-    }
-    g.drawImage(tray.rim, box.x, box.y, box.w, box.h);
+    const v = makeView({
+      ox: box.x + m.x, oy: box.y + m.y, cell: m.cell, cols: COLS, rows: VISIBLE_ROWS, dpr: 2,
+      camY: VISIBLE_ROWS * CAM_Y_RATIO,
+    });
+    const cells = board.slice(HIDDEN_ROWS).map(row => row.map(key => (key ? { key } : null)));
+    const blocks = buildBlockList(cells);
+    drawWell(g, v, well);
+    drawFloorShadows(g, v, blocks);
+    drawBlocks(g, v, atlas, null, blocks);
+    g.setTransform(2, 0, 0, 2, 0, 0);
+    g.drawImage(well.rim, box.x, box.y, box.w, box.h);
   },
 
   // ── 开局 / 状态 ─────────────────────────────────────────
@@ -677,6 +719,7 @@ Page({
       cols: Object.keys(perCol).map(c => ({ c: +c, toRow: perCol[c], dist })),
     };
     this._fx.shake = Math.max(this._fx.shake, 2.5);
+    this._kickCam(2 + Math.min(dist, 16) * 0.35);
     this._hardLanding = true;
     this._lock();
     this._hardLanding = false;
@@ -759,6 +802,7 @@ Page({
       fx.clearTier = n;
       fx.clearTspin = !!tspin;
       fx.shake = Math.max(fx.shake, tier.shake + (tspin ? 1.5 : 0));
+      this._kickCam(n * 2.5 + (tspin ? 2 : 0));
       this._spawnClearFx(rows, tier, pts);
       this._playClearSfx(n, !!tspin, this._combo);
     } else {
@@ -1106,29 +1150,98 @@ Page({
       this._fx.settle = null;
     }
 
+    this._updateCam(dt);
+
     // HUD 按需同步(文字变了才 setData)
     if (this._state !== 'menu' && this._state !== 'over') this._syncHud(false);
   },
 
+  // ── 镜头 ────────────────────────────────────────────────
+  // 弹簧跟随目标点:目标 = 默认位置 + 跟随当前方块 + 手机倾斜;砸下去时给一个往下的速度,
+  // 侧面会跟着"晃"一下再回来。木块正面不受镜头影响,只有立体部分在动
+  _updateCam(dt) {
+    const cam = this._cam;
+    if (!cam) return;
+    let tx = COLS / 2;
+    let ty = VISIBLE_ROWS * CAM_Y_RATIO;
+    if (this._cur && (this._state === 'play' || this._state === 'pause')) {
+      const pc = this._cur.col + BOX_SIZE[this._cur.type] / 2;
+      tx += (pc - COLS / 2) * CAM_FOLLOW;
+    }
+    tx = Math.max(0.6, Math.min(COLS - 0.6, tx + cam.tiltX));
+    ty = Math.max(-2, Math.min(VISIBLE_ROWS * 0.65, ty + cam.tiltY));
+    const s = Math.min(0.05, dt / 1000);
+    cam.vx += (tx - cam.x) * 30 * s;
+    cam.vy += (ty - cam.y) * 30 * s;
+    const damp = Math.exp(-8 * s);
+    cam.vx *= damp;
+    cam.vy *= damp;
+    cam.x += cam.vx * s;
+    cam.y += cam.vy * s;
+  },
+
+  _kickCam(power) {
+    if (this._cam) this._cam.vy += power;
+  },
+
+  // 加速度计:只取相对变化(基线慢慢跟上),所以手机怎么拿都行,转一下就看到侧面
+  _startTilt() {
+    if (this._onAccel || typeof wx.startAccelerometer !== 'function' || typeof wx.onAccelerometerChange !== 'function') return;
+    const t = { bx: null, by: null };
+    this._onAccel = (res) => {
+      const cam = this._cam;
+      if (!cam || !res) return;
+      if (t.bx === null) { t.bx = res.x; t.by = res.y; }
+      t.bx += (res.x - t.bx) * 0.02;
+      t.by += (res.y - t.by) * 0.02;
+      const clamp = (val, lim) => Math.max(-lim, Math.min(lim, val));
+      cam.tiltX = clamp(-(res.x - t.bx) * 9, TILT_MAX_X);
+      cam.tiltY = clamp((res.y - t.by) * 12, TILT_MAX_Y);
+    };
+    try {
+      wx.onAccelerometerChange(this._onAccel);
+      wx.startAccelerometer({ interval: 'game', fail: () => {} });
+    } catch (e) {
+      this._onAccel = null;
+    }
+  },
+
+  _stopTilt() {
+    if (!this._onAccel) return;
+    try {
+      if (typeof wx.offAccelerometerChange === 'function') wx.offAccelerometerChange(this._onAccel);
+      wx.stopAccelerometer({ fail: () => {} });
+    } catch (e) {}
+    this._onAccel = null;
+    if (this._cam) { this._cam.tiltX = 0; this._cam.tiltY = 0; }
+  },
+
   // ── 渲染 ────────────────────────────────────────────────
   _computeMetrics() {
-    // cell / x / y / width / height 与原来含义相同;h 是木块厚度(顶面往左上抬起的量)
-    this._rect = trayMetrics(this._W, this._H, COLS, VISIBLE_ROWS);
+    // cell / x / y / width / height:正面网格(木块正面永远对齐这里,不随镜头动)
+    this._rect = wellMetrics(this._W, this._H, COLS, VISIBLE_ROWS);
+    const camY = VISIBLE_ROWS * CAM_Y_RATIO;
+    this._cam = { x: COLS / 2, y: camY, vx: 0, vy: 0, tiltX: 0, tiltY: 0 };
+    this._view = makeView({
+      ox: this._rect.x, oy: this._rect.y, cell: this._rect.cell,
+      cols: COLS, rows: VISIBLE_ROWS, dpr: this._dpr, camY,
+    });
     this._initArt();
   },
 
-  // 木块图集 + 托盘两层先画在离屏 canvas 上,主棋盘用的再导出成图片
+  // 木块图集 + 木槽(底板 / 内壁 / 围边)先画在离屏 canvas 上,再导出成图片
   // (导出前直接拿离屏 canvas 当图源);离屏 canvas 不可用时退回平面方块
   _initArt() {
     this._art = null;
     try {
       const make = (w, h) => wx.createOffscreenCanvas({ type: '2d', width: w, height: h });
-      const tray = buildTray(make, this._W, this._H, this._dpr, this._rect);
-      const atlas = buildCubeAtlas(make, this._rect.cell, this._dpr);
-      this._art = { make, atlas, floor: tray.floor, rim: tray.rim, img: {}, mini: {} };
+      const well = buildWell(make, this._W, this._H, this._dpr, this._rect);
+      const atlas = buildBlockAtlas(make, this._rect.cell, this._dpr);
+      this._art = { make, atlas, well, img: {}, mini: {} };
       this._bake('atlas', atlas.canvas);
-      this._bake('floor', tray.floor);
-      this._bake('rim', tray.rim);
+      this._bake('floor', well.floor);
+      this._bake('wall', well.wall);
+      this._bake('rim', well.rim);
     } catch (e) {
       this._art = null;
     }
@@ -1152,24 +1265,12 @@ Page({
     if (!art) return null;
     if (!art.mini[cell]) {
       try {
-        art.mini[cell] = buildCubeAtlas(art.make, cell, this._dpr);
+        art.mini[cell] = buildBlockAtlas(art.make, cell, this._dpr);
       } catch (e) {
         return null;
       }
     }
     return art.mini[cell];
-  },
-
-  // 一个格子上的木块;key 是棋盘里存的 'T2'(木种 + 纹理变体),scale 用于消行收缩
-  _cube(ctx, atlas, img, key, px, py, cell, alpha, scale) {
-    const type = key[0];
-    const variant = +key[1] || 0;
-    if (atlas) {
-      drawCubeAt(ctx, atlas, img, type, variant, px, py, alpha, scale);
-      return;
-    }
-    const size = cell * (scale === undefined ? 1 : scale);
-    this._blockRect(ctx, px + (cell - size) / 2, py + (cell - size) / 2, size, WOOD[type], alpha);
   },
 
   _draw(ts) {
@@ -1178,23 +1279,33 @@ Page({
     const { x, y, cell, width, height } = this._rect;
     const art = this._art;
     const atlas = art && art.atlas;
-    const atlasImg = art && art.img.atlas;
-    const h = art ? this._rect.h : 0;
+    const h = 0;
     const fx = this._fx;
     const live = this._state === 'play' || this._state === 'pause';
+    const v = this._view;
 
     ctx.clearRect(0, 0, this._W, this._H);
     ctx.save();
+    let sx = 0;
+    let sy = 0;
     if (fx.shake > 0.3) {
-      ctx.translate((Math.random() * 2 - 1) * fx.shake, (Math.random() * 2 - 1) * fx.shake);
+      sx = (Math.random() * 2 - 1) * fx.shake;
+      sy = (Math.random() * 2 - 1) * fx.shake;
+      ctx.translate(sx, sy);
       fx.shake *= 0.85;
     } else {
       fx.shake = 0;
     }
+    v.tx = sx;
+    v.ty = sy;
+    if (this._cam) {
+      v.camX = this._cam.x;
+      v.camY = this._cam.y;
+    }
 
-    // 托盘底板(木板 + 刻槽 + 内壁);离屏不可用时画个平面木色底
+    // 木槽:槽底 + 四面内壁(透视随镜头变);离屏不可用时画个平面木色底
     if (art) {
-      ctx.drawImage(art.img.floor || art.floor, 0, 0, this._W, this._H);
+      drawWell(ctx, v, art.well, art.img);
     } else {
       ctx.fillStyle = '#4A2C18';
       ctx.fillRect(x, y, width, height);
@@ -1206,25 +1317,73 @@ Page({
       if (left < RISE_WARN_MS) {
         const k = 1 - left / RISE_WARN_MS;
         const a = (0.25 + 0.35 * k) * (0.6 + 0.4 * Math.sin(ts / 70));
-        const grad = ctx.createLinearGradient(0, y - h + height, 0, y - h + height - cell * 1.6);
+        const grad = ctx.createLinearGradient(0, y + height, 0, y + height - cell * 1.6);
         grad.addColorStop(0, `rgba(255, 150, 50, ${a})`);
         grad.addColorStop(1, 'rgba(255, 150, 50, 0)');
         ctx.fillStyle = grad;
-        ctx.fillRect(x - h, y - h + height - cell * 1.6, width, cell * 1.6);
+        ctx.fillRect(x, y + height - cell * 1.6, width, cell * 1.6);
       }
     }
 
-    // 危险区红光(堆快到顶时脉动),铺在底板上
+    // 危险区红光(堆快到顶时脉动)
     if (this._stackTop <= HIDDEN_ROWS + 5 && (this._state === 'play' || this._state === 'clearing')) {
       const a = 0.16 + 0.08 * Math.sin(ts / 160);
-      const grad = ctx.createLinearGradient(0, y - h, 0, y - h + cell * 5);
+      const grad = ctx.createLinearGradient(0, y, 0, y + cell * 5);
       grad.addColorStop(0, `rgba(255, 70, 40, ${a})`);
       grad.addColorStop(1, 'rgba(255, 70, 40, 0)');
       ctx.fillStyle = grad;
-      ctx.fillRect(x - h, y - h, width, cell * 5);
+      ctx.fillRect(x, y, width, cell * 5);
     }
 
-    // 幽灵投影:木块落点处一圈淡淡的描边
+    // 木块表:落定的、正在下落的、结束时淹没的灰木块合成一张表,一次画完
+    // (侧面先、正面后,遮挡关系由镜头透视自然决定)
+    const cells = [];
+    const clearing = this._state === 'clearing';
+    const p = clearing ? Math.min(1, (ts - fx.clearStart) / fx.clearMs) : 0;
+    const popAt = [];
+    if (clearing) for (let c = 0; c < COLS; c++) popAt.push(this._clearPopAt(c));
+    // 消行后上面的行像受重力一样加速落下(只是视觉偏移,逻辑棋盘已经更新)
+    const st = fx.settle;
+    const fall = st ? Math.min(1, (ts - st.start) / st.ms) : 1;
+    // 结束动画:灰木块自底向上淹没;冲刺完成 / 时间到不淹没
+    let floodFrom = VISIBLE_ROWS;
+    if ((this._state === 'overAnim' || this._state === 'over') && !this._finished) {
+      const op = Math.min(1, (ts - fx.overStart) / OVER_FILL_MS);
+      floodFrom = VISIBLE_ROWS - (this._state === 'over' ? VISIBLE_ROWS : Math.floor(op * VISIBLE_ROWS));
+    }
+    for (let r = HIDDEN_ROWS; r < ROWS; r++) {
+      const vr = r - HIDDEN_ROWS;
+      const dy = st && st.shift[r] ? -st.shift[r] * (1 - fall * fall) : 0;
+      const isClear = clearing && fx.clearSet.has(r);
+      const row = [];
+      for (let c = 0; c < COLS; c++) {
+        const t = this._board[r][c];
+        if (vr >= floodFrom) {
+          row.push({ key: 'X' + ((vr + c) % VARIANTS), alpha: 0.96 });
+        } else if (t) {
+          if (isClear) {
+            // 扫到这一列时先亮一下,随后缩小崩成木屑
+            const k = (p - popAt[c]) / 0.22;
+            row.push({ key: t, dy, scale: k <= 0 ? 1 : 1 - Math.min(1, k) });
+          } else {
+            row.push({ key: t, dy });
+          }
+        } else {
+          row.push(null);
+        }
+      }
+      cells.push(row);
+    }
+    if (this._cur && live) {
+      const curAlpha = this._lockMs > 0 ? 0.82 : 1;
+      this._curCells().forEach(([r, c], i) => {
+        if (r < HIDDEN_ROWS) return;
+        cells[r - HIDDEN_ROWS][c] = { key: this._cur.type + this._cur.vars[i], alpha: curAlpha };
+      });
+    }
+    const blocks = buildBlockList(cells);
+
+    // 幽灵投影:落点处槽底上一块淡色影子 + 正面一圈描边
     if (this._cur && live) {
       const ghostDist = this._dropDistance();
       const color = PIECE_COLORS[this._cur.type];
@@ -1232,8 +1391,8 @@ Page({
         ctx.save();
         this._curCells(this._cur.rot, this._cur.row + ghostDist, this._cur.col).forEach(([r, c]) => {
           if (r < HIDDEN_ROWS) return;
-          const px = x + c * cell - h;
-          const py = y + (r - HIDDEN_ROWS) * cell - h;
+          const px = x + c * cell;
+          const py = y + (r - HIDDEN_ROWS) * cell;
           ctx.globalAlpha = 0.16;
           ctx.fillStyle = color;
           ctx.fillRect(px + 2, py + 2, cell - 4, cell - 4);
@@ -1246,64 +1405,46 @@ Page({
       }
     }
 
-    // 木块:落定的和正在下落的合在一起,按行从上到下、列从左到右画,
-    // 后画的(下方 / 右方)正好盖住前一块伸出来的侧面
-    const curAt = {};
-    if (this._cur && live) {
-      this._curCells().forEach(([r, c], i) => { curAt[r * COLS + c] = i; });
+    if (atlas) {
+      drawFloorShadows(ctx, v, blocks);
+      drawBlocks(ctx, v, atlas, art.img.atlas, blocks);
+    } else {
+      blocks.forEach(b => {
+        const size = cell * (b.scale === undefined ? 1 : b.scale);
+        this._blockRect(ctx, x + b.x * cell + (cell - size) / 2, y + b.y * cell + (cell - size) / 2, size, WOOD[b.key[0]], b.alpha === undefined ? 1 : b.alpha);
+      });
     }
-    const curAlpha = this._lockMs > 0 ? 0.82 : 1;
-    const clearing = this._state === 'clearing';
-    const p = clearing ? Math.min(1, (ts - fx.clearStart) / fx.clearMs) : 0;
-    const popAt = [];
-    if (clearing) for (let c = 0; c < COLS; c++) popAt.push(this._clearPopAt(c));
-    // 消行后上面的行像受重力一样加速落下(只是视觉偏移,逻辑棋盘已经更新)
-    const st = fx.settle;
-    const fall = st ? Math.min(1, (ts - st.start) / st.ms) : 1;
+
     // 消行行的闪光颜色:普通暖白、T-Spin 淡紫、4 行金色
     const glowRGB = fx.clearTspin ? '230, 200, 255' : (fx.clearTier >= 4 ? '255, 222, 130' : '255, 246, 222');
-    for (let r = HIDDEN_ROWS; r < ROWS; r++) {
-      const off = st && st.shift[r] ? -st.shift[r] * cell * (1 - fall * fall) : 0;
-      const py = y + (r - HIDDEN_ROWS) * cell + off;
-      const isClear = clearing && fx.clearSet.has(r);
-      for (let c = 0; c < COLS; c++) {
-        const px = x + c * cell;
-        const t = this._board[r][c];
-        if (t) {
-          if (isClear) {
-            // 扫到这一列时先亮一下,随后缩小崩成木屑
-            const k = (p - popAt[c]) / 0.22;
-            const scale = k <= 0 ? 1 : 1 - Math.min(1, k);
-            this._cube(ctx, atlas, atlasImg, t, px, py, cell, 1, scale);
-            const glow = Math.max(0, 1 - Math.abs(p - popAt[c]) / 0.12);
-            if (glow > 0 && scale > 0) {
-              ctx.fillStyle = `rgba(${glowRGB}, ${0.85 * glow})`;
-              const sz = cell * Math.max(scale, 0.3);
-              ctx.fillRect(px - h + (cell - sz) / 2, py - h + (cell - sz) / 2, sz, sz);
-            }
-          } else {
-            this._cube(ctx, atlas, atlasImg, t, px, py, cell, 1);
-          }
-        } else if (curAt[r * COLS + c] !== undefined) {
-          const i = curAt[r * COLS + c];
-          this._cube(ctx, atlas, atlasImg, this._cur.type + this._cur.vars[i], px, py, cell, curAlpha);
-        }
-      }
-    }
     if (clearing) {
+      fx.clearRows.forEach(r => {
+        if (r < HIDDEN_ROWS) return;
+        const py = y + (r - HIDDEN_ROWS) * cell;
+        for (let c = 0; c < COLS; c++) {
+          const k = (p - popAt[c]) / 0.22;
+          const scale = k <= 0 ? 1 : 1 - Math.min(1, k);
+          const glow = Math.max(0, 1 - Math.abs(p - popAt[c]) / 0.12);
+          if (glow > 0 && scale > 0) {
+            ctx.fillStyle = `rgba(${glowRGB}, ${0.85 * glow})`;
+            const sz = cell * Math.max(scale, 0.3);
+            ctx.fillRect(x + c * cell + (cell - sz) / 2, py + (cell - sz) / 2, sz, sz);
+          }
+        }
+      });
       // 整行闪光:档位越高越亮
       const flash = CLEAR_FX[fx.clearTier].flash;
       if (p < 0.2) {
         ctx.fillStyle = `rgba(${glowRGB}, ${flash * (1 - p / 0.2)})`;
         fx.clearRows.forEach(r => {
-          if (r >= HIDDEN_ROWS) ctx.fillRect(x - h, y + (r - HIDDEN_ROWS) * cell - h, width, cell + h);
+          if (r >= HIDDEN_ROWS) ctx.fillRect(x, y + (r - HIDDEN_ROWS) * cell, width, cell);
         });
       }
       // 4 行:整盘泛一层金光
       if (fx.clearTier >= 4) {
         const a = 0.22 * Math.max(0, 1 - p / 0.7);
         ctx.fillStyle = `rgba(255, 205, 90, ${a})`;
-        ctx.fillRect(x - h, y - h, width, height);
+        ctx.fillRect(x, y, width, height);
       }
     }
 
@@ -1314,28 +1455,17 @@ Page({
       ctx.globalAlpha = 0.28 * a;
       fx.trail.cols.forEach(({ c, toRow, dist }) => {
         const top = Math.max(HIDDEN_ROWS, toRow - dist);
-        const py = y + (top - HIDDEN_ROWS) * cell - h;
+        const py = y + (top - HIDDEN_ROWS) * cell;
         const ph = (toRow - top) * cell;
-        if (ph > 0) ctx.fillRect(x + c * cell - h + cell * 0.15, py, cell * 0.7, ph);
+        if (ph > 0) ctx.fillRect(x + c * cell + cell * 0.15, py, cell * 0.7, ph);
       });
       ctx.globalAlpha = 1;
     } else if (fx.trail) {
       fx.trail = null;
     }
 
-    // 结束动画:灰木块自底向上淹没(从上往下画,保持遮挡顺序);冲刺完成 / 时间到不淹没
-    if ((this._state === 'overAnim' || this._state === 'over') && !this._finished) {
-      const op = Math.min(1, (ts - fx.overStart) / OVER_FILL_MS);
-      const nFill = this._state === 'over' ? VISIBLE_ROWS : Math.floor(op * VISIBLE_ROWS);
-      for (let r = VISIBLE_ROWS - nFill; r < VISIBLE_ROWS; r++) {
-        for (let c = 0; c < COLS; c++) {
-          this._cube(ctx, atlas, atlasImg, 'X' + ((r + c) % VARIANTS), x + c * cell, y + r * cell, cell, 0.96);
-        }
-      }
-    }
-
-    // 托盘围边盖在最上面:挡住最右列 / 最底行木块的侧面
-    if (art) ctx.drawImage(art.img.rim || art.rim, 0, 0, this._W, this._H);
+    // 槽口围边盖在最上面
+    if (art) ctx.drawImage(art.img.rim || art.well.rim, 0, 0, this._W, this._H);
 
     // 消行特效:冲击波、木屑 / 木粉 / 火花、+分数,都盖在围边上面
     const pdt = fx.lastDraw ? Math.min(50, ts - fx.lastDraw) / 1000 : 0.016;
@@ -1499,24 +1629,42 @@ Page({
     ctx.restore();
   },
 
+  // HOLD / NEXT 里的小方块:每个预览格有自己的镜头,放在方块中心上方、离得近一点,
+  // 透视更明显,像一块真的木头摆在小木槽里
   _drawMini(ctx, type, cx, cy, cell, alpha) {
     const atlas = this._miniAtlas(cell);
-    const h = atlas ? atlas.h : 0;
-    // 先上后下、先左后右,保证木块侧面的遮挡顺序
-    const cells = SHAPES[type][0].slice().sort((a, b) => a[0] - b[0] || a[1] - b[1]);
+    const shape = SHAPES[type][0];
     let minR = 9, maxR = -9, minC = 9, maxC = -9;
-    cells.forEach(([r, c]) => {
+    shape.forEach(([r, c]) => {
       minR = Math.min(minR, r); maxR = Math.max(maxR, r);
       minC = Math.min(minC, c); maxC = Math.max(maxC, c);
     });
-    const w = (maxC - minC + 1) * cell;
-    const hh = (maxR - minR + 1) * cell;
-    // 木块整体(顶面 + 侧面)居中
-    const ox = cx - w / 2 + h / 2;
-    const oy = cy - hh / 2 + h / 2;
-    cells.forEach(([r, c], i) => {
-      this._cube(ctx, atlas, null, type + (i % VARIANTS), ox + (c - minC) * cell, oy + (r - minR) * cell, cell, alpha);
+    const wc = maxC - minC + 1;
+    const hc = maxR - minR + 1;
+    const cells = Array.from({ length: hc }, () => Array(wc).fill(null));
+    shape.forEach(([r, c], i) => {
+      cells[r - minR][c - minC] = { key: type + (i % VARIANTS), alpha };
     });
+    const blocks = buildBlockList(cells).map(b => {
+      // 预览里四周没有槽壁,外圈的面都要画
+      let n = b.n;
+      if (b.x === 0) n &= ~4;
+      if (b.x === wc - 1) n &= ~8;
+      if (b.y === hc - 1) n &= ~2;
+      return { ...b, n };
+    });
+    const ox = cx - (wc * cell) / 2;
+    const oy = cy - (hc * cell) / 2;
+    if (!atlas) {
+      blocks.forEach(b => this._blockRect(ctx, ox + b.x * cell, oy + b.y * cell, cell, WOOD[type], alpha));
+      return;
+    }
+    const v = makeView({
+      ox, oy, cell, cols: wc, rows: hc, dpr: this._dpr,
+      camZ: 8, camX: wc / 2, camY: hc / 2 - 2.2,
+    });
+    drawFloorShadows(ctx, v, blocks);
+    drawBlocks(ctx, v, atlas, null, blocks);
   },
 
   _drawNext() {

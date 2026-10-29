@@ -214,7 +214,13 @@ function drawCube(g, ox, oy, c, h, base, rand, opts) {
   g.stroke();
   g.restore();
 
-  // 顶面:木纹 + 打光 + 倒角 + 清漆高光
+  drawCubeTop(g, ox, oy, c, base, rand, o);
+}
+
+// 木块顶面(正对镜头的那一面):木纹 + 打光 + 倒角 + 清漆高光 + 描边
+function drawCubeTop(g, ox, oy, c, base, rand, opts) {
+  const lw = Math.max(0.6, c / 26);
+  const o = opts || {};
   const r = c * (o.radius === undefined ? 0.12 : o.radius);
   g.save();
   g.beginPath();
@@ -802,6 +808,7 @@ module.exports = {
   poly,
   woodFill,
   drawCube,
+  drawCubeTop,
   drawCastShadow,
   cubeDepth,
   buildCubeAtlas,
