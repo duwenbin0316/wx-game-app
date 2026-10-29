@@ -22,7 +22,32 @@ const SOFT_MS = 50;      // 软降连降每行间隔
 const LOCK_MS = 500;     // 触底锁定延迟
 const LOCK_RESETS = 15;  // 锁定延迟最多重置次数
 const OVER_FILL_MS = 600;// 结束时灰块淹没动画
-const STORAGE_KEY = 'tetris_best';
+// 纪录按模式分开存;旧版 'tetris_best' 是在老规则(软降很快、分数偏高)下打的,不再沿用
+const BEST_KEY = 'tetris_best_v2';     // { marathon, sprint(毫秒), ultra, rise }
+const MODE_KEY = 'tetris_mode';
+
+// 玩法模式
+const MODES = {
+  marathon: { name: '经典', desc: '越来越快,看你能撑多久', metric: 'score' },
+  sprint:   { name: '40 行冲刺', desc: '最快速度消掉 40 行', metric: 'time', goalLines: 40 },
+  ultra:    { name: '2 分钟限时', desc: '两分钟内拿最高分', metric: 'score', timeLimit: 120000 },
+  rise:     { name: '木桩涨潮', desc: '木桩从底下往上涨,越涨越快', metric: 'score', rise: true },
+};
+const MODE_ORDER = ['marathon', 'sprint', 'ultra', 'rise'];
+// 木桩涨潮:第一根 9 秒后冒出来,之后每根快 0.35 秒,最快 2.8 秒一根
+const RISE_FIRST_MS = 9000;
+const RISE_STEP_MS = 350;
+const RISE_MIN_MS = 2800;
+const RISE_WARN_MS = 1200;   // 冒出来前的预警时间
+
+// 计时显示:冲刺精确到百分之一秒,限时只显示秒
+function fmtTime(ms, precise) {
+  const t = Math.max(0, ms);
+  const m = Math.floor(t / 60000);
+  const sec = Math.floor((t % 60000) / 1000);
+  const base = `${m}:${String(sec).padStart(2, '0')}`;
+  return precise ? `${base}.${String(Math.floor((t % 1000) / 10)).padStart(2, '0')}` : base;
+}
 
 const PIECE_TYPES = ['I', 'O', 'T', 'S', 'Z', 'J', 'L'];
 const PIECE_COLORS = WOOD;
@@ -194,15 +219,32 @@ Page({
     best: 0,
     level: 1,
     lines: 0,
-    gameState: 'playing',   // 'playing' | 'paused' | 'over'
+    gameState: 'menu',      // 'menu' | 'playing' | 'paused' | 'over'
     isNewBest: false,
     muted: false,
+    mode: 'marathon',
+    modeName: '经典',
+    modeList: [],           // 选模式面板:{ id, name, desc, best }
+    hudLabel: 'SCORE',      // 顶栏右侧:分数,冲刺模式显示用时
+    hudValue: '0',
+    stat1Label: 'LINES',    // 侧栏小木牌两行
+    stat1Value: '0',
+    stat2Label: 'BEST',
+    stat2Value: '0',
+    result: null,           // 结算:{ title, mainLabel, main, cells: [{ label, value }] }
   },
 
   // ── 生命周期 ────────────────────────────────────────────
   onLoad() {
-    this._best = wx.getStorageSync(STORAGE_KEY) || 0;
-    this.setData({ best: this._best });
+    let bests = {};
+    try { bests = wx.getStorageSync(BEST_KEY) || {}; } catch (e) {}
+    this._bests = bests;
+    let mode = 'marathon';
+    try { mode = wx.getStorageSync(MODE_KEY) || 'marathon'; } catch (e) {}
+    this._mode = MODES[mode] ? mode : 'marathon';
+    this._best = this._bests[this._mode] || 0;
+    this.setData({ mode: this._mode, modeName: MODES[this._mode].name });
+    this._refreshModeList();
     this._initAudio();
   },
 
@@ -243,7 +285,7 @@ Page({
       }
       this._computeMetrics();
       this._isReady = true;
-      this._startGame();
+      this._showMenu();
     });
   },
 
@@ -269,23 +311,32 @@ Page({
 
   noop() {},
 
-  // 分享:配一张自己画的分享卡(左边是当前盘面的木块快照,右边木牌写分数),
+  // 分享:配一张自己画的分享卡(左边是当前盘面的木块快照,右边木牌写成绩),
   // 不然微信会截页面顶部一块,结算弹层只露半截
   onShareAppMessage() {
     const s = this._score || 0;
-    const base = {
-      title: s > 0
-        ? `我在木质俄罗斯方块拿了 ${s} 分,来挑战我～`
-        : '木头方块搭起来,T-Spin、连击都安排上了,来一局!',
-      path: '/pages/tetris/index',
-    };
+    const played = this.data.gameState === 'over' || s > 0;
+    const sprintDone = this._mode === 'sprint' && this._finished;
+    let title = '木头方块搭起来,冲刺、限时、木桩涨潮都安排上了,来一局!';
+    if (sprintDone) title = `我 40 行冲刺只用了 ${fmtTime(this._elapsed, true)},来挑战我～`;
+    else if (played && s > 0) title = `我在俄罗斯方块「${MODES[this._mode].name}」拿了 ${s} 分,来挑战我～`;
+    const base = { title, path: '/pages/tetris/index' };
+    const best = this._bests[this._mode];
+    // 冲刺比用时:完成了写用时,没完成写消到第几行;其他模式写分数
+    let card = { score: s, mainLabel: '本局得分', mainText: String(s), bestText: String(best || s) };
+    if (this._mode === 'sprint') {
+      const bestText = best ? fmtTime(best, true) : '--';
+      card = sprintDone
+        ? { score: 1, mainLabel: '冲刺用时', mainText: fmtTime(this._elapsed, true), bestLabel: '最快', bestText }
+        : { score: this._lines, mainLabel: '冲刺消行', mainText: `${this._lines}/40`, bestLabel: '最快', bestText };
+    }
     return {
       ...base,
       promise: buildShareImage(wx, {
         title: '俄罗斯方块',
-        score: s,
-        best: this._best,
-        idleLines: ['T-Spin', '连击冲高分'],
+        subtitle: MODES[this._mode].name,
+        ...card,
+        idleLines: ['四种玩法', '冲刺 · 限时'],
         art: (g, box) => this._paintShareBoard(g, box),
       }).then(img => (img ? { ...base, imageUrl: img } : base)).catch(() => base),
     };
@@ -350,14 +401,123 @@ Page({
 
   _startGame() {
     this._reset();
+    this._elapsed = 0;
+    this._finished = false;
+    this._riseAcc = 0;
+    this._riseCount = 0;
+    this._holeCol = Math.floor(Math.random() * COLS);
+    this._best = this._bests[this._mode] || 0;
     this.setData({
-      score: 0, best: this._best || 0, level: 1, lines: 0,
-      gameState: 'playing', isNewBest: false,
+      score: 0, best: this._best, level: 1, lines: 0,
+      gameState: 'playing', isNewBest: false, result: null,
+      mode: this._mode, modeName: MODES[this._mode].name,
     });
+    this._syncHud(true);
     this._spawn();
     this._drawHold();
     this._startLoop();
     this._playBgm();
+  },
+
+  // ── 模式 ────────────────────────────────────────────────
+  // 选模式面板:每个模式显示自己的纪录
+  _refreshModeList() {
+    const modeList = MODE_ORDER.map(id => {
+      const b = this._bests[id];
+      let best = '还没有纪录';
+      if (b) best = id === 'sprint' ? `最快 ${fmtTime(b, true)}` : `最高 ${b}`;
+      return { id, name: MODES[id].name, desc: MODES[id].desc, best, current: id === this._mode };
+    });
+    this.setData({ modeList });
+  },
+
+  _showMenu() {
+    this._reset();
+    this._state = 'menu';
+    this._pauseBgm();
+    this._refreshModeList();
+    this.setData({ gameState: 'menu', result: null });
+    this._drawNext();
+    this._drawHold();
+    this._startLoop();
+  },
+
+  onPickMode(e) {
+    const id = e.currentTarget.dataset.mode;
+    if (!MODES[id] || !this._isReady) return;
+    this._mode = id;
+    try { wx.setStorageSync(MODE_KEY, id); } catch (err) {}
+    this._startGame();
+  },
+
+  onChangeMode() {
+    if (!this._isReady) return;
+    this._showMenu();
+  },
+
+  // 顶栏和侧栏木牌上的数字:按模式显示不同内容,文字变了才 setData
+  _syncHud(force) {
+    const m = MODES[this._mode];
+    const best = this._bests[this._mode];
+    let hud;
+    if (this._mode === 'sprint') {
+      hud = {
+        hudLabel: 'TIME', hudValue: fmtTime(this._elapsed, true),
+        stat1Label: 'LINES', stat1Value: `${Math.min(this._lines, m.goalLines)}/${m.goalLines}`,
+        stat2Label: 'BEST', stat2Value: best ? fmtTime(best, true) : '--',
+      };
+    } else if (this._mode === 'ultra') {
+      hud = {
+        hudLabel: 'SCORE', hudValue: String(this._score),
+        stat1Label: 'TIME', stat1Value: fmtTime(m.timeLimit - this._elapsed + 999, false),
+        stat2Label: 'BEST', stat2Value: String(best || 0),
+      };
+    } else {
+      hud = {
+        hudLabel: 'SCORE', hudValue: String(this._score),
+        stat1Label: 'LINES', stat1Value: String(this._lines),
+        stat2Label: 'BEST', stat2Value: String(best || 0),
+      };
+    }
+    const d = this.data;
+    const changed = force || Object.keys(hud).some(k => d[k] !== hud[k]);
+    if (changed) this.setData(hud);
+  },
+
+  // 冲刺消满 40 行 / 限时到点:不是失败,直接结算(不放灰木块淹没动画)
+  _completeRun(label) {
+    this._finished = true;
+    this._cur = null;
+    this._state = 'overAnim';
+    this._fx.overStart = this._now;
+    this._input.dir = 0;
+    this._input.soft = false;
+    this._label(label, '#FFD46A', 1.4);
+    this._pauseBgm();
+    this._playSfx('levelup');
+  },
+
+  // 木桩涨潮:整盘往上推一行,底下冒出一行带一个缺口的灰木桩
+  _addGarbage() {
+    if (this._board[0].some(Boolean)) { this._gameOver(); return; }
+    // 缺口大多数时候留在同一列,方便连着消;偶尔换位置
+    if (Math.random() < 0.3) this._holeCol = Math.floor(Math.random() * COLS);
+    const row = Array.from({ length: COLS }, (_, c) => (c === this._holeCol ? '' : 'X' + ((c + this._riseCount) % VARIANTS)));
+    this._board.shift();
+    this._board.push(row);
+    this._riseCount += 1;
+    // 正在落的方块被顶到了就往上挪一格,还是挪不开就算输
+    if (this._cur && this._collidesAt(this._cur.type, this._cur.rot, this._cur.row, this._cur.col)) {
+      this._cur.row -= 1;
+      if (this._collidesAt(this._cur.type, this._cur.rot, this._cur.row, this._cur.col)) { this._gameOver(); return; }
+    }
+    this._computeStackTop();
+    this._fx.shake = Math.max(this._fx.shake, 2);
+    this._sfx('harddrop', 0.8, 0.6);
+  },
+
+  _riseInterval() {
+    return Math.max(RISE_MIN_MS, RISE_FIRST_MS - this._riseCount * RISE_STEP_MS);
   },
 
   onRestart() {
@@ -745,6 +905,17 @@ Page({
     }
 
     this._lines += n;
+    // 冲刺模式:消满 40 行就结束;冲刺不升级,重力保持一级
+    if (this._mode === 'sprint') {
+      this.setData({ lines: this._lines });
+      if (this._lines >= MODES.sprint.goalLines) {
+        this._completeRun('完成!');
+        return;
+      }
+      this._state = 'play';
+      this._spawn();
+      return;
+    }
     const nextLevel = Math.floor(this._lines / 10) + 1;
     if (nextLevel !== this._level) {
       this._level = nextLevel;
@@ -770,11 +941,6 @@ Page({
   _addScore(pts) {
     if (!pts) return;
     this._score += pts;
-    if (this._score > (this._best || 0)) {
-      this._best = this._score;
-      this._isNewBest = true;
-      wx.setStorageSync(STORAGE_KEY, this._best);
-    }
   },
 
   // 等级重力曲线(官方指南):(0.8 - (lv-1)*0.007)^(lv-1) 秒/行
@@ -793,15 +959,50 @@ Page({
     this._playSfx('gameover');
   },
 
+  // 结算:按模式比较纪录(冲刺比用时、只有完成才算;其他比分数),组装结算木牌
   _finishOver() {
     this._state = 'over';
+    const mode = this._mode;
+    const old = this._bests[mode];
+    let isNewBest = false;
+    if (mode === 'sprint') {
+      if (this._finished && (!old || this._elapsed < old)) {
+        this._bests.sprint = Math.round(this._elapsed);
+        isNewBest = true;
+      }
+    } else if (this._score > 0 && this._score > (old || 0)) {
+      this._bests[mode] = this._score;
+      isNewBest = true;
+    }
+    if (isNewBest) {
+      try { wx.setStorageSync(BEST_KEY, this._bests); } catch (e) {}
+    }
+    this._isNewBest = isNewBest;
+    this._best = this._bests[mode] || 0;
+
+    const best = this._bests[mode];
+    let result;
+    if (mode === 'sprint') {
+      result = this._finished
+        ? { title: '冲刺完成', mainLabel: '用时', main: fmtTime(this._elapsed, true),
+          cells: [{ label: '消行', value: String(this._lines) }, { label: '得分', value: String(this._score) }, { label: '最快', value: best ? fmtTime(best, true) : '--' }] }
+        : { title: '冲刺失败', mainLabel: '消了', main: `${this._lines}/40`,
+          cells: [{ label: '用时', value: fmtTime(this._elapsed, false) }, { label: '得分', value: String(this._score) }, { label: '最快', value: best ? fmtTime(best, true) : '--' }] };
+    } else {
+      const title = mode === 'ultra' && this._finished ? '时间到' : '游戏结束';
+      const third = mode === 'rise' ? { label: '木桩', value: String(this._riseCount) } : { label: '消行', value: String(this._lines) };
+      result = { title, mainLabel: '本局得分', main: String(this._score),
+        cells: [{ label: '等级', value: String(this._level) }, third, { label: '最高', value: String(best || 0) }] };
+    }
+    this._syncHud(true);
     this.setData({
       score: this._score,
       best: this._best,
       level: this._level,
       lines: this._lines,
       gameState: 'over',
-      isNewBest: this._isNewBest,
+      isNewBest,
+      result,
     });
   },
 
@@ -831,6 +1032,24 @@ Page({
 
   _update(dt, ts) {
     this._now = ts;
+
+    // 计时:游戏进行中(含消行动画)才走
+    if (this._state === 'play' || this._state === 'clearing') {
+      this._elapsed += dt;
+      const lim = MODES[this._mode].timeLimit;
+      // 到点时若正在消行,等这次消完再结算
+      if (lim && this._elapsed >= lim && this._state === 'play') {
+        this._elapsed = lim;
+        this._completeRun('时间到!');
+      }
+    }
+    if (this._state === 'play' && MODES[this._mode].rise) {
+      this._riseAcc += dt;
+      if (this._riseAcc >= this._riseInterval()) {
+        this._riseAcc = 0;
+        this._addGarbage();
+      }
+    }
 
     if (this._state === 'play') {
       // DAS/ARR 连发
@@ -887,10 +1106,8 @@ Page({
       this._fx.settle = null;
     }
 
-    // HUD 按需同步
-    if (this._score !== this.data.score) {
-      this.setData({ score: this._score, best: this._best });
-    }
+    // HUD 按需同步(文字变了才 setData)
+    if (this._state !== 'menu' && this._state !== 'over') this._syncHud(false);
   },
 
   // ── 渲染 ────────────────────────────────────────────────
@@ -981,6 +1198,20 @@ Page({
     } else {
       ctx.fillStyle = '#4A2C18';
       ctx.fillRect(x, y, width, height);
+    }
+
+    // 木桩涨潮预警:快冒出来时底部一条琥珀色光带闪烁
+    if (MODES[this._mode].rise && this._state === 'play') {
+      const left = this._riseInterval() - this._riseAcc;
+      if (left < RISE_WARN_MS) {
+        const k = 1 - left / RISE_WARN_MS;
+        const a = (0.25 + 0.35 * k) * (0.6 + 0.4 * Math.sin(ts / 70));
+        const grad = ctx.createLinearGradient(0, y - h + height, 0, y - h + height - cell * 1.6);
+        grad.addColorStop(0, `rgba(255, 150, 50, ${a})`);
+        grad.addColorStop(1, 'rgba(255, 150, 50, 0)');
+        ctx.fillStyle = grad;
+        ctx.fillRect(x - h, y - h + height - cell * 1.6, width, cell * 1.6);
+      }
     }
 
     // 危险区红光(堆快到顶时脉动),铺在底板上
@@ -1092,8 +1323,8 @@ Page({
       fx.trail = null;
     }
 
-    // 结束动画:灰木块自底向上淹没(从上往下画,保持遮挡顺序)
-    if (this._state === 'overAnim' || this._state === 'over') {
+    // 结束动画:灰木块自底向上淹没(从上往下画,保持遮挡顺序);冲刺完成 / 时间到不淹没
+    if ((this._state === 'overAnim' || this._state === 'over') && !this._finished) {
       const op = Math.min(1, (ts - fx.overStart) / OVER_FILL_MS);
       const nFill = this._state === 'over' ? VISIBLE_ROWS : Math.floor(op * VISIBLE_ROWS);
       for (let r = VISIBLE_ROWS - nFill; r < VISIBLE_ROWS; r++) {

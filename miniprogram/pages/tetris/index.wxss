@@ -183,3 +183,87 @@ page {
 .cbtn .rot-glyph { font-size: 52rpx; }
 .cbtn .rot-main { font-size: 60rpx; }
 .cbtn .drop-bar { width: 44rpx; }
+
+/* ── 模式 ── */
+.mode-tag {
+  align-self: flex-start;
+  margin-bottom: 4rpx;
+  padding: 2rpx 12rpx;
+  border-radius: 8rpx;
+  font-size: 18rpx;
+  font-weight: 700;
+  color: #5A3A08;
+  background: linear-gradient(180deg, #FFE18A 0%, #E0A93E 100%);
+  box-shadow: 0 2rpx 0 #7A5212;
+  white-space: nowrap;
+}
+
+/* 选模式时压暗得轻一点,能看到后面的空托盘 */
+.overlay-soft {
+  background: rgba(14, 7, 2, 0.55);
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+
+.mode-plaque {
+  width: 600rpx;
+}
+
+.mode-body {
+  padding: 30rpx 30rpx 40rpx;
+  gap: 22rpx;
+}
+
+/* 每个模式一块浅色木片,按下沉一下 */
+.mode-card {
+  width: 100%;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16rpx;
+  padding: 22rpx 24rpx;
+  border-radius: 16rpx;
+  background: linear-gradient(180deg, #E2B37A 0%, #C48C52 60%, #AE7640 100%);
+  border: 2rpx solid #5E3519;
+  box-shadow: 0 8rpx 0 #5A3218, 0 12rpx 14rpx rgba(0, 0, 0, 0.35), inset 0 3rpx 0 rgba(255, 244, 220, 0.6);
+}
+
+.mode-card:active {
+  transform: translateY(6rpx);
+  box-shadow: 0 2rpx 0 #5A3218, inset 0 3rpx 6rpx rgba(80, 40, 10, 0.35);
+}
+
+/* 上次玩的模式:金色 */
+.mode-current {
+  background: linear-gradient(180deg, #FFE18A 0%, #E0A93E 100%);
+  border-color: #7A5212;
+  box-shadow: 0 8rpx 0 #7A5212, 0 12rpx 14rpx rgba(0, 0, 0, 0.35), inset 0 3rpx 0 rgba(255, 250, 230, 0.7);
+}
+
+.mode-main {
+  display: flex;
+  flex-direction: column;
+  gap: 6rpx;
+  min-width: 0;
+}
+
+.mode-name {
+  font-size: 32rpx;
+  font-weight: 700;
+  color: #4A2810;
+  text-shadow: 0 2rpx 0 rgba(255, 238, 210, 0.5);
+}
+
+.mode-desc {
+  font-size: 22rpx;
+  color: #6A3E1C;
+}
+
+.mode-best {
+  flex-shrink: 0;
+  font-size: 22rpx;
+  font-weight: 700;
+  color: #7A2A14;
+  font-family: monospace;
+}

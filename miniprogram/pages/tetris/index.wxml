@@ -15,8 +15,8 @@
       </view>
     </view>
     <view class="header-right">
-      <text class="head-label">SCORE</text>
-      <text class="head-value">{{score}}</text>
+      <text class="head-label">{{hudLabel}}</text>
+      <text class="head-value">{{hudValue}}</text>
     </view>
   </view>
 
@@ -41,13 +41,14 @@
       </view>
 
       <view class="wood-plate stats">
+        <text class="mode-tag">{{modeName}}</text>
         <view class="stat-row">
-          <text class="plate-label">LINES</text>
-          <text class="plate-value">{{lines}}</text>
+          <text class="plate-label">{{stat1Label}}</text>
+          <text class="plate-value">{{stat1Value}}</text>
         </view>
         <view class="stat-row">
-          <text class="plate-label">BEST</text>
-          <text class="plate-value">{{best}}</text>
+          <text class="plate-label">{{stat2Label}}</text>
+          <text class="plate-value">{{stat2Value}}</text>
         </view>
       </view>
     </view>
@@ -94,6 +95,34 @@
     </view>
   </view>
 
+  <!-- 选模式 -->
+  <view class="overlay overlay-soft" wx:if="{{gameState === 'menu'}}">
+    <view class="plaque mode-plaque">
+      <view class="nail nail-tl"></view>
+      <view class="nail nail-tr"></view>
+      <view class="nail nail-bl"></view>
+      <view class="nail nail-br"></view>
+      <view class="plaque-head">
+        <text class="plaque-title">选择玩法</text>
+      </view>
+      <view class="plaque-body mode-body">
+        <view
+          wx:for="{{modeList}}"
+          wx:key="id"
+          class="mode-card {{item.current ? 'mode-current' : ''}}"
+          data-mode="{{item.id}}"
+          catchtap="onPickMode"
+        >
+          <view class="mode-main">
+            <text class="mode-name">{{item.name}}</text>
+            <text class="mode-desc">{{item.desc}}</text>
+          </view>
+          <text class="mode-best">{{item.best}}</text>
+        </view>
+      </view>
+    </view>
+  </view>
+
   <!-- 暂停 -->
   <view class="overlay" wx:if="{{gameState === 'paused'}}">
     <view class="plaque">
@@ -105,48 +134,42 @@
         <text class="plaque-title">暂停</text>
       </view>
       <view class="plaque-body">
-        <text class="score-label">当前得分</text>
-        <text class="score-num">{{score}}</text>
+        <text class="score-label">{{modeName}} · {{hudLabel === 'TIME' ? '用时' : '当前得分'}}</text>
+        <text class="score-num">{{hudValue}}</text>
         <view class="btn-col btn-col-gap">
           <view class="wbtn wbtn-primary" catchtouchstart="onResume">继续游戏</view>
           <view class="wbtn" catchtouchstart="onRestart">重新开始</view>
+          <view class="wbtn" catchtouchstart="onChangeMode">换个玩法</view>
         </view>
       </view>
     </view>
   </view>
 
   <!-- 结束 -->
-  <view class="overlay" wx:if="{{gameState === 'over'}}">
+  <view class="overlay" wx:if="{{gameState === 'over' && !!result}}">
     <view class="plaque">
       <view class="nail nail-tl"></view>
       <view class="nail nail-tr"></view>
       <view class="nail nail-bl"></view>
       <view class="nail nail-br"></view>
       <view class="plaque-head">
-        <text class="plaque-title">游戏结束</text>
+        <text class="plaque-title">{{result.title}}</text>
       </view>
       <view class="plaque-body">
         <view class="newbest-badge" wx:if="{{isNewBest}}">
           <text class="newbest-text">新纪录</text>
         </view>
-        <text class="score-label" wx:else>本局得分</text>
-        <text class="score-num">{{score}}</text>
+        <text class="score-label" wx:else>{{modeName}} · {{result.mainLabel}}</text>
+        <text class="score-num">{{result.main}}</text>
         <view class="stat-grid">
-          <view class="stat-cell">
-            <text class="cell-label">等级</text>
-            <text class="cell-value">{{level}}</text>
-          </view>
-          <view class="stat-cell">
-            <text class="cell-label">消行</text>
-            <text class="cell-value">{{lines}}</text>
-          </view>
-          <view class="stat-cell">
-            <text class="cell-label">最高</text>
-            <text class="cell-value">{{best}}</text>
+          <view class="stat-cell" wx:for="{{result.cells}}" wx:key="label">
+            <text class="cell-label">{{item.label}}</text>
+            <text class="cell-value">{{item.value}}</text>
           </view>
         </view>
         <view class="btn-col">
           <view class="wbtn wbtn-primary" catchtouchstart="onRestart">再来一局</view>
+          <view class="wbtn" catchtouchstart="onChangeMode">换个玩法</view>
           <button class="wbtn wbtn-share" open-type="share">分享战绩</button>
         </view>
       </view>

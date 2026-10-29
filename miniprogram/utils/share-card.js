@@ -20,7 +20,8 @@ function carve(g, text, x, y, size, color) {
   g.restore();
 }
 
-// 画整张卡。opts: { title, score, best, idleLines, art(g, box) }
+// 画整张卡。opts: { title, subtitle?, score, best, idleLines, art(g, box),
+//   mainLabel? / mainText? / bestLabel? / bestText?(不是比分数的模式,比如冲刺比用时,用这几个覆盖) }
 function drawShareCard(g, opts) {
   const bg = g.createRadialGradient(CARD_W * 0.35, CARD_H * 0.4, 20, CARD_W * 0.5, CARD_H * 0.5, CARD_W * 0.7);
   bg.addColorStop(0, '#4A2C1B');
@@ -44,17 +45,18 @@ function drawShareCard(g, opts) {
   const pw = 182;
   drawSlab(g, px, 40, pw, 316, { base: '#A86F3E', depth: 5, radius: 14, seed: 33, nails: 3.5 });
   const cx = px + pw / 2;
-  carve(g, opts.title, cx, 92, opts.title.length > 5 ? 22 : 28, '#FFD46A');
+  carve(g, opts.title, cx, opts.subtitle ? 84 : 92, opts.title.length > 5 ? 22 : 28, '#FFD46A');
+  if (opts.subtitle) carve(g, opts.subtitle, cx, 110, 14, '#F6DDB0');
   g.fillStyle = 'rgba(60, 30, 10, 0.45)';
   g.fillRect(px + 22, 122, pw - 44, 2);
   g.fillStyle = 'rgba(255, 230, 190, 0.2)';
   g.fillRect(px + 22, 124, pw - 44, 1);
   if (opts.score > 0) {
-    carve(g, '本局得分', cx, 154, 15, '#F6DDB0');
-    const s = String(opts.score);
-    carve(g, s, cx, 196, s.length > 6 ? 34 : 42, '#FFF2DA');
-    carve(g, '最高', cx, 250, 15, '#F6DDB0');
-    carve(g, String(opts.best || opts.score), cx, 280, 26, '#FFD46A');
+    carve(g, opts.mainLabel || '本局得分', cx, 154, 15, '#F6DDB0');
+    const s = opts.mainText || String(opts.score);
+    carve(g, s, cx, 196, s.length > 6 ? 32 : 42, '#FFF2DA');
+    carve(g, opts.bestLabel || '最高', cx, 250, 15, '#F6DDB0');
+    carve(g, opts.bestText || String(opts.best || opts.score), cx, 280, 26, '#FFD46A');
   } else {
     (opts.idleLines || []).forEach((t, i) => carve(g, t, cx, 180 + i * 36, 20, '#FFF2DA'));
   }
