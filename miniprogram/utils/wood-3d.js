@@ -16,8 +16,8 @@ const {
   WOOD, VARIANTS, FLOOR_WOOD, FRAME_WOOD, rng, shade, toHex, roundRectPath, poly, woodFill, drawCubeTop, drawNail,
 } = require('./wood-art.js');
 
-const DEPTH = 0.85;      // 木块厚度(格)
-const CAM_Z = 17;        // 镜头离槽底多远(格):越小透视越夸张
+const DEPTH = 0.7;       // 木块厚度(格)
+const CAM_Z = 22;        // 镜头离槽底多远(格):越小透视越夸张
 const FRAME = 0.62;      // 托盘围边宽度(格)
 
 // 侧面朝向:上 / 左 / 右 / 下;光从左上前方来,上面最亮、下面最暗
@@ -67,17 +67,34 @@ function wellMetrics(W, H, cols, rows, opts) {
 // ── 木块图集 ──────────────────────────────────────────────
 // 每个木种一行:前 VARIANTS 格是正面(不同纹理),后 4 格是上 / 左 / 右 / 下侧面纹理。
 // 侧面纹理 u 沿正面的那条棱,v 从前棱(0)走到槽底(1):前棱一道亮边,越往里越暗
+// 侧面在屏幕上只有零点几格宽,纹理会被压扁,所以这里的细节都往"压扁后还看得清"的方向做:
+// 纹路细而少;前棱一道倒角亮边 + 下面一道细暗线;两端各一道深色接缝,
+// 并排的木块侧面不会连成一整条木板
 function paintSide(g, c, base, rand, light) {
-  const lw = Math.max(0.6, c / 26);
-  woodFill(g, 0, 0, c, c, toHex(shade(base, light)), rand, { lines: 3, lineWidth: lw, knot: 0, contrast: 0.9 });
+  const lw = Math.max(0.5, c / 34);
+  woodFill(g, 0, 0, c, c, toHex(shade(base, light)), rand, { lines: 4, lineWidth: lw, knot: 0, contrast: 0.7 });
   const ao = g.createLinearGradient(0, 0, 0, c);
-  ao.addColorStop(0, 'rgba(255, 240, 215, 0.16)');
-  ao.addColorStop(0.3, 'rgba(255, 240, 215, 0)');
-  ao.addColorStop(1, 'rgba(18, 8, 0, 0.55)');
+  ao.addColorStop(0, 'rgba(255, 240, 215, 0.1)');
+  ao.addColorStop(0.35, 'rgba(255, 240, 215, 0)');
+  ao.addColorStop(1, 'rgba(18, 8, 0, 0.5)');
   g.fillStyle = ao;
   g.fillRect(0, 0, c, c);
-  g.fillStyle = light > -0.2 ? 'rgba(255, 238, 205, 0.35)' : 'rgba(255, 238, 205, 0.12)';
-  g.fillRect(0, 0, c, Math.max(1, c * 0.06));
+  // 前棱倒角
+  const bev = Math.max(1, c * 0.14);
+  const bg = g.createLinearGradient(0, 0, 0, bev);
+  bg.addColorStop(0, light > -0.2 ? 'rgba(255, 242, 215, 0.55)' : 'rgba(255, 242, 215, 0.22)');
+  bg.addColorStop(1, 'rgba(255, 242, 215, 0)');
+  g.fillStyle = bg;
+  g.fillRect(0, 0, c, bev);
+  g.fillStyle = 'rgba(30, 12, 0, 0.18)';
+  g.fillRect(0, bev, c, Math.max(0.5, c * 0.025));
+  // 两端接缝:中间深、两侧各带一点亮边
+  const sw = Math.max(1, c * 0.05);
+  g.fillStyle = 'rgba(22, 9, 0, 0.6)';
+  g.fillRect(0, 0, sw, c);
+  g.fillRect(c - sw, 0, sw, c);
+  g.fillStyle = 'rgba(255, 235, 200, 0.14)';
+  g.fillRect(sw, 0, sw * 0.6, c);
 }
 
 function buildBlockAtlas(createCanvas, cell, dpr, palette) {
@@ -93,7 +110,7 @@ function buildBlockAtlas(createCanvas, cell, dpr, palette) {
       g.translate(i * slot + 1, row * slot + 1);
       g.scale(dpr, dpr);
       if (i < VARIANTS) {
-        drawCubeTop(g, 0, 0, cell, pal[key], rng(row * 131 + i * 17 + 7), { radius: 0.1 });
+        drawCubeTop(g, 0, 0, cell, pal[key], rng(row * 131 + i * 17 + 7), { radius: 0.1, fine: true });
       } else {
         const side = SIDES[i - VARIANTS];
         paintSide(g, cell, pal[key], rng(row * 53 + i * 29 + 11), SIDE_LIGHT[side]);
@@ -181,6 +198,25 @@ function drawFloorShadows(ctx, v, blocks) {
     ctx.fillStyle = `rgba(8, 3, 0, ${a})`;
     ctx.fill();
   });
+  ctx.restore();
+}
+
+// 正面的清漆反光:一大片柔和高光只铺在木块正面上,位置跟着镜头反向滑动,
+// 歪手机 / 方块移动时反光在木块上流过去
+function drawFrontSheen(ctx, v, blocks, cx, cy, r, alpha) {
+  ctx.save();
+  ctx.beginPath();
+  for (let i = 0; i < blocks.length; i++) {
+    const b = blocks[i];
+    if (b.scale !== undefined && b.scale < 1) continue;
+    ctx.rect(v.ox + b.x * v.cell, v.oy + b.y * v.cell, v.cell, v.cell);
+  }
+  const gr = ctx.createRadialGradient(cx, cy, 0, cx, cy, r);
+  gr.addColorStop(0, `rgba(255, 248, 230, ${alpha})`);
+  gr.addColorStop(0.5, `rgba(255, 248, 230, ${alpha * 0.4})`);
+  gr.addColorStop(1, 'rgba(255, 248, 230, 0)');
+  ctx.fillStyle = gr;
+  ctx.fill();
   ctx.restore();
 }
 
@@ -419,5 +455,5 @@ function drawWell(ctx, v, well, imgs) {
 
 module.exports = {
   DEPTH, CAM_Z, makeView, scaleAt, project, wellMetrics,
-  buildBlockAtlas, drawBlocks, drawFloorShadows, buildWell, drawWell,
+  buildBlockAtlas, drawBlocks, drawFloorShadows, drawFrontSheen, buildWell, drawWell,
 };

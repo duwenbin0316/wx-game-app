@@ -7,7 +7,7 @@
 // 镜头跟着方块和手机倾斜微微移动,侧面 / 槽壁随视角变化。
 const { WOOD, VARIANTS, drawPanel } = require('../../utils/wood-art.js');
 const {
-  makeView, wellMetrics, buildBlockAtlas, drawBlocks, drawFloorShadows, buildWell, drawWell,
+  makeView, wellMetrics, buildBlockAtlas, drawBlocks, drawFloorShadows, drawFrontSheen, buildWell, drawWell,
 } = require('../../utils/wood-3d.js');
 const { SFX_NAMES, renderSfx } = require('../../utils/wood-sfx.js');
 const { buildShareImage } = require('../../utils/share-card.js');
@@ -130,9 +130,9 @@ const CHIME_MAJOR = [523.25, 659.25, 783.99, 1046.5, 1318.51, 1567.98];
 // 木头音效的 mp3 兜底(没有 WebAudio 时用;由 scripts/gen-tetris-sfx.js 导出)
 const SFX_FALLBACK = ['lock', 'harddrop', 'clear1', 'clear2', 'clear3', 'clear4'];
 
-// 镜头:默认在棋盘上方 30% 处(多数时候看到木块顶面),跟随当前方块横移一点,
+// 镜头:默认在棋盘上方 40% 处(多数时候看到木块顶面),跟随当前方块横移一点,
 // 手机倾斜时再偏一点(偏移会慢慢回中,是"转一下手机看看侧面"的感觉)
-const CAM_Y_RATIO = 0.3;
+const CAM_Y_RATIO = 0.4;
 const CAM_FOLLOW = 0.3;
 const TILT_MAX_X = 2.5;
 const TILT_MAX_Y = 4;
@@ -1383,24 +1383,33 @@ Page({
     }
     const blocks = buildBlockList(cells);
 
-    // 幽灵投影:落点处槽底上一块淡色影子 + 正面一圈描边
+    // 幽灵投影:落点处一层很淡的底色 + 整块轮廓(只描外沿,不画格子内部的线)
     if (this._cur && live) {
       const ghostDist = this._dropDistance();
-      const color = PIECE_COLORS[this._cur.type];
       if (ghostDist > 0) {
+        const color = PIECE_COLORS[this._cur.type];
+        const gcells = this._curCells(this._cur.rot, this._cur.row + ghostDist, this._cur.col)
+          .filter(([r]) => r >= HIDDEN_ROWS);
+        const has = (r, c) => gcells.some(([gr, gc]) => gr === r && gc === c);
         ctx.save();
-        this._curCells(this._cur.rot, this._cur.row + ghostDist, this._cur.col).forEach(([r, c]) => {
-          if (r < HIDDEN_ROWS) return;
+        ctx.globalAlpha = 0.14;
+        ctx.fillStyle = color;
+        gcells.forEach(([r, c]) => ctx.fillRect(x + c * cell, y + (r - HIDDEN_ROWS) * cell, cell, cell));
+        ctx.globalAlpha = 0.85;
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 2;
+        ctx.lineCap = 'round';
+        const i = 1.5;
+        ctx.beginPath();
+        gcells.forEach(([r, c]) => {
           const px = x + c * cell;
           const py = y + (r - HIDDEN_ROWS) * cell;
-          ctx.globalAlpha = 0.16;
-          ctx.fillStyle = color;
-          ctx.fillRect(px + 2, py + 2, cell - 4, cell - 4);
-          ctx.globalAlpha = 0.7;
-          ctx.strokeStyle = color;
-          ctx.lineWidth = 1.5;
-          ctx.strokeRect(px + 2.5, py + 2.5, cell - 5, cell - 5);
+          if (!has(r - 1, c)) { ctx.moveTo(px + i, py + i); ctx.lineTo(px + cell - i, py + i); }
+          if (!has(r + 1, c)) { ctx.moveTo(px + i, py + cell - i); ctx.lineTo(px + cell - i, py + cell - i); }
+          if (!has(r, c - 1)) { ctx.moveTo(px + i, py + i); ctx.lineTo(px + i, py + cell - i); }
+          if (!has(r, c + 1)) { ctx.moveTo(px + cell - i, py + i); ctx.lineTo(px + cell - i, py + cell - i); }
         });
+        ctx.stroke();
         ctx.restore();
       }
     }
@@ -1408,6 +1417,13 @@ Page({
     if (atlas) {
       drawFloorShadows(ctx, v, blocks);
       drawBlocks(ctx, v, atlas, art.img.atlas, blocks);
+      // 清漆反光:默认在左上(光源方向),镜头往右挪反光就往左滑
+      const restY = VISIBLE_ROWS * CAM_Y_RATIO;
+      drawFrontSheen(ctx, v,
+        blocks,
+        x + (COLS * 0.3 - (v.camX - COLS / 2) * 1.6) * cell,
+        y + (VISIBLE_ROWS * 0.35 - (v.camY - restY) * 1.6) * cell,
+        height * 0.7, 0.13);
     } else {
       blocks.forEach(b => {
         const size = cell * (b.scale === undefined ? 1 : b.scale);
@@ -1661,7 +1677,7 @@ Page({
     }
     const v = makeView({
       ox, oy, cell, cols: wc, rows: hc, dpr: this._dpr,
-      camZ: 8, camX: wc / 2, camY: hc / 2 - 2.2,
+      camZ: 10, camX: wc / 2, camY: hc / 2 - 1.8,
     });
     drawFloorShadows(ctx, v, blocks);
     drawBlocks(ctx, v, atlas, null, blocks);

@@ -226,7 +226,25 @@ function drawCubeTop(g, ox, oy, c, base, rand, opts) {
   g.beginPath();
   roundRectPath(g, ox, oy, c, c, r);
   g.clip();
-  woodFill(g, ox, oy, c, c, base, rand, { lines: 5 + Math.floor(rand() * 3), lineWidth: lw, knot: 0.18, contrast: 0.8 });
+  if (o.fine) {
+    // 细纹:年轮多而细、对比低,再撒一层顺纹的短导管纹,近看更像真木头
+    woodFill(g, ox, oy, c, c, base, rand, { lines: 10 + Math.floor(rand() * 4), lineWidth: lw * 0.55, knot: 0.12, contrast: 0.7 });
+    g.lineWidth = Math.max(0.3, lw * 0.35);
+    g.strokeStyle = shade(base, -0.32);
+    for (let i = 0; i < 22; i++) {
+      const px = ox + rand() * c;
+      const py = oy + rand() * c;
+      const len = c * (0.06 + rand() * 0.2);
+      g.globalAlpha = 0.1 + rand() * 0.14;
+      g.beginPath();
+      g.moveTo(px, py);
+      g.lineTo(px + len, py + (rand() - 0.5) * c * 0.02);
+      g.stroke();
+    }
+    g.globalAlpha = 1;
+  } else {
+    woodFill(g, ox, oy, c, c, base, rand, { lines: 5 + Math.floor(rand() * 3), lineWidth: lw, knot: 0.18, contrast: 0.8 });
+  }
 
   const lg = g.createLinearGradient(ox, oy, ox + c, oy + c);
   lg.addColorStop(0, 'rgba(255, 246, 225, 0.26)');
