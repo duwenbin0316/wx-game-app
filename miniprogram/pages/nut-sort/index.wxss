@@ -1,3 +1,4 @@
+/* 木质 3D 主题：通用部分在 styles/wood.wxss，这里只放螺母游戏自己的极简布局 */
 @import "../../styles/wood.wxss";
 
 page {
@@ -8,102 +9,50 @@ page {
   overflow: hidden;
 }
 
-.nuts-header {
-  padding: 16rpx 24rpx 18rpx;
-}
-
-.nuts-stat {
+/* ── 顶部信息栏（对齐推箱子） ── */
+.header-left {
   display: flex;
-  flex-direction: column;
-  align-items: center;
-  min-width: 120rpx;
-}
-
-.nuts-total {
-  font-size: 22rpx;
-  color: #DEBF90;
-}
-
-.nuts-level-btn {
-  font-size: 24rpx;
-  letter-spacing: 2rpx;
-}
-
-/* ── 副栏：章节铭牌 + 实时星级 + 音效/玩法木钮 ── */
-.nuts-caption {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  flex-shrink: 0;
-  padding: 16rpx 28rpx 8rpx;
-}
-
-.nuts-chapter-tag {
-  display: flex;
-  align-items: center;
-  gap: 14rpx;
-  padding: 8rpx 20rpx;
-  border-radius: 12rpx;
-  background: rgba(45, 22, 8, 0.55);
-  border: 2rpx solid rgba(226, 179, 122, 0.22);
-  box-shadow: inset 0 2rpx 6rpx rgba(12, 4, 0, 0.5);
-}
-
-.nuts-live-stars {
-  display: flex;
-  align-items: center;
-  gap: 4rpx;
-}
-
-.nuts-star {
-  font-size: 24rpx;
-  color: rgba(120, 76, 40, 0.55);
-}
-
-.nuts-star-on {
-  color: #FFD46A;
-  text-shadow: 0 2rpx 0 #4A2810, 0 0 8rpx rgba(255, 212, 106, 0.45);
-}
-
-.nuts-caption-actions {
-  display: flex;
-  align-items: center;
+  align-items: baseline;
   gap: 14rpx;
 }
 
-.nuts-pill {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6rpx;
-  min-height: 52rpx;
-  padding: 0 20rpx;
-  border-radius: 12rpx;
-  background: linear-gradient(180deg, #9C6638 0%, #7B4B24 100%);
-  border: 2rpx solid #4A2810;
-  box-shadow: 0 4rpx 0 #3D1F0B, inset 0 2rpx 0 rgba(255, 232, 195, 0.35);
+.header-level {
+  font-size: 34rpx;
+}
+
+.header-name {
   font-size: 22rpx;
+}
+
+.header-steps {
+  font-size: 24rpx;
   font-weight: 700;
-  color: #F6DDB0;
-  box-sizing: border-box;
+  color: #FFF0D2;
+  font-family: monospace;
+  text-shadow: 0 2rpx 0 #4A2810;
 }
 
-.nuts-pill:active {
-  transform: translateY(3rpx);
-  box-shadow: 0 1rpx 0 #3D1F0B, inset 0 2rpx 4rpx rgba(20, 8, 0, 0.35);
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 14rpx;
 }
 
-.nuts-pill-help {
-  background: linear-gradient(180deg, #B87E46 0%, #945F2F 100%);
-  color: #FFF2D8;
+.header-mute {
+  width: auto;
+  height: 68rpx;
+  padding: 0 20rpx;
+  font-size: 24rpx;
 }
 
-.nuts-pill-icon {
-  font-size: 22rpx;
-  color: #FFD46A;
+.header-select {
+  width: auto;
+  height: 68rpx;
+  padding: 0 24rpx;
+  font-size: 26rpx;
 }
 
-/* ── 画布与底部状态刻槽 ── */
+/* ── 画布 ── */
 .nuts-canvas {
   flex: 1;
   width: 100%;
@@ -112,62 +61,10 @@ page {
   display: block;
 }
 
-.nuts-tip-wrap {
-  padding: 8rpx 28rpx 16rpx;
-  flex-shrink: 0;
-}
-
-.nuts-tip {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 12rpx;
-  text-align: center;
-  padding: 12rpx 24rpx;
-  min-height: 64rpx;
-  border-radius: 14rpx;
-  background: rgba(34, 16, 5, 0.58);
-  border: 2rpx solid rgba(210, 165, 110, 0.18);
-  box-shadow: inset 0 3rpx 8rpx rgba(10, 3, 0, 0.55), 0 2rpx 0 rgba(255, 225, 180, 0.1);
-  box-sizing: border-box;
-}
-
-.nuts-tip-text {
-  color: #E7CA9E;
-  font-size: 22rpx;
-  line-height: 1.5;
-}
-
-/* ── 七色染木小色标 ── */
-.nuts-swatch {
-  width: 36rpx;
-  height: 36rpx;
-  border-radius: 8rpx;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 20rpx;
-  font-weight: 700;
-  color: #FFF4DC;
-  text-shadow: 0 2rpx 0 rgba(20, 8, 0, 0.75);
-  border: 2rpx solid rgba(255, 240, 210, 0.55);
-  box-shadow: 0 3rpx 0 rgba(25, 10, 0, 0.6);
-  flex-shrink: 0;
-  box-sizing: border-box;
-}
-
-.nuts-swatch-1 { background: #CF4D3F; }
-.nuts-swatch-2 { background: #3E8EC4; }
-.nuts-swatch-3 { background: #5A9E4B; }
-.nuts-swatch-4 { background: #E0A438; }
-.nuts-swatch-5 { background: #8B58AE; }
-.nuts-swatch-6 { background: #D97234; }
-.nuts-swatch-7 { background: #38988E; }
-
 /* ── 底部控制台 ── */
 .nuts-console {
-  padding: 24rpx 30rpx 20rpx;
-  padding-bottom: calc(20rpx + env(safe-area-inset-bottom));
+  padding: 28rpx 30rpx 36rpx;
+  padding-bottom: calc(32rpx + env(safe-area-inset-bottom));
 }
 
 .nuts-keys {
@@ -177,218 +74,83 @@ page {
 
 .nuts-key {
   flex: 1;
-  height: 86rpx;
-  font-size: 26rpx;
+  height: 92rpx;
 }
 
-.nuts-key-icon {
-  font-size: 34rpx;
-}
-
-.nuts-disabled {
-  opacity: 0.42;
-}
-
-.nuts-footnote {
-  display: block;
-  text-align: center;
-  padding-top: 20rpx;
-  font-size: 19rpx;
-  color: #C39E70;
-  letter-spacing: 2rpx;
-}
-
-/* ── 结算与选关木牌 ── */
-.nuts-plaque {
-  max-height: 90%;
-  width: 640rpx;
-}
-
-.nuts-win-stars {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 16rpx;
-  padding-bottom: 8rpx;
-}
-
-.nuts-win-star {
-  font-size: 56rpx;
-  color: rgba(70, 36, 12, 0.45);
-  text-shadow: 0 2rpx 0 rgba(255, 230, 185, 0.2);
-}
-
-.nuts-win-star-on {
-  color: #FFD96E;
-  text-shadow: 0 5rpx 0 #5A3210, 0 0 20rpx rgba(255, 215, 100, 0.5);
-}
-
-.nuts-win-badges {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 14rpx;
-}
-
-.nuts-score-unit {
+.nuts-key .wood-key-text {
   font-size: 28rpx;
 }
 
-.nuts-stat-grid {
-  margin: 24rpx 0 32rpx;
+/* ── 通关与选关面板 ── */
+.score-unit {
+  font-size: 40rpx;
 }
 
-.nuts-level-body {
-  padding: 24rpx 28rpx 32rpx;
+.select-plaque {
+  width: 640rpx;
 }
 
-.nuts-summary-bar {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 14rpx;
+.select-body {
+  padding: 28rpx 32rpx 40rpx;
+}
+
+.select-scroll {
   width: 100%;
-  padding: 12rpx 20rpx;
-  border-radius: 12rpx;
-  background: rgba(48, 22, 6, 0.36);
-  box-shadow: inset 0 2rpx 5rpx rgba(16, 6, 0, 0.45);
-  box-sizing: border-box;
+  height: 520rpx;
+  max-height: 46vh;
+  margin-bottom: 28rpx;
 }
 
-.nuts-summary-item {
-  font-size: 22rpx;
-  color: #F3D9AD;
-  font-weight: 700;
-}
-
-.nuts-summary-gold {
-  color: #FFD96E;
-}
-
-.nuts-summary-sep {
-  color: #C49B68;
-}
-
-.nuts-level-scroll {
-  width: 100%;
-  height: 480rpx;
-  max-height: 42vh;
-  padding-top: 18rpx;
-  box-sizing: border-box;
-}
-
-.nuts-level-grid {
+.select-grid {
   display: flex;
   flex-wrap: wrap;
-  gap: 14rpx;
-  padding: 6rpx 4rpx 14rpx;
+  gap: 16rpx;
+  justify-content: center;
+  padding: 8rpx 0 12rpx;
 }
 
-.nuts-level {
-  width: calc((100% - 56rpx) / 5);
-  padding: 12rpx 0 10rpx;
-  box-sizing: border-box;
+.select-item {
+  width: 98rpx;
+  height: 104rpx;
   display: flex;
-  align-items: center;
   flex-direction: column;
-  background: linear-gradient(180deg, #C68E54 0%, #A9723C 100%);
-  border: 2rpx solid #5F351B;
-  border-radius: 12rpx;
-  box-shadow: 0 5rpx 0 #5B3219, inset 0 2rpx 0 rgba(255, 238, 205, 0.4);
-}
-
-.nuts-level:active {
-  transform: translateY(3rpx);
-  box-shadow: 0 2rpx 0 #5B3219;
-}
-
-.nuts-level-number {
-  color: #FFEBC3;
-  font-size: 26rpx;
-  font-weight: bold;
-  text-shadow: 0 2rpx 0 rgba(50, 22, 6, 0.65);
-}
-
-.nuts-level-stars {
-  font-size: 16rpx;
-  color: #FFD96E;
-  letter-spacing: 1rpx;
-  line-height: 1.2;
-  padding-top: 2rpx;
-  text-shadow: 0 1rpx 0 #4A250A;
-}
-
-.nuts-level-best {
-  color: #4D2B13;
-  padding-top: 2rpx;
-  font-size: 17rpx;
-  font-weight: 700;
-}
-
-.nuts-locked {
-  opacity: 0.42;
-}
-
-.nuts-current {
-  border-color: #FFE4A0;
-  background: linear-gradient(180deg, #AE7742 0%, #8E5B2D 100%);
-  box-shadow: 0 5rpx 0 #4A2610, 0 0 12rpx rgba(255, 220, 130, 0.35);
-}
-
-.nuts-current .nuts-level-best {
-  color: #F6DCA8;
-}
-
-/* ── 玩法说明弹层 ── */
-.nuts-palette-row {
-  display: flex;
   align-items: center;
   justify-content: center;
-  gap: 14rpx;
-  padding-bottom: 20rpx;
-}
-
-.nuts-instructions {
-  width: 100%;
-  padding: 18rpx 22rpx;
+  gap: 4rpx;
   border-radius: 14rpx;
-  background: rgba(46, 21, 6, 0.32);
-  box-shadow: inset 0 2rpx 6rpx rgba(15, 5, 0, 0.45);
-  margin-bottom: 18rpx;
+  background: linear-gradient(180deg, #E2B37A 0%, #C48C52 60%, #AE7640 100%);
+  border: 2rpx solid #5E3519;
+  box-shadow: 0 6rpx 0 #5A3218, 0 8rpx 10rpx rgba(0, 0, 0, 0.35), inset 0 2rpx 0 rgba(255, 244, 220, 0.6);
   box-sizing: border-box;
 }
 
-.nuts-instructions text {
-  display: block;
-  color: #F4DAB2;
-  font-size: 24rpx;
-  line-height: 2.05;
+.select-item:active {
+  transform: translateY(5rpx);
+  box-shadow: 0 1rpx 0 #5A3218, inset 0 3rpx 6rpx rgba(80, 40, 10, 0.35);
 }
 
-@media (max-height: 620px) {
-  .nuts-header {
-    padding-top: 10rpx;
-    padding-bottom: 10rpx;
-  }
-  .nuts-caption {
-    padding-top: 8rpx;
-    padding-bottom: 4rpx;
-  }
-  .nuts-tip-wrap {
-    padding-top: 4rpx;
-    padding-bottom: 10rpx;
-  }
-  .nuts-tip {
-    min-height: 54rpx;
-    padding: 8rpx 18rpx;
-  }
-  .nuts-console {
-    padding-top: 16rpx;
-  }
-  .nuts-key {
-    height: 72rpx;
-  }
-  .nuts-footnote {
-    padding-top: 14rpx;
-  }
+.item-locked {
+  opacity: 0.42;
+  background: linear-gradient(180deg, #8F6A48 0%, #6E4E33 100%);
+}
+
+.item-current {
+  background: linear-gradient(180deg, #FFE18A 0%, #E0A93E 100%);
+  border-color: #7A5212;
+  box-shadow: 0 6rpx 0 #7A5212, 0 8rpx 10rpx rgba(0, 0, 0, 0.35), inset 0 2rpx 0 rgba(255, 250, 230, 0.7);
+}
+
+.select-num {
+  font-size: 30rpx;
+  font-weight: 700;
+  color: #4A2810;
+  font-family: monospace;
+  text-shadow: 0 2rpx 0 rgba(255, 238, 210, 0.5);
+}
+
+.select-best {
+  font-size: 17rpx;
+  color: #6B2A14;
+  font-weight: 700;
+  font-family: monospace;
 }

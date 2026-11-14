@@ -6,11 +6,15 @@ const vm = require('node:vm');
 const Rules = require('../miniprogram/utils/nut-sort');
 const Art = require('../miniprogram/utils/nut-art');
 
-test('移动只能取顶端一枚，不能混色、越界、溢出或移动空柱', () => {
+test('移动可批量搬运柱顶连续同色螺母（受目标柱空位限制），不能混色、越界、溢出或移动空柱', () => {
   const board = [[0, 1], [1], [], [2, 2, 2, 2]];
   assert.deepEqual(Rules.move(board, 0, 1, 4), [[0], [1, 1], [], [2, 2, 2, 2]]);
   assert.deepEqual(board, [[0, 1], [1], [], [2, 2, 2, 2]]);
   assert.deepEqual(Rules.move(board, 0, 2, 4), [[0], [1], [1], [2, 2, 2, 2]]);
+  // 柱顶连续 3 枚同色移向空柱：一次性全部搬完
+  assert.deepEqual(Rules.move([[0, 1, 1, 1], []], 0, 1, 4), [[0], [1, 1, 1]]);
+  // 柱顶连续 3 枚同色移向仅剩 2 个空位的同色柱：只搬 2 枚填满目标柱
+  assert.deepEqual(Rules.move([[0, 1, 1, 1], [1, 1]], 0, 1, 4), [[0, 1], [1, 1, 1, 1]]);
   for (const [from, to] of [[2, 0], [0, 3], [3, 0], [0, 0], [-1, 0], [0, 9], ['0', 2]]) {
     assert.equal(Rules.move(board, from, to, 4), null);
   }

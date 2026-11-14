@@ -223,36 +223,62 @@ Page({
 
     if (this._animation) {
       const a = this._animation;
-      const t = Math.min(1, (now - a.start) / 340);
+      const count = a.count || Rules.transferCount(this._board, a.from, a.to, this._level.capacity) || 1;
+      const stagger = 62;
+      const flightMs = 310;
+      const elapsed = now - a.start;
+      const totalMs = flightMs + (count - 1) * stagger;
       const from = this._metrics.positions[a.from], to = this._metrics.positions[a.to];
       const r = this._metrics.radius;
-      const y0 = from.y - r * 0.6 - (this._board[a.from].length - 1) * from.step;
-      const y1 = to.y - r * 0.6 - this._board[a.to].length * to.step;
       const high = Math.min(from.top, to.top) - r * 0.75;
-      let x, y, angle = 0, floating = true;
-      if (t < 0.24) {
-        const k = 1 - Math.pow(1 - t / 0.24, 2);
-        x = from.x;
-        y = y0 + (high - y0) * k;
-        angle = k * Math.PI * 0.65;
-        floating = k > 0.6;
-      } else if (t < 0.72) {
-        const k = (t - 0.24) / 0.48;
-        const s = k * k * (3 - 2 * k);
-        x = from.x + (to.x - from.x) * s;
-        y = high - Math.sin(k * Math.PI) * r * 0.48;
-        angle = Math.PI * 0.65 + s * Math.PI * 0.7;
-        floating = true;
-      } else {
-        const k = (t - 0.72) / 0.28;
-        const ease = k * k;
-        x = to.x;
-        y = high + (y1 - high) * ease;
-        angle = (1 - ease) * Math.PI * 0.65;
-        floating = k < 0.35;
+      const color = Rules.top(this._board[a.from]);
+
+      // 为保证正确的遮挡顺序：先画已落向目标柱或高度较低的螺母，再画更高处的螺母
+      const items = [];
+      for (let m = 0; m < count; m++) {
+        const srcLevel = this._board[a.from].length - 1 - m;
+        const dstLevel = this._board[a.to].length + m;
+        const y0 = from.y - r * 0.6 - srcLevel * from.step;
+        const y1 = to.y - r * 0.6 - dstLevel * to.step;
+        const t = Math.max(0, Math.min(1, (elapsed - m * stagger) / flightMs));
+        let x, y, angle = 0, floating = true;
+        if (t <= 0) {
+          x = from.x;
+          y = y0 - r * 0.75;
+        } else if (t < 0.24) {
+          const k = 1 - Math.pow(1 - t / 0.24, 2);
+          x = from.x;
+          y = y0 + (high - y0) * k;
+          angle = k * Math.PI * 0.65;
+          floating = k > 0.6;
+        } else if (t < 0.72) {
+          const k = (t - 0.24) / 0.48;
+          const s = k * k * (3 - 2 * k);
+          x = from.x + (to.x - from.x) * s;
+          y = high - Math.sin(k * Math.PI) * r * 0.48;
+          angle = Math.PI * 0.65 + s * Math.PI * 0.7;
+          floating = true;
+        } else {
+          const k = (t - 0.72) / 0.28;
+          const ease = k * k;
+          x = to.x;
+          y = high + (y1 - high) * ease;
+          angle = (1 - ease) * Math.PI * 0.65;
+          floating = k < 0.35;
+        }
+        items.push({ m, x, y, angle, floating });
       }
-      Art.drawNut(g, x, y, r, Rules.top(this._board[a.from]), a.from, { angle, floating, lifted: floating });
-      if (t >= 1) {
+      // y 较大（靠下）的螺母先画，靠上的后画，符合从底到顶的叠放遮挡
+      items.sort((u, v) => v.y - u.y);
+      items.forEach(it => {
+        Art.drawNut(g, it.x, it.y, r, color, a.from + it.m, {
+          angle: it.angle,
+          floating: it.floating,
+          lifted: it.floating,
+        });
+      });
+
+      if (elapsed >= totalMs) {
         this._finishMove();
         return;
       }
@@ -320,8 +346,9 @@ Page({
     // 若当前有提示高亮且未选中柱子，直接点击提示终点也可一步执行提示
     if (this._selected < 0 && this._hint && index === this._hint.to && Rules.canMove(this._board, this._hint.from, this._hint.to, this._level.capacity)) {
       const from = this._hint.from;
+      const count = Rules.transferCount(this._board, from, index, this._level.capacity);
       this._hint = null;
-      this._animation = { from, to: index, start: Date.now() };
+      this._animation = { from, to: index, count, start: Date.now() };
       this._render();
       return;
     }
@@ -344,7 +371,8 @@ Page({
       this._render();
       return;
     }
-    this._animation = { from: this._selected, to: index, start: Date.now() };
+    const count = Rules.transferCount(this._board, this._selected, index, this._level.capacity);
+    this._animation = { from: this._selected, to: index, count, start: Date.now() };
     this._selected = -1;
     this.setData({ selectedColorHex: '', selectedColorName: '', selectedColorIndex: 0 });
     this._render();
@@ -353,7 +381,7 @@ Page({
   _select(index) {
     if (!this._board[index].length) {
       this._shake = { rod: index, start: Date.now() };
-      this.setData({ tip: '先点有螺母的柱子，选择顶端的一枚' });
+      this.setData({ tip: '先点有螺母的柱子，选择顶端的同色螺母' });
       this._sound('move', 0.7, 0.25);
       this._render();
       return;
@@ -366,13 +394,15 @@ Page({
     }
     this._selected = index;
     const c = Rules.top(this._board[index]);
+    const run = Rules.topRun(this._board[index]);
     const colorHex = Art.PALETTE[c % Art.PALETTE.length] || '';
     const colorName = (Art.COLOR_NAMES && Art.COLOR_NAMES[c % Art.COLOR_NAMES.length]) || `${c + 1}号`;
+    const countText = run > 1 ? ` ${run} 枚` : '';
     this.setData({
       selectedColorHex: colorHex,
       selectedColorName: `${c + 1}号${colorName}`,
       selectedColorIndex: (c % Art.PALETTE.length) + 1,
-      tip: `已抬起顶端【${c + 1}号${colorName}】螺母 · 点泛绿光的柱子放下，再点原柱取消`,
+      tip: `已抬起顶端${countText}【${c + 1}号${colorName}】螺母 · 点泛绿光的柱子批量旋入`,
     });
     this._sound('rotate', 1.2, 0.32);
     this._vibrate('light');

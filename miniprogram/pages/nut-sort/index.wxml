@@ -1,38 +1,14 @@
 <view class="wood-page nuts-page">
-  <view class="wood-header nuts-header">
-    <view class="nuts-stat">
-      <text class="head-label">关卡</text>
-      <text class="head-value head-gold">{{level}}<text class="nuts-total"> / {{levelCount}}</text></text>
+  <!-- 顶部木条：对齐推箱子极简布局 -->
+  <view class="wood-header game-header">
+    <view class="header-left">
+      <text class="head-value head-gold header-level">{{level}}/{{levelCount}}</text>
+      <text class="head-label header-name">{{levelName}}</text>
     </view>
-    <view class="nuts-stat">
-      <text class="head-label">步数 · 基准{{par}}</text>
-      <text class="head-value">{{steps}}</text>
-    </view>
-    <view class="nuts-stat">
-      <text class="head-label">归位</text>
-      <text class="head-value">{{completed}}<text class="nuts-total"> / {{colors}}</text></text>
-    </view>
-    <view class="wood-knob nuts-level-btn" bindtap="onShowLevels">选关</view>
-  </view>
-
-  <view class="nuts-caption">
-    <view class="nuts-chapter-tag">
-      <text class="wood-label">{{levelName}}</text>
-      <view class="nuts-live-stars">
-        <text class="nuts-star {{stars >= 1 ? 'nuts-star-on' : ''}}">★</text>
-        <text class="nuts-star {{stars >= 2 ? 'nuts-star-on' : ''}}">★</text>
-        <text class="nuts-star {{stars >= 3 ? 'nuts-star-on' : ''}}">★</text>
-      </view>
-    </view>
-    <view class="nuts-caption-actions">
-      <view class="nuts-pill" bindtap="onMute">
-        <text class="nuts-pill-icon">{{muted ? '✕' : '♪'}}</text>
-        <text>{{muted ? '静音' : '音效'}}</text>
-      </view>
-      <view class="nuts-pill nuts-pill-help" bindtap="onHelp">
-        <text class="nuts-pill-icon">?</text>
-        <text>玩法</text>
-      </view>
+    <text class="header-steps">{{steps}} 步 · 最优 {{par}}</text>
+    <view class="header-actions">
+      <view class="wood-knob header-mute" bindtap="onMute">{{muted ? '静音' : '音效'}}</view>
+      <view class="wood-knob header-select" bindtap="onShowLevels">选关</view>
     </view>
   </view>
 
@@ -46,125 +22,83 @@
     bindtouchcancel="onCanvasTouchCancel"
   ></canvas>
 
-  <view class="nuts-tip-wrap">
-    <view class="nuts-tip">
-      <view wx:if="{{selectedColorIndex > 0}}" class="nuts-swatch nuts-swatch-{{selectedColorIndex}}">{{selectedColorIndex}}</view>
-      <text class="nuts-tip-text">{{ready ? tip : '木作台准备中…'}}</text>
-    </view>
-  </view>
-
+  <!-- 底部木质按键：无多余口号与提示条 -->
   <view class="wood-console nuts-console">
     <view class="nuts-keys">
-      <view class="wood-key nuts-key {{canUndo ? '' : 'nuts-disabled'}}" bindtap="onUndo">
-        <text class="nuts-key-icon">↶</text>
-        <text>撤销</text>
+      <view class="wood-key nuts-key {{canUndo ? '' : 'wood-key-disabled'}}" bindtap="onUndo">
+        <text class="wood-key-text">↩ 撤销</text>
       </view>
-      <view class="wood-key nuts-key {{hintBusy ? 'nuts-disabled' : ''}}" bindtap="onHint">
-        <text class="nuts-key-icon">◇</text>
-        <text>{{hintBusy ? '寻找中' : '提示'}}</text>
+      <view class="wood-key nuts-key {{hintBusy ? 'wood-key-disabled' : ''}}" bindtap="onHint">
+        <text class="wood-key-text">{{hintBusy ? '寻找中' : '提示'}}</text>
       </view>
-      <view class="wood-key nuts-key" bindtap="onRestart">
-        <text class="nuts-key-icon">↻</text>
-        <text>重开</text>
+      <view class="wood-key wood-key-red nuts-key" bindtap="onRestart">
+        <text class="wood-key-text wood-key-text-light">↻ 重开</text>
       </view>
     </view>
-    <text class="nuts-footnote">同色归一 · 绿圈指引落点 · 满柱自动封帽</text>
   </view>
 
+  <!-- 通关木牌 -->
   <view class="overlay" wx:if="{{gameState === 'win'}}" catchtouchmove="noop">
-    <view class="plaque nuts-plaque">
-      <view class="nail nail-tl"></view><view class="nail nail-tr"></view><view class="nail nail-bl"></view><view class="nail nail-br"></view>
+    <view class="plaque">
+      <view class="nail nail-tl"></view>
+      <view class="nail nail-tr"></view>
+      <view class="nail nail-bl"></view>
+      <view class="nail nail-br"></view>
       <view class="plaque-head">
-        <text class="plaque-title">{{level === levelCount ? '大师收工' : '归色完成'}}</text>
+        <text class="plaque-title">{{level === levelCount ? '全部完成' : (steps <= par ? '完美通关' : '通关')}}</text>
       </view>
       <view class="plaque-body">
-        <view class="nuts-win-stars">
-          <text class="nuts-win-star {{stars >= 1 ? 'nuts-win-star-on' : ''}}">★</text>
-          <text class="nuts-win-star {{stars >= 2 ? 'nuts-win-star-on' : ''}}">★</text>
-          <text class="nuts-win-star {{stars >= 3 ? 'nuts-win-star-on' : ''}}">★</text>
+        <view class="newbest-badge" wx:if="{{steps <= par || isNewBest}}">
+          <text class="newbest-text">{{steps <= par ? '★ 最优步数' : '★ 新纪录'}}</text>
         </view>
-        <view class="nuts-win-badges">
-          <text class="score-label">{{starTitle}}</text>
-          <view class="newbest-badge" wx:if="{{isNewBest}}">
-            <text class="newbest-text">新纪录</text>
-          </view>
-        </view>
-        <text class="score-num">{{steps}}<text class="nuts-score-unit"> 步</text></text>
-        <text class="plaque-text">第 {{level}} 关 · {{levelName}}</text>
-        <view class="stat-grid nuts-stat-grid">
+        <text class="score-label" wx:else>{{levelName}} · 用了</text>
+        <text class="score-num">{{steps}}<text class="score-unit"> 步</text></text>
+        <view class="stat-grid">
           <view class="stat-cell">
-            <text class="cell-label">本局步数</text>
-            <text class="cell-value">{{steps}}</text>
-          </view>
-          <view class="stat-cell">
-            <text class="cell-label">匠心基准</text>
+            <text class="cell-label">最优</text>
             <text class="cell-value">{{par}}</text>
           </view>
           <view class="stat-cell">
-            <text class="cell-label">个人最佳</text>
-            <text class="cell-value">{{best}}</text>
+            <text class="cell-label">个人纪录</text>
+            <text class="cell-value">{{best > 0 ? best : '-'}}</text>
           </view>
         </view>
         <view class="btn-col">
           <view class="wbtn wbtn-primary" bindtap="onNext">{{level === levelCount ? '回顾关卡' : '下一关 ›'}}</view>
-          <view class="wbtn" bindtap="onRestart">再整理一次</view>
+          <view class="wbtn" bindtap="onRestart">重玩</view>
         </view>
       </view>
     </view>
   </view>
 
-  <view class="overlay" wx:if="{{showLevels}}" catchtouchmove="noop">
-    <view class="plaque nuts-plaque">
-      <view class="nail nail-tl"></view><view class="nail nail-tr"></view><view class="nail nail-bl"></view><view class="nail nail-br"></view>
-      <view class="plaque-head"><text class="plaque-title">木作关卡</text></view>
-      <view class="plaque-body nuts-level-body">
-        <view class="nuts-summary-bar">
-          <text class="nuts-summary-item">已通 {{clearedCount}} / {{levelCount}} 关</text>
-          <text class="nuts-summary-sep">·</text>
-          <text class="nuts-summary-item nuts-summary-gold">匠心 ★ {{totalStars}} / {{maxStars}}</text>
-        </view>
-        <scroll-view scroll-y="true" class="nuts-level-scroll">
-          <view class="nuts-level-grid">
+  <!-- 选关木牌 -->
+  <view class="overlay" wx:if="{{showLevels}}" catchtouchmove="noop" bindtap="onCloseLevels">
+    <view class="plaque select-plaque" catchtap="noop">
+      <view class="nail nail-tl"></view>
+      <view class="nail nail-tr"></view>
+      <view class="nail nail-bl"></view>
+      <view class="nail nail-br"></view>
+      <view class="plaque-head">
+        <text class="plaque-title">选择关卡</text>
+      </view>
+      <view class="plaque-body select-body">
+        <scroll-view scroll-y="true" class="select-scroll">
+          <view class="select-grid">
             <view
               wx:for="{{levelList}}"
               wx:key="index"
-              class="nuts-level {{item.locked ? 'nuts-locked' : ''}} {{item.current ? 'nuts-current' : ''}}"
+              class="select-item {{item.locked ? 'item-locked' : ''}} {{item.current ? 'item-current' : ''}}"
               data-index="{{item.index}}"
               bindtap="onPickLevel"
             >
-              <text class="nuts-level-number">{{item.locked ? '🔒' : item.label}}</text>
-              <text wx:if="{{!item.locked && item.stars > 0}}" class="nuts-level-stars">{{item.stars === 3 ? '★★★' : (item.stars === 2 ? '★★☆' : '★☆☆')}}</text>
-              <text class="nuts-level-best">{{item.locked ? '未解锁' : (item.best ? item.best + '步' : '待完成')}}</text>
+              <text class="select-num">{{item.locked ? '🔒' : item.label}}</text>
+              <text class="select-best">{{item.locked ? '' : (item.best > 0 ? item.best + '步' : '待玩')}}</text>
             </view>
           </view>
         </scroll-view>
-        <view class="btn-col"><view class="wbtn" bindtap="onCloseLevels">继续整理</view></view>
-      </view>
-    </view>
-  </view>
-
-  <view class="overlay" wx:if="{{showHelp}}" catchtouchmove="noop">
-    <view class="plaque nuts-plaque">
-      <view class="nail nail-tl"></view><view class="nail nail-tr"></view><view class="nail nail-bl"></view><view class="nail nail-br"></view>
-      <view class="plaque-head"><text class="plaque-title">木螺母归色</text></view>
-      <view class="plaque-body">
-        <view class="nuts-palette-row">
-          <view class="nuts-swatch nuts-swatch-1">1</view>
-          <view class="nuts-swatch nuts-swatch-2">2</view>
-          <view class="nuts-swatch nuts-swatch-3">3</view>
-          <view class="nuts-swatch nuts-swatch-4">4</view>
-          <view class="nuts-swatch nuts-swatch-5">5</view>
-          <view class="nuts-swatch nuts-swatch-6">6</view>
-          <view class="nuts-swatch nuts-swatch-7">7</view>
+        <view class="btn-col">
+          <view class="wbtn" bindtap="onCloseLevels">关闭</view>
         </view>
-        <view class="nuts-instructions">
-          <text>① 轻点一根木柱，旋出并抬起最顶端的螺母。</text>
-          <text>② 柱底亮起绿圈即为可放位置（空柱或顶端同色柱）。</text>
-          <text>③ 当前关每根柱子可容纳 {{capacity}} 枚，集满同色即加盖铜帽。</text>
-          <text>④ 步数越接近「匠心基准」，通关获得的星级越高。</text>
-        </view>
-        <text class="plaque-hint">螺母正面烙有 1–7 编号辅助辨色。点「提示」后可直接点终点柱一步归置。</text>
-        <view class="btn-col btn-col-gap"><view class="wbtn wbtn-primary" bindtap="onCloseHelp">开始整理</view></view>
       </view>
     </view>
   </view>

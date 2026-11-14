@@ -1,5 +1,5 @@
-// 螺母分类规则。柱子从底到顶存颜色编号；一次只移动顶端一枚。
-// 关卡由完成状态逆推，每次逆推均保留合法的正向回退，因而保证可解。
+// 螺母分类规则。柱子从底到顶存颜色编号；每次搬运将柱顶连续同色的螺母批量移至目标柱（受目标柱剩余容量限制）。
+// 关卡由完成状态逆推，每次逆推均保留合法的正向批量回退，因而保证可解。
 const { rng } = require('./wood-art');
 const LEVEL_COUNT = 30;
 const CAPACITY = 4;
@@ -32,10 +32,16 @@ function canMove(rods, from, to, capacity) {
   return !!(a && b && a.length && b.length < capacity && (!b.length || top(a) === top(b)));
 }
 
+function transferCount(rods, from, to, capacity) {
+  if (!canMove(rods, from, to, capacity)) return 0;
+  return Math.min(topRun(rods[from]), capacity - rods[to].length);
+}
+
 function move(rods, from, to, capacity) {
-  if (!canMove(rods, from, to, capacity)) return null;
+  const count = transferCount(rods, from, to, capacity);
+  if (!count) return null;
   const next = clone(rods);
-  next[to].push(next[from].pop());
+  for (let i = 0; i < count; i++) next[to].push(next[from].pop());
   return next;
 }
 
@@ -63,19 +69,27 @@ function generateLevel(index) {
       const options = [];
       for (let a = 0; a < rods.length; a++) {
         const source = rods[a];
-        if (!source.length || (source.length > 1 && top(source) !== source[source.length - 2])) continue;
+        const runA = topRun(source);
+        if (runA < 2) continue;
+        const c = top(source);
         for (let b = 0; b < rods.length; b++) {
-          if (a === b || rods[b].length === capacity) continue;
+          if (a === b) continue;
+          const dest = rods[b];
+          // 逆推目标柱顶端不能同色，保证正向批量移动能一次性把 k 枚完整收回
+          if (dest.length && top(dest) === c) continue;
           if (last && last.from === b && last.to === a) continue;
-          const next = clone(rods);
-          next[b].push(next[a].pop());
-          if (seen.has(key(next))) continue;
-          options.push({ from: a, to: b });
+          const maxK = Math.min(runA - 1, capacity - dest.length);
+          for (let k = 1; k <= maxK; k++) {
+            const next = clone(rods);
+            for (let i = 0; i < k; i++) next[b].push(next[a].pop());
+            if (seen.has(key(next))) continue;
+            options.push({ from: a, to: b, count: k });
+          }
         }
       }
       if (!options.length) break;
       const chosen = options[Math.floor(random() * options.length)];
-      rods[chosen.to].push(rods[chosen.from].pop());
+      for (let i = 0; i < chosen.count; i++) rods[chosen.to].push(rods[chosen.from].pop());
       trail.push({ from: chosen.to, to: chosen.from });
       seen.add(key(rods));
       last = chosen;
@@ -132,7 +146,7 @@ function solve(rods, capacity, opts = {}) {
       }
       return true;
     });
-    options.sort((a, b) => priority(board, b) - priority(board, a));
+    options.sort((a, b) => priority(board, b, capacity) - priority(board, a, capacity));
     for (const m of options) {
       const next = move(board, m.from, m.to, capacity);
       const rest = dfs(next, depth - 1, m);
@@ -150,9 +164,11 @@ function solve(rods, capacity, opts = {}) {
   return null;
 }
 
-function priority(board, m) {
+function priority(board, m, capacity) {
   const a = board[m.from], b = board[m.to];
-  return (b.length ? 8 + b.length : 0) + (a.length > 1 && a[a.length - 2] !== top(a) ? 5 : 0);
+  const count = transferCount(board, m.from, m.to, capacity || CAPACITY);
+  const exposesNewColor = a.length > count;
+  return (b.length ? 8 + b.length + count * 2 : count) + (exposesNewColor ? 6 : 0);
 }
 
 // 已知解法的沿途局面映射；即便玩家绕路后回到其中，也能立即给出正确提示。
@@ -167,4 +183,4 @@ function solutionMap(rods, solution, capacity) {
   return map;
 }
 
-module.exports = { LEVEL_COUNT, CAPACITY, clone, top, topRun, key, isComplete, isSolved, canMove, move, disorder, rateStars, generateLevel, legalMoves, solve, solutionMap };
+module.exports = { LEVEL_COUNT, CAPACITY, clone, top, topRun, transferCount, key, isComplete, isSolved, canMove, move, disorder, rateStars, generateLevel, legalMoves, solve, solutionMap };
