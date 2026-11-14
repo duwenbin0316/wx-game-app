@@ -57,6 +57,7 @@ Page({
   onShow() { this._active = true; this._render(); },
   onHide() {
     this._active = false;
+    this._touchStart = null;
     this._clearHintWork();
     this._stopFrame();
     // 搬运动画中离开页面时提交这一步，回来不会留下半搬状态。
@@ -68,6 +69,7 @@ Page({
   onUnload() {
     this._disposed = true;
     this._active = false;
+    this._touchStart = null;
     this._stopFrame();
     this._clearHintWork();
     if (this._audio) {
@@ -93,6 +95,7 @@ Page({
     this._selected = -1;
     this._hint = null;
     this._animation = null;
+    this._touchStart = null;
     this.setData({ level: index + 1, levelName: this._level.name, colors: this._level.colors, capacity: this._level.capacity,
       steps: 0, best: this._save.best[index] || 0, gameState: 'playing', canUndo: false,
       showLevels: false, showHelp: false, hintBusy: false,
@@ -142,6 +145,36 @@ Page({
     if (this._raf != null && this._canvas) this._canvas.cancelAnimationFrame(this._raf);
     this._raf = null;
   },
+
+  onCanvasTouchStart(e) {
+    this._touchStart = null;
+    if (!this._active || !this.data.ready || this._animation || this.data.hintBusy || this.data.gameState !== 'playing' || this.data.showLevels || this.data.showHelp) return;
+    const touches = e.touches || [];
+    if (touches.length !== 1) return;
+    const touch = touches[0];
+    if (!Number.isFinite(touch.x) || !Number.isFinite(touch.y)) return;
+    this._touchStart = { x: touch.x, y: touch.y, identifier: touch.identifier };
+  },
+
+  onCanvasTouchMove(e) {
+    const start = this._touchStart;
+    if (!start) return;
+    const touches = e.touches || [];
+    if (touches.length !== 1) { this._touchStart = null; return; }
+    const touch = touches[0];
+    if (touch.identifier !== start.identifier || !Number.isFinite(touch.x) || !Number.isFinite(touch.y) || Math.hypot(touch.x - start.x, touch.y - start.y) > 12) this._touchStart = null;
+  },
+
+  onCanvasTouchEnd(e) {
+    const start = this._touchStart;
+    this._touchStart = null;
+    if (!start || (e.touches && e.touches.length)) return;
+    const touch = e.changedTouches && e.changedTouches[0];
+    if (!touch || touch.identifier !== start.identifier || !Number.isFinite(touch.x) || !Number.isFinite(touch.y) || Math.hypot(touch.x - start.x, touch.y - start.y) > 12) return;
+    this.onCanvasTap(e);
+  },
+
+  onCanvasTouchCancel() { this._touchStart = null; },
 
   onCanvasTap(e) {
     if (!this.data.ready || this._animation || this.data.hintBusy || this.data.gameState !== 'playing' || this.data.showLevels || this.data.showHelp) return;
@@ -231,8 +264,10 @@ Page({
 
   onHint() {
     if (this._animation || this.data.hintBusy || this.data.gameState !== 'playing') return;
+    this._tipBeforeHint = this._selected >= 0 ? '先选一根柱子，再点空柱或顶端同色的柱子' : this.data.tip;
     this._selected = -1;
     this.setData({ hintBusy: true, tip: '正在寻找整理路线…' });
+    this._render();
     this._hintTimer = setTimeout(() => {
       this._hintTimer = null;
       if (!this._active || this._disposed) return;
@@ -247,6 +282,7 @@ Page({
         this._hint = null;
         this.setData({ hintBusy: false, tip: '暂时没找到路线，可撤销几步后再试，或重开本关' });
       }
+      this._tipBeforeHint = null;
       this._render();
     }, 30);
   },
@@ -254,7 +290,8 @@ Page({
   _clearHintWork() {
     if (this._hintTimer != null) clearTimeout(this._hintTimer);
     this._hintTimer = null;
-    if (this.data.hintBusy) this.setData({ hintBusy: false });
+    if (this.data.hintBusy && !this._disposed) this.setData({ hintBusy: false, tip: this._tipBeforeHint || '先选一根柱子，再点空柱或顶端同色的柱子' });
+    this._tipBeforeHint = null;
   },
 
   onShowLevels() {

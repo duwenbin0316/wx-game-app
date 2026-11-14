@@ -6,7 +6,7 @@
     <view class="wood-knob nuts-level-btn" bindtap="onShowLevels">选关</view>
   </view>
   <view class="nuts-caption"><text class="wood-label">{{levelName}}</text><view class="nuts-caption-actions"><view class="nuts-small" bindtap="onMute">{{muted ? '音效：关' : '音效：开'}}</view><view class="nuts-small nuts-help" bindtap="onHelp">玩法</view></view></view>
-  <canvas id="nut-canvas" type="2d" class="nuts-canvas" bindtouchend="onCanvasTap"></canvas>
+  <canvas id="nut-canvas" type="2d" class="nuts-canvas" bindtouchstart="onCanvasTouchStart" bindtouchmove="onCanvasTouchMove" bindtouchend="onCanvasTouchEnd" bindtouchcancel="onCanvasTouchCancel"></canvas>
   <view class="nuts-tip"><text>{{ready ? tip : '木作台准备中…'}}</text></view>
   <view class="wood-console nuts-console">
     <view class="nuts-keys">

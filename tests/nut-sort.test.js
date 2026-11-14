@@ -153,3 +153,83 @@ test('窄屏和多行布局中，螺母不会重叠，画布内保留抬起空�
     }
   }
 });
+
+function prepareTouchPage() {
+  const { page } = loadPage();
+  page.data.ready = true;
+  page._metrics = Art.layout(375, 420, page._board.length, page._level.capacity);
+  const step = page._level.solution[0];
+  const position = i => {
+    const p = page._metrics.positions[i];
+    return { identifier: 7, x: p.x, y: (p.top + p.y) / 2 };
+  };
+  return { page, step, position };
+}
+
+function tap(page, touch) {
+  page.onCanvasTouchStart({ touches: [touch] });
+  page.onCanvasTouchEnd({ touches: [], changedTouches: [touch] });
+}
+
+test('单指轻点可选中和搬运；滑动、多指、取消与无起点松手不操作棋面', () => {
+  const { page, step, position } = prepareTouchPage();
+  const source = position(step.from), target = position(step.to);
+  page.onCanvasTouchEnd({ touches: [], changedTouches: [source] });
+  assert.equal(page._selected, -1);
+  tap(page, source);
+  assert.equal(page._selected, step.from);
+  page.onCanvasTouchStart({ touches: [target] });
+  page.onCanvasTouchMove({ touches: [{ ...target, x: target.x + 25 }] });
+  page.onCanvasTouchEnd({ touches: [], changedTouches: [target] });
+  assert.equal(page._animation, null);
+  page.onCanvasTouchStart({ touches: [target] });
+  page.onCanvasTouchStart({ touches: [target, { ...target, identifier: 8 }] });
+  page.onCanvasTouchEnd({ touches: [target], changedTouches: [{ ...target, identifier: 8 }] });
+  page.onCanvasTouchEnd({ touches: [], changedTouches: [target] });
+  assert.equal(page._animation, null);
+  page.onCanvasTouchStart({ touches: [target] });
+  page.onCanvasTouchCancel();
+  page.onCanvasTouchEnd({ touches: [], changedTouches: [target] });
+  assert.equal(page._animation, null);
+  tap(page, target);
+  assert.ok(page._animation);
+  page._finishMove();
+  assert.equal(page.data.steps, 1);
+});
+
+test('松手位置远离起点、跨指松手以及跨关卡的触摸均不触发选择', () => {
+  const { page, step, position } = prepareTouchPage();
+  const source = position(step.from);
+  page.onCanvasTouchStart({ touches: [{ ...source, x: source.x - 30 }] });
+  page.onCanvasTouchEnd({ touches: [], changedTouches: [source] });
+  assert.equal(page._selected, -1);
+  page.onCanvasTouchStart({ touches: [source] });
+  page.onCanvasTouchEnd({ touches: [], changedTouches: [{ ...source, identifier: 8 }] });
+  assert.equal(page._selected, -1);
+  page.onCanvasTouchStart({ touches: [source] });
+  page._loadLevel(0);
+  page.onCanvasTouchEnd({ touches: [], changedTouches: [source] });
+  assert.equal(page._selected, -1);
+});
+
+test('提示被后台中断后恢复普通提示；卸载不再 setData', async () => {
+  const { page } = loadPage();
+  page.onHint();
+  page.onHide();
+  page.onShow();
+  assert.equal(page.data.hintBusy, false);
+  assert.notEqual(page.data.tip, '正在寻找整理路线…');
+  page._select(page._level.solution[0].from);
+  page.onHint();
+  page.onHide();
+  page.onShow();
+  assert.equal(page._selected, -1);
+  assert.equal(page.data.tip.includes('已抬起'), false);
+  page.onHint();
+  let updates = 0;
+  const original = page.setData;
+  page.setData = function(patch) { updates++; original.call(this, patch); };
+  page.onUnload();
+  await new Promise(resolve => setTimeout(resolve, 50));
+  assert.equal(updates, 0);
+});
