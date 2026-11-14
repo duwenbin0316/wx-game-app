@@ -4,7 +4,7 @@ This file provides guidance for AI assistants (Claude and others) working in thi
 
 ## Project Overview
 
-A WeChat Mini Program game hub featuring seven entries — Gomoku (online + offline), Runner, Sokoban, Tetris, Sky Wing (vertical shmup), Snake, and 2048 — with real-time Gomoku multiplayer powered by Tencent CloudBase (TCB). Several games share a pixel-art mascot, Clawd (`miniprogram/utils/clawd.js`). The app uses native WeChat APIs exclusively — no external UI libraries.
+A WeChat Mini Program game hub featuring eight entries — Gomoku (online + offline), Runner, Sokoban, Tetris, Sky Wing (vertical shmup), Snake, 2048, and Nut Sort — with real-time Gomoku multiplayer powered by Tencent CloudBase (TCB). Several games share a pixel-art mascot, Clawd (`miniprogram/utils/clawd.js`). The app uses native WeChat APIs exclusively — no external UI libraries.
 
 - **AppID**: `wxe5b06e8c6ba926fc`
 - **Library Version**: 2.20.1

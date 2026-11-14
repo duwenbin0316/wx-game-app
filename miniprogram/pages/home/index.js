@@ -34,6 +34,13 @@ Page({
         url: '/pages/tetris/index'
       },
       {
+        id: 'nut-sort',
+        icon: '🔩',
+        name: '木螺母归色',
+        desc: '同色螺母归一柱，30 关慢慢整理',
+        url: '/pages/nut-sort/index'
+      },
+      {
         id: 'skywing',
         icon: '✈️',
         name: '苍穹之翼',

@@ -1,0 +1,49 @@
+<view class="wood-page nuts-page">
+  <view class="wood-header nuts-header">
+    <view class="nuts-stat"><text class="head-label">关卡</text><text class="head-value head-gold">{{level}}<text class="nuts-total"> / {{levelCount}}</text></text></view>
+    <view class="nuts-stat"><text class="head-label">步数</text><text class="head-value">{{steps}}</text></view>
+    <view class="nuts-stat"><text class="head-label">归位</text><text class="head-value">{{completed}}<text class="nuts-total"> / {{colors}}</text></text></view>
+    <view class="wood-knob nuts-level-btn" bindtap="onShowLevels">选关</view>
+  </view>
+  <view class="nuts-caption"><text class="wood-label">{{levelName}}</text><view class="nuts-caption-actions"><view class="nuts-small" bindtap="onMute">{{muted ? '音效：关' : '音效：开'}}</view><view class="nuts-small nuts-help" bindtap="onHelp">玩法</view></view></view>
+  <canvas id="nut-canvas" type="2d" class="nuts-canvas" bindtouchend="onCanvasTap"></canvas>
+  <view class="nuts-tip"><text>{{ready ? tip : '木作台准备中…'}}</text></view>
+  <view class="wood-console nuts-console">
+    <view class="nuts-keys">
+      <view class="wood-key nuts-key {{canUndo ? '' : 'nuts-disabled'}}" bindtap="onUndo"><text class="nuts-key-icon">↶</text><text>撤销</text></view>
+      <view class="wood-key nuts-key {{hintBusy ? 'nuts-disabled' : ''}}" bindtap="onHint"><text class="nuts-key-icon">◇</text><text>{{hintBusy ? '寻找中' : '提示'}}</text></view>
+      <view class="wood-key nuts-key" bindtap="onRestart"><text class="nuts-key-icon">↻</text><text>重开</text></view>
+    </view>
+    <text class="nuts-footnote">同色归一 · 不限时 · 每次移动一枚</text>
+  </view>
+  <view class="overlay" wx:if="{{gameState === 'win'}}" catchtouchmove="noop">
+    <view class="plaque nuts-plaque">
+      <view class="nail nail-tl"></view><view class="nail nail-tr"></view><view class="nail nail-bl"></view><view class="nail nail-br"></view>
+      <view class="plaque-head"><text class="plaque-title">{{level === levelCount ? '大师收工' : '归色完成'}}</text></view>
+      <view class="plaque-body">
+        <text class="nuts-win-mark">✦</text><text class="plaque-text">第 {{level}} 关 · 每一种颜色都有了归处</text>
+        <text class="score-num">{{steps}}<text class="nuts-score-unit"> 步</text></text>
+        <text class="plaque-hint">本关个人最佳 {{best}} 步</text>
+        <view class="btn-col btn-col-gap"><view class="wbtn wbtn-primary" bindtap="onNext">{{level === levelCount ? '回顾关卡' : '下一关 ›'}}</view><view class="wbtn" bindtap="onRestart">再整理一次</view></view>
+      </view>
+    </view>
+  </view>
+  <view class="overlay" wx:if="{{showLevels}}" catchtouchmove="noop">
+    <view class="plaque nuts-plaque">
+      <view class="plaque-head"><text class="plaque-title">木作关卡</text></view>
+      <view class="plaque-body nuts-level-body"><text class="plaque-hint">由浅入深，一关一关慢慢整理</text>
+        <scroll-view scroll-y="true" class="nuts-level-scroll">
+          <view class="nuts-level-grid"><view wx:for="{{levelList}}" wx:key="index" class="nuts-level {{item.locked ? 'nuts-locked' : ''}} {{item.current ? 'nuts-current' : ''}}" data-index="{{item.index}}" bindtap="onPickLevel"><text class="nuts-level-number">{{item.locked ? '·' : item.label}}</text><text class="nuts-level-best">{{item.locked ? '未解锁' : (item.best ? item.best + '步' : '待完成')}}</text></view></view>
+        </scroll-view>
+        <view class="btn-col"><view class="wbtn" bindtap="onCloseLevels">继续整理</view></view>
+      </view>
+    </view>
+  </view>
+  <view class="overlay" wx:if="{{showHelp}}" catchtouchmove="noop">
+    <view class="plaque nuts-plaque"><view class="plaque-head"><text class="plaque-title">木螺母归色</text></view><view class="plaque-body">
+      <view class="nuts-instructions"><text>① 点一根柱子，抬起顶端的螺母。</text><text>② 再点空柱，或顶端同色的柱子放下。</text><text>③ 每根柱子最多放 {{capacity}} 枚。</text><text>④ 每种颜色各占满一根柱子，即可过关。</text></view>
+      <text class="plaque-hint">螺母上的数字也能帮助辨色。卡住可以撤销，提示会标出起点和落点。</text>
+      <view class="btn-col btn-col-gap"><view class="wbtn wbtn-primary" bindtap="onCloseHelp">开始整理</view></view>
+    </view></view>
+  </view>
+</view>

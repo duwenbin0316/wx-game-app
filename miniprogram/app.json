@@ -6,6 +6,7 @@
     "pages/runner/index",
     "pages/sokoban/index",
     "pages/tetris/index",
+    "pages/nut-sort/index",
     "pages/snake/index",
     "pages/game2048/index",
     "pages/skywing/index"
