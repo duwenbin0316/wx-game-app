@@ -1,40 +1,394 @@
 @import "../../styles/wood.wxss";
-page { background: #26150A; }
-.nuts-page { overflow: hidden; }
-.nuts-header { padding: 16rpx 24rpx 18rpx; }
-.nuts-stat { display: flex; flex-direction: column; align-items: center; min-width: 116rpx; }
-.nuts-total { font-size: 22rpx; color: #DEBF90; }
-.nuts-level-btn { font-size: 24rpx; }
-.nuts-caption { display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; padding: 20rpx 30rpx 6rpx; }
-.nuts-caption-actions { display: flex; align-items: center; gap: 8rpx; }
-.nuts-small { font-size: 21rpx; color: #C4A37A; padding: 12rpx; min-height: 44rpx; }
-.nuts-help { color: #E6C68E; }
-.nuts-canvas { flex: 1; width: 100%; height: 0; min-height: 0; display: block; }
-.nuts-tip { display: flex; align-items: center; justify-content: center; text-align: center; padding: 14rpx 30rpx 20rpx; min-height: 70rpx; box-sizing: border-box; color: #D7B98D; font-size: 22rpx; line-height: 1.6; flex-shrink: 0; }
-.nuts-console { padding: 26rpx 30rpx 20rpx; padding-bottom: calc(20rpx + env(safe-area-inset-bottom)); }
-.nuts-keys { display: flex; gap: 24rpx; }
-.nuts-key { flex: 1; height: 86rpx; font-size: 26rpx; }
-.nuts-key-icon { font-size: 34rpx; }
-.nuts-disabled { opacity: 0.42; }
-.nuts-footnote { display: block; text-align: center; padding-top: 22rpx; font-size: 19rpx; color: #C39E70; letter-spacing: 2rpx; }
-.nuts-plaque { max-height: 90%; width: 640rpx; }
-.nuts-win-mark { color: #DDA94E; font-size: 60rpx; padding-bottom: 18rpx; }
-.nuts-score-unit { font-size: 28rpx; }
-.nuts-level-body { padding: 24rpx 28rpx 32rpx; }
-.nuts-level-scroll { width: 100%; height: 480rpx; max-height: 42vh; padding-top: 20rpx; box-sizing: border-box; }
-.nuts-level-grid { display: flex; flex-wrap: wrap; justify-content: space-between; padding: 8rpx 4rpx; }
-.nuts-level { width: 17%; padding: 16rpx 0; box-sizing: border-box; margin-bottom: 18rpx; display: flex; align-items: center; flex-direction: column; background: #B88149; border: 2rpx solid #5F351B; border-radius: 10rpx; box-shadow: 0 5rpx 0 #5B3219; }
-.nuts-level-number { color: #FFEBC3; font-size: 28rpx; font-weight: bold; }
-.nuts-level-best { color: #5B351B; padding-top: 4rpx; font-size: 17rpx; }
-.nuts-locked { opacity: 0.4; }
-.nuts-current { border-color: #FFE4A0; background: #9B693A; }
-.nuts-current .nuts-level-best { color: #F3D39F; }
-.nuts-instructions { width: 100%; padding-bottom: 24rpx; }
-.nuts-instructions text { display: block; color: #E5C598; font-size: 25rpx; line-height: 2.2; }
-@media (max-height: 600px) {
-  .nuts-header { padding-top: 10rpx; padding-bottom: 10rpx; }
-  .nuts-caption { padding-top: 8rpx; }
-  .nuts-console { padding-top: 18rpx; }
-  .nuts-key { height: 72rpx; }
-  .nuts-footnote { padding-top: 15rpx; }
+
+page {
+  background: #26150A;
+}
+
+.nuts-page {
+  overflow: hidden;
+}
+
+.nuts-header {
+  padding: 16rpx 24rpx 18rpx;
+}
+
+.nuts-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 120rpx;
+}
+
+.nuts-total {
+  font-size: 22rpx;
+  color: #DEBF90;
+}
+
+.nuts-level-btn {
+  font-size: 24rpx;
+  letter-spacing: 2rpx;
+}
+
+/* ── 副栏：章节铭牌 + 实时星级 + 音效/玩法木钮 ── */
+.nuts-caption {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-shrink: 0;
+  padding: 16rpx 28rpx 8rpx;
+}
+
+.nuts-chapter-tag {
+  display: flex;
+  align-items: center;
+  gap: 14rpx;
+  padding: 8rpx 20rpx;
+  border-radius: 12rpx;
+  background: rgba(45, 22, 8, 0.55);
+  border: 2rpx solid rgba(226, 179, 122, 0.22);
+  box-shadow: inset 0 2rpx 6rpx rgba(12, 4, 0, 0.5);
+}
+
+.nuts-live-stars {
+  display: flex;
+  align-items: center;
+  gap: 4rpx;
+}
+
+.nuts-star {
+  font-size: 24rpx;
+  color: rgba(120, 76, 40, 0.55);
+}
+
+.nuts-star-on {
+  color: #FFD46A;
+  text-shadow: 0 2rpx 0 #4A2810, 0 0 8rpx rgba(255, 212, 106, 0.45);
+}
+
+.nuts-caption-actions {
+  display: flex;
+  align-items: center;
+  gap: 14rpx;
+}
+
+.nuts-pill {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6rpx;
+  min-height: 52rpx;
+  padding: 0 20rpx;
+  border-radius: 12rpx;
+  background: linear-gradient(180deg, #9C6638 0%, #7B4B24 100%);
+  border: 2rpx solid #4A2810;
+  box-shadow: 0 4rpx 0 #3D1F0B, inset 0 2rpx 0 rgba(255, 232, 195, 0.35);
+  font-size: 22rpx;
+  font-weight: 700;
+  color: #F6DDB0;
+  box-sizing: border-box;
+}
+
+.nuts-pill:active {
+  transform: translateY(3rpx);
+  box-shadow: 0 1rpx 0 #3D1F0B, inset 0 2rpx 4rpx rgba(20, 8, 0, 0.35);
+}
+
+.nuts-pill-help {
+  background: linear-gradient(180deg, #B87E46 0%, #945F2F 100%);
+  color: #FFF2D8;
+}
+
+.nuts-pill-icon {
+  font-size: 22rpx;
+  color: #FFD46A;
+}
+
+/* ── 画布与底部状态刻槽 ── */
+.nuts-canvas {
+  flex: 1;
+  width: 100%;
+  height: 0;
+  min-height: 0;
+  display: block;
+}
+
+.nuts-tip-wrap {
+  padding: 8rpx 28rpx 16rpx;
+  flex-shrink: 0;
+}
+
+.nuts-tip {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12rpx;
+  text-align: center;
+  padding: 12rpx 24rpx;
+  min-height: 64rpx;
+  border-radius: 14rpx;
+  background: rgba(34, 16, 5, 0.58);
+  border: 2rpx solid rgba(210, 165, 110, 0.18);
+  box-shadow: inset 0 3rpx 8rpx rgba(10, 3, 0, 0.55), 0 2rpx 0 rgba(255, 225, 180, 0.1);
+  box-sizing: border-box;
+}
+
+.nuts-tip-text {
+  color: #E7CA9E;
+  font-size: 22rpx;
+  line-height: 1.5;
+}
+
+/* ── 七色染木小色标 ── */
+.nuts-swatch {
+  width: 36rpx;
+  height: 36rpx;
+  border-radius: 8rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20rpx;
+  font-weight: 700;
+  color: #FFF4DC;
+  text-shadow: 0 2rpx 0 rgba(20, 8, 0, 0.75);
+  border: 2rpx solid rgba(255, 240, 210, 0.55);
+  box-shadow: 0 3rpx 0 rgba(25, 10, 0, 0.6);
+  flex-shrink: 0;
+  box-sizing: border-box;
+}
+
+.nuts-swatch-1 { background: #CF4D3F; }
+.nuts-swatch-2 { background: #3E8EC4; }
+.nuts-swatch-3 { background: #5A9E4B; }
+.nuts-swatch-4 { background: #E0A438; }
+.nuts-swatch-5 { background: #8B58AE; }
+.nuts-swatch-6 { background: #D97234; }
+.nuts-swatch-7 { background: #38988E; }
+
+/* ── 底部控制台 ── */
+.nuts-console {
+  padding: 24rpx 30rpx 20rpx;
+  padding-bottom: calc(20rpx + env(safe-area-inset-bottom));
+}
+
+.nuts-keys {
+  display: flex;
+  gap: 24rpx;
+}
+
+.nuts-key {
+  flex: 1;
+  height: 86rpx;
+  font-size: 26rpx;
+}
+
+.nuts-key-icon {
+  font-size: 34rpx;
+}
+
+.nuts-disabled {
+  opacity: 0.42;
+}
+
+.nuts-footnote {
+  display: block;
+  text-align: center;
+  padding-top: 20rpx;
+  font-size: 19rpx;
+  color: #C39E70;
+  letter-spacing: 2rpx;
+}
+
+/* ── 结算与选关木牌 ── */
+.nuts-plaque {
+  max-height: 90%;
+  width: 640rpx;
+}
+
+.nuts-win-stars {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16rpx;
+  padding-bottom: 8rpx;
+}
+
+.nuts-win-star {
+  font-size: 56rpx;
+  color: rgba(70, 36, 12, 0.45);
+  text-shadow: 0 2rpx 0 rgba(255, 230, 185, 0.2);
+}
+
+.nuts-win-star-on {
+  color: #FFD96E;
+  text-shadow: 0 5rpx 0 #5A3210, 0 0 20rpx rgba(255, 215, 100, 0.5);
+}
+
+.nuts-win-badges {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14rpx;
+}
+
+.nuts-score-unit {
+  font-size: 28rpx;
+}
+
+.nuts-stat-grid {
+  margin: 24rpx 0 32rpx;
+}
+
+.nuts-level-body {
+  padding: 24rpx 28rpx 32rpx;
+}
+
+.nuts-summary-bar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14rpx;
+  width: 100%;
+  padding: 12rpx 20rpx;
+  border-radius: 12rpx;
+  background: rgba(48, 22, 6, 0.36);
+  box-shadow: inset 0 2rpx 5rpx rgba(16, 6, 0, 0.45);
+  box-sizing: border-box;
+}
+
+.nuts-summary-item {
+  font-size: 22rpx;
+  color: #F3D9AD;
+  font-weight: 700;
+}
+
+.nuts-summary-gold {
+  color: #FFD96E;
+}
+
+.nuts-summary-sep {
+  color: #C49B68;
+}
+
+.nuts-level-scroll {
+  width: 100%;
+  height: 480rpx;
+  max-height: 42vh;
+  padding-top: 18rpx;
+  box-sizing: border-box;
+}
+
+.nuts-level-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14rpx;
+  padding: 6rpx 4rpx 14rpx;
+}
+
+.nuts-level {
+  width: calc((100% - 56rpx) / 5);
+  padding: 12rpx 0 10rpx;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  flex-direction: column;
+  background: linear-gradient(180deg, #C68E54 0%, #A9723C 100%);
+  border: 2rpx solid #5F351B;
+  border-radius: 12rpx;
+  box-shadow: 0 5rpx 0 #5B3219, inset 0 2rpx 0 rgba(255, 238, 205, 0.4);
+}
+
+.nuts-level:active {
+  transform: translateY(3rpx);
+  box-shadow: 0 2rpx 0 #5B3219;
+}
+
+.nuts-level-number {
+  color: #FFEBC3;
+  font-size: 26rpx;
+  font-weight: bold;
+  text-shadow: 0 2rpx 0 rgba(50, 22, 6, 0.65);
+}
+
+.nuts-level-stars {
+  font-size: 16rpx;
+  color: #FFD96E;
+  letter-spacing: 1rpx;
+  line-height: 1.2;
+  padding-top: 2rpx;
+  text-shadow: 0 1rpx 0 #4A250A;
+}
+
+.nuts-level-best {
+  color: #4D2B13;
+  padding-top: 2rpx;
+  font-size: 17rpx;
+  font-weight: 700;
+}
+
+.nuts-locked {
+  opacity: 0.42;
+}
+
+.nuts-current {
+  border-color: #FFE4A0;
+  background: linear-gradient(180deg, #AE7742 0%, #8E5B2D 100%);
+  box-shadow: 0 5rpx 0 #4A2610, 0 0 12rpx rgba(255, 220, 130, 0.35);
+}
+
+.nuts-current .nuts-level-best {
+  color: #F6DCA8;
+}
+
+/* ── 玩法说明弹层 ── */
+.nuts-palette-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14rpx;
+  padding-bottom: 20rpx;
+}
+
+.nuts-instructions {
+  width: 100%;
+  padding: 18rpx 22rpx;
+  border-radius: 14rpx;
+  background: rgba(46, 21, 6, 0.32);
+  box-shadow: inset 0 2rpx 6rpx rgba(15, 5, 0, 0.45);
+  margin-bottom: 18rpx;
+  box-sizing: border-box;
+}
+
+.nuts-instructions text {
+  display: block;
+  color: #F4DAB2;
+  font-size: 24rpx;
+  line-height: 2.05;
+}
+
+@media (max-height: 620px) {
+  .nuts-header {
+    padding-top: 10rpx;
+    padding-bottom: 10rpx;
+  }
+  .nuts-caption {
+    padding-top: 8rpx;
+    padding-bottom: 4rpx;
+  }
+  .nuts-tip-wrap {
+    padding-top: 4rpx;
+    padding-bottom: 10rpx;
+  }
+  .nuts-tip {
+    min-height: 54rpx;
+    padding: 8rpx 18rpx;
+  }
+  .nuts-console {
+    padding-top: 16rpx;
+  }
+  .nuts-key {
+    height: 72rpx;
+  }
+  .nuts-footnote {
+    padding-top: 14rpx;
+  }
 }

@@ -10,6 +10,22 @@ const isSolved = (rods, capacity) => rods.every(rod => !rod.length || isComplete
 const key = rods => rods.map(rod => rod.join(',')).join('|');
 const canonicalKey = rods => rods.map(rod => rod.join(',')).sort().join('|');
 
+function topRun(rod) {
+  if (!rod || !rod.length) return 0;
+  const c = rod[rod.length - 1];
+  let count = 1;
+  for (let i = rod.length - 2; i >= 0 && rod[i] === c; i--) count++;
+  return count;
+}
+
+function rateStars(steps, par) {
+  if (!Number.isInteger(steps) || steps <= 0) return 0;
+  const base = Math.max(1, par || steps);
+  if (steps <= Math.max(base + 2, Math.ceil(base * 1.15))) return 3;
+  if (steps <= Math.max(base + 6, Math.ceil(base * 1.5))) return 2;
+  return 1;
+}
+
 function canMove(rods, from, to, capacity) {
   if (!Number.isInteger(from) || !Number.isInteger(to) || from === to) return false;
   const a = rods[from], b = rods[to];
@@ -78,7 +94,7 @@ function generateLevel(index) {
     rods[0][capacity - 1] = 1; rods[1][capacity - 1] = 0;
     best = { rods, solution: [{ from: 0, to: colors }, { from: 1, to: 0 }, { from: colors, to: 1 }] };
   }
-  return { index: level, capacity, colors, name: ['初识木作', '色彩工坊', '巧手匠人', '木间谜题', '归色高手', '大师工坊'][Math.floor(level / 5)], ...best };
+  return { index: level, capacity, colors, par: best.solution.length, name: ['初识木作', '色彩工坊', '巧手匠人', '木间谜题', '归色高手', '大师工坊'][Math.floor(level / 5)], ...best };
 }
 
 function legalMoves(rods, capacity) {
@@ -151,4 +167,4 @@ function solutionMap(rods, solution, capacity) {
   return map;
 }
 
-module.exports = { LEVEL_COUNT, CAPACITY, clone, top, key, isComplete, isSolved, canMove, move, generateLevel, legalMoves, solve, solutionMap };
+module.exports = { LEVEL_COUNT, CAPACITY, clone, top, topRun, key, isComplete, isSolved, canMove, move, disorder, rateStars, generateLevel, legalMoves, solve, solutionMap };

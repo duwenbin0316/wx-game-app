@@ -233,3 +233,33 @@ test('提示被后台中断后恢复普通提示；卸载不再 setData', async 
   await new Promise(resolve => setTimeout(resolve, 50));
   assert.equal(updates, 0);
 });
+
+test('星级评定、满柱防误触、动画连点结算与提示一步落子', () => {
+  assert.equal(Rules.rateStars(0, 10), 0);
+  assert.equal(Rules.rateStars(11, 10), 3);
+  assert.equal(Rules.rateStars(15, 10), 2);
+  assert.equal(Rules.rateStars(25, 10), 1);
+
+  const { page, step, position } = prepareTouchPage();
+  const nextStep = page._level.solution[1];
+  // 提示激活时，未选柱直接点提示终点可一步触发搬运
+  page._hint = { ...step };
+  tap(page, position(step.to));
+  assert.ok(page._animation);
+  assert.equal(page._animation.from, step.from);
+  assert.equal(page._animation.to, step.to);
+
+  // 动画飞行中再次点击下一柱，立即结算当前动画并选中新柱
+  tap(page, position(nextStep.from));
+  assert.equal(page.data.steps, 1);
+  assert.equal(page._selected, nextStep.from);
+
+  // 已满同色封帽的柱子不能被误触拆开
+  const cap = page._level.capacity;
+  page._selected = -1;
+  page._board[0] = Array(cap).fill(0);
+  tap(page, position(0));
+  assert.equal(page._selected, -1);
+  assert.ok(page.data.tip.includes('封帽'));
+});
+
