@@ -55,6 +55,14 @@ Page({
       this._canvas.width = Math.round(this._W * this._dpr);
       this._canvas.height = Math.round(this._H * this._dpr);
       this._ctx.scale(this._dpr, this._dpr);
+      const atlas = this._canvas.createImage();
+      atlas.onload = () => {
+        if (this._disposed) return;
+        this._nutAtlas = atlas;
+        this._buildStage();
+        this._render();
+      };
+      atlas.src = '/images/nut-lacquer.png';
       this._buildStage();
       this.setData({ ready: true });
       this._render();
@@ -89,6 +97,7 @@ Page({
     this._audio = null;
     this._sfx = null;
     this._stage = null;
+    this._nutAtlas = null;
   },
 
   _persist() {
@@ -146,7 +155,7 @@ Page({
       this._stage = wx.createOffscreenCanvas({ type: '2d', width: this._canvas.width, height: this._canvas.height });
       const g = this._stage.getContext('2d');
       g.scale(this._dpr, this._dpr);
-      Art.drawStage(g, this._metrics, this._level.capacity);
+      Art.drawStage(g, this._metrics, this._nutAtlas);
     } catch (e) { this._stage = null; }
   },
 
@@ -183,7 +192,7 @@ Page({
     const g = this._ctx;
     g.clearRect(0, 0, this._W, this._H);
     if (this._stage) g.drawImage(this._stage, 0, 0, this._W, this._H);
-    else Art.drawStage(g, this._metrics, this._level.capacity);
+    else Art.drawStage(g, this._metrics, this._nutAtlas);
 
     let shakeOpt = null;
     if (this._shake) {
@@ -212,6 +221,7 @@ Page({
     }
 
     Art.drawBoard(g, this._board, this._metrics, {
+      atlas: this._nutAtlas,
       selected: this._selected,
       hint: this._hint,
       moving: this._animation,
@@ -239,40 +249,44 @@ Page({
       for (let m = 0; m < count; m++) {
         const srcLevel = this._board[a.from].length - 1 - m;
         const dstLevel = this._board[a.to].length + m;
-        const y0 = from.y - r * 0.6 - srcLevel * from.step;
+        const y0 = from.y - r * 0.6 - srcLevel * from.step - r * 0.72;
         const y1 = to.y - r * 0.6 - dstLevel * to.step;
         const t = Math.max(0, Math.min(1, (elapsed - m * stagger) / flightMs));
-        let x, y, angle = 0, floating = true;
+        const variant = a.from + srcLevel;
+        const endVariant = a.to + dstLevel;
+        const turn = Math.PI * 2 / 3 + (endVariant % 3 - variant % 3) * Math.PI / 18;
+        const angle = turn * t * t * (3 - 2 * t);
+        let x, y, floating;
         if (t <= 0) {
           x = from.x;
-          y = y0 - r * 0.75;
+          y = y0;
+          floating = y < from.top;
         } else if (t < 0.24) {
           const k = 1 - Math.pow(1 - t / 0.24, 2);
           x = from.x;
           y = y0 + (high - y0) * k;
-          angle = k * Math.PI * 0.65;
-          floating = k > 0.6;
+          floating = y < from.top;
         } else if (t < 0.72) {
           const k = (t - 0.24) / 0.48;
           const s = k * k * (3 - 2 * k);
           x = from.x + (to.x - from.x) * s;
           y = high - Math.sin(k * Math.PI) * r * 0.48;
-          angle = Math.PI * 0.65 + s * Math.PI * 0.7;
           floating = true;
         } else {
           const k = (t - 0.72) / 0.28;
           const ease = k * k;
           x = to.x;
           y = high + (y1 - high) * ease;
-          angle = (1 - ease) * Math.PI * 0.65;
-          floating = k < 0.35;
+          floating = y < to.top;
         }
-        items.push({ m, x, y, angle, floating });
+        items.push({ variant, x, y, angle, floating });
       }
       // y 较大（靠下）的螺母先画，靠上的后画，符合从底到顶的叠放遮挡
       items.sort((u, v) => v.y - u.y);
       items.forEach(it => {
-        Art.drawNut(g, it.x, it.y, r, color, a.from + it.m, {
+        Art.drawNut(g, it.x, it.y, r, color, it.variant, {
+          atlas: this._nutAtlas,
+          exposed: !it.floating,
           angle: it.angle,
           floating: it.floating,
           lifted: it.floating,
@@ -630,8 +644,8 @@ Page({
       idleLines: ['同色归一', '慢慢整理'],
       art: (g, box) => {
         const m = Art.layout(box.w, box.h, this._board.length, this._level.capacity);
-        g.save(); g.translate(box.x, box.y); Art.drawStage(g, m, this._level.capacity);
-        Art.drawBoard(g, this._board, m, { capacity: this._level.capacity }); g.restore();
+        g.save(); g.translate(box.x, box.y); Art.drawStage(g, m, this._nutAtlas);
+        Art.drawBoard(g, this._board, m, { atlas: this._nutAtlas, capacity: this._level.capacity }); g.restore();
       },
     }).then(image => image ? { ...base, imageUrl: image } : base).catch(() => base) };
   },

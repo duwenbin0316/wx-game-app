@@ -1,18 +1,18 @@
-<view class="wood-page nuts-page">
-  <!-- 顶部木条：对齐推箱子极简布局 -->
-  <view class="wood-header nuts-header">
-    <view class="header-left">
-      <text class="head-value head-gold header-level">第 {{level}} 关</text>
-      <text class="head-label header-name">{{levelName}}</text>
-    </view>
-    <view class="header-counter">
-      <text class="header-steps">{{steps}} 步</text>
-      <text class="head-label">目标 {{par}} 步</text>
+<view class="nuts-page">
+  <view class="nuts-header">
+    <view class="chapter">
+      <text class="chapter-index">第 {{level}} 关</text>
+      <text class="chapter-name">{{levelName}}</text>
     </view>
     <view class="header-actions">
-      <view class="wood-knob header-mute" bindtap="onMute">{{muted ? '静音' : '音效'}}</view>
-      <view class="wood-knob header-select" bindtap="onShowLevels">选关</view>
+      <view class="header-button" bindtap="onMute">{{muted ? '静音' : '音效'}}</view>
+      <view class="header-button chapter-button" bindtap="onShowLevels">选关</view>
     </view>
+  </view>
+  <view class="bench-stats">
+    <view class="stat"><text>步数</text><text class="stat-value">{{steps}}</text></view>
+    <view class="stat"><text>目标</text><text class="stat-value">{{par}}</text></view>
+    <view class="stat"><text>归位</text><text class="stat-value">{{completed}} / {{colors}}</text></view>
   </view>
 
   <canvas
@@ -25,32 +25,18 @@
     bindtouchcancel="onCanvasTouchCancel"
   ></canvas>
 
-  <!-- 底部木质按键：无多余口号与提示条 -->
-  <view class="wood-console nuts-console">
-    <view class="bench-status">
-      <text class="bench-progress">归位 {{completed}}/{{colors}}</text>
-      <text class="bench-tip">{{tip}}</text>
-    </view>
+  <view class="nuts-console">
+    <text class="bench-tip">{{tip}}</text>
     <view class="nuts-keys">
-      <view class="wood-key nuts-key {{canUndo ? '' : 'wood-key-disabled'}}" bindtap="onUndo">
-        <text class="wood-key-text">↩ 撤销</text>
-      </view>
-      <view class="wood-key nuts-key {{hintBusy ? 'wood-key-disabled' : ''}}" bindtap="onHint">
-        <text class="wood-key-text">{{hintBusy ? '寻找中' : '提示'}}</text>
-      </view>
-      <view class="wood-key wood-key-red nuts-key" bindtap="onRestart">
-        <text class="wood-key-text wood-key-text-light">↻ 重开</text>
-      </view>
+      <view class="nuts-key {{canUndo ? '' : 'key-disabled'}}" bindtap="onUndo">撤销</view>
+      <view class="nuts-key key-primary {{hintBusy ? 'key-disabled' : ''}}" bindtap="onHint">{{hintBusy ? '寻找中' : '提示'}}</view>
+      <view class="nuts-key" bindtap="onRestart">重开</view>
     </view>
   </view>
 
   <!-- 通关木牌 -->
   <view class="overlay" wx:if="{{gameState === 'win'}}" catchtouchmove="noop">
     <view class="plaque">
-      <view class="nail nail-tl"></view>
-      <view class="nail nail-tr"></view>
-      <view class="nail nail-bl"></view>
-      <view class="nail nail-br"></view>
       <view class="plaque-head">
         <text class="plaque-title">{{level === levelCount ? '全部完成' : (steps <= par ? '完美通关' : '通关')}}</text>
       </view>
@@ -81,10 +67,6 @@
   <!-- 选关木牌 -->
   <view class="overlay" wx:if="{{showLevels}}" catchtouchmove="noop" bindtap="onCloseLevels">
     <view class="plaque select-plaque" catchtap="noop">
-      <view class="nail nail-tl"></view>
-      <view class="nail nail-tr"></view>
-      <view class="nail nail-bl"></view>
-      <view class="nail nail-br"></view>
       <view class="plaque-head">
         <text class="plaque-title">选择关卡</text>
       </view>
@@ -98,8 +80,8 @@
               data-index="{{item.index}}"
               bindtap="onPickLevel"
             >
-              <text class="select-num">{{item.locked ? '🔒' : item.label}}</text>
-              <text class="select-best">{{item.locked ? '' : (item.best > 0 ? item.best + '步' : '待玩')}}</text>
+              <text class="select-num">{{item.label}}</text>
+              <text class="select-best">{{item.locked ? '未解锁' : (item.best > 0 ? item.best + '步' : '待玩')}}</text>
             </view>
           </view>
         </scroll-view>

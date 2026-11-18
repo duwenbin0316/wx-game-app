@@ -1,7 +1,7 @@
 {
   "navigationBarTitleText": "木螺母归色",
-  "navigationBarBackgroundColor": "#3A200E",
-  "navigationBarTextStyle": "white",
-  "backgroundColor": "#3A200E",
+  "navigationBarBackgroundColor": "#F6F2E9",
+  "navigationBarTextStyle": "black",
+  "backgroundColor": "#F6F2E9",
   "disableScroll": true
 }
