@@ -1,11 +1,14 @@
 <view class="wood-page nuts-page">
   <!-- 顶部木条：对齐推箱子极简布局 -->
-  <view class="wood-header game-header">
+  <view class="wood-header nuts-header">
     <view class="header-left">
-      <text class="head-value head-gold header-level">{{level}}/{{levelCount}}</text>
+      <text class="head-value head-gold header-level">第 {{level}} 关</text>
       <text class="head-label header-name">{{levelName}}</text>
     </view>
-    <text class="header-steps">{{steps}} 步 · 最优 {{par}}</text>
+    <view class="header-counter">
+      <text class="header-steps">{{steps}} 步</text>
+      <text class="head-label">目标 {{par}} 步</text>
+    </view>
     <view class="header-actions">
       <view class="wood-knob header-mute" bindtap="onMute">{{muted ? '静音' : '音效'}}</view>
       <view class="wood-knob header-select" bindtap="onShowLevels">选关</view>
@@ -24,6 +27,10 @@
 
   <!-- 底部木质按键：无多余口号与提示条 -->
   <view class="wood-console nuts-console">
+    <view class="bench-status">
+      <text class="bench-progress">归位 {{completed}}/{{colors}}</text>
+      <text class="bench-tip">{{tip}}</text>
+    </view>
     <view class="nuts-keys">
       <view class="wood-key nuts-key {{canUndo ? '' : 'wood-key-disabled'}}" bindtap="onUndo">
         <text class="wood-key-text">↩ 撤销</text>
@@ -49,13 +56,13 @@
       </view>
       <view class="plaque-body">
         <view class="newbest-badge" wx:if="{{steps <= par || isNewBest}}">
-          <text class="newbest-text">{{steps <= par ? '★ 最优步数' : '★ 新纪录'}}</text>
+          <text class="newbest-text">{{steps <= par ? '★ 达成目标' : '★ 新纪录'}}</text>
         </view>
         <text class="score-label" wx:else>{{levelName}} · 用了</text>
         <text class="score-num">{{steps}}<text class="score-unit"> 步</text></text>
         <view class="stat-grid">
           <view class="stat-cell">
-            <text class="cell-label">最优</text>
+            <text class="cell-label">目标步数</text>
             <text class="cell-value">{{par}}</text>
           </view>
           <view class="stat-cell">

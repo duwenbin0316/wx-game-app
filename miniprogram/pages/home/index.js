@@ -37,7 +37,7 @@ Page({
         id: 'nut-sort',
         icon: '🔩',
         name: '木螺母归色',
-        desc: '同色螺母归一柱，30 关慢慢整理',
+        desc: '借空柱归色，挑战 30 道木作谜题',
         url: '/pages/nut-sort/index'
       },
       {

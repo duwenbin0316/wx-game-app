@@ -2,7 +2,7 @@ const Rules = require('../../utils/nut-sort');
 const Art = require('../../utils/nut-art');
 const { createWoodPlayer } = require('../../utils/wood-sfx');
 const { buildShareImage } = require('../../utils/share-card');
-const SAVE_KEY = 'nut_sort_save_v1';
+const SAVE_KEY = 'nut_sort_save_v2';
 
 const STAR_TITLES = { 3: '巧夺天工', 2: '熟能生巧', 1: '顺理成章' };
 
@@ -23,10 +23,11 @@ Page({
     this._parCache = {};
     this._save = { unlocked: 0, best: {}, muted: false };
     try {
-      const saved = wx.getStorageSync(SAVE_KEY);
+      const current = wx.getStorageSync(SAVE_KEY);
+      const saved = current || wx.getStorageSync('nut_sort_save_v1');
       if (saved && typeof saved === 'object') {
         if (Number.isInteger(saved.unlocked)) this._save.unlocked = Math.max(0, Math.min(Rules.LEVEL_COUNT - 1, saved.unlocked));
-        if (saved.best && typeof saved.best === 'object') {
+        if (current && saved.best && typeof saved.best === 'object') {
           Object.keys(saved.best).forEach(k => {
             if (Number.isInteger(+k) && +k >= 0 && +k < Rules.LEVEL_COUNT && Number.isInteger(saved.best[k]) && saved.best[k] > 0) this._save.best[k] = saved.best[k];
           });
@@ -130,7 +131,7 @@ Page({
       showLevels: false,
       showHelp: false,
       hintBusy: false,
-      tip: index === 0 ? '把相同颜色归到一根柱子，试试先用空柱周转' : '先选一根柱子，再点空柱或顶端同色的柱子',
+      tip: index < 5 ? '先点柱顶，再点空柱或同色柱。每色归满一柱。' : '只有一根空柱可供周转，先看看要露出哪种颜色。',
     });
     this._syncCompleted();
     this._buildStage();
@@ -356,7 +357,7 @@ Page({
     this._hint = null;
     if (this._selected === index) {
       this._selected = -1;
-      this.setData({ selectedColorHex: '', selectedColorName: '', selectedColorIndex: 0, tip: '已放回螺母 · 先选一根柱子，再点目标柱' });
+      this.setData({ selectedColorHex: '', selectedColorName: '', selectedColorIndex: 0, tip: '已放回，点柱顶重新选择' });
       this._sound('move', 0.85, 0.25);
       this._render();
       return;
@@ -397,12 +398,11 @@ Page({
     const run = Rules.topRun(this._board[index]);
     const colorHex = Art.PALETTE[c % Art.PALETTE.length] || '';
     const colorName = (Art.COLOR_NAMES && Art.COLOR_NAMES[c % Art.COLOR_NAMES.length]) || `${c + 1}号`;
-    const countText = run > 1 ? ` ${run} 枚` : '';
     this.setData({
       selectedColorHex: colorHex,
       selectedColorName: `${c + 1}号${colorName}`,
       selectedColorIndex: (c % Art.PALETTE.length) + 1,
-      tip: `已抬起顶端${countText}【${c + 1}号${colorName}】螺母 · 点泛绿光的柱子批量旋入`,
+      tip: `已抬起 ${run} 枚${colorName}色螺母，点亮圈放下`,
     });
     this._sound('rotate', 1.2, 0.32);
     this._vibrate('light');
@@ -462,8 +462,8 @@ Page({
       const cName = (Art.COLOR_NAMES && Art.COLOR_NAMES[movedColor % Art.COLOR_NAMES.length]) || `${movedColor + 1}号`;
       this.setData({
         tip: stuck
-          ? '暂时没有可走的步，点「撤销」换条路线'
-          : (rodCompleted ? `✦ ${movedColor + 1}号${cName}螺母已整柱封帽！继续整理其余颜色` : '同色归一，慢慢来 · 先选，再放'),
+          ? '没有可走的步了，点「撤销」换条路线'
+          : (rodCompleted ? `✦ ${movedColor + 1}号${cName}螺母已整柱封帽！继续整理其余颜色` : '点柱顶，移到同色柱或空柱'),
       });
     }
     this._render();

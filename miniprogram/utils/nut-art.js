@@ -1,15 +1,16 @@
 // 极简木玩风螺母：饱满哑光漆色、干净三面受光倒角、严丝合缝叠放与圆润榉木柱。
+const { canMove } = require('./nut-sort');
 const { shade, drawSlab, drawNail, roundRectPath } = require('./wood-art');
 
 // 7 色温润木玩配色（高辨识度哑光色相）
 const PALETTE = [
-  '#D9534F', // 珊瑚红
-  '#4A90C2', // 北欧蓝
-  '#62A856', // 草木绿
-  '#E8AC41', // 蜜蜡黄
-  '#8E63B0', // 丁香紫
-  '#E07842', // 陶土橙
-  '#45A29E', // 松石青
+  '#CD5348', // 珊瑚红
+  '#518ECE', // 北欧蓝
+  '#79A650', // 草木绿
+  '#E8BC48', // 蜜蜡黄
+  '#9872B8', // 丁香紫
+  '#ED9256', // 陶土橙
+  '#47B6AD', // 松石青
 ];
 const COLOR_NAMES = ['红', '蓝', '绿', '黄', '紫', '橙', '青'];
 
@@ -53,7 +54,7 @@ function topRunCount(rod) {
 function drawNut(g, x, y, r, color, variant = 0, opts = {}) {
   const idx = ((color % PALETTE.length) + PALETTE.length) % PALETTE.length;
   const base = PALETTE[idx];
-  const angle = opts.angle || 0;
+  const angle = (opts.angle || 0) + ((variant % 3) - 1) * 0.045;
   // 厚度与层高严格咬合，叠放时上下严丝合缝，不留杂乱悬空缝
   const thickness = r * 0.62;
   const pts = hexPoints(x, y, r, angle);
@@ -91,7 +92,11 @@ function drawNut(g, x, y, r, color, variant = 0, opts = {}) {
     g.lineTo(p2.x, p2.y + thickness);
     g.lineTo(p1.x, p1.y + thickness);
     g.closePath();
-    g.fillStyle = shade(base, tone);
+    const lacquer = g.createLinearGradient(x, p1.y, x, p1.y + thickness);
+    lacquer.addColorStop(0, shade(base, tone + 0.12));
+    lacquer.addColorStop(0.7, shade(base, tone));
+    lacquer.addColorStop(1, shade(base, tone - 0.14));
+    g.fillStyle = lacquer;
     g.fill();
 
     // 侧棱微弱高光折线
@@ -102,6 +107,13 @@ function drawNut(g, x, y, r, color, variant = 0, opts = {}) {
     g.lineWidth = 0.8;
     g.stroke();
   });
+
+  // 编号烙在正面，叠满时也能从侧面辨认各层。
+  g.font = 'bold ' + Math.max(8, Math.round(r * 0.49)) + 'px sans-serif';
+  g.textAlign = 'center';
+  g.textBaseline = 'middle';
+  g.fillStyle = [0, 1, 4].includes(idx) ? '#FFF2D8' : '#32261B';
+  g.fillText(String(idx + 1), x, y + r * 0.69);
 
   // 底沿层间咬合暗线，让叠放的每一颗螺母边界干净利落
   g.beginPath();
@@ -147,15 +159,6 @@ function drawNut(g, x, y, r, color, variant = 0, opts = {}) {
   g.clip();
   g.fillStyle = shade(base, -0.48);
   g.fillRect(x - holeRx, y - holeRy, holeRx * 2, holeRy * 2);
-  if (!opts.floating) {
-    const rodW = r * 0.36;
-    const rodGrad = g.createLinearGradient(x - rodW / 2, 0, x + rodW / 2, 0);
-    rodGrad.addColorStop(0, '#B5834C');
-    rodGrad.addColorStop(0.38, '#F2D5A4');
-    rodGrad.addColorStop(1, '#8F5F32');
-    g.fillStyle = rodGrad;
-    g.fillRect(x - rodW / 2, y - holeRy, rodW, holeRy * 2);
-  }
   g.restore();
 
   // 孔沿内圈倒角
@@ -164,6 +167,26 @@ function drawNut(g, x, y, r, color, variant = 0, opts = {}) {
   g.lineWidth = 0.9;
   g.stroke();
 
+  if (!opts.floating) {
+    const rodW = r * 0.36;
+    // 最上层的栓身穿过冠面，一直连到孔内。下层只在孔内显露。
+    const startY = opts.exposed ? y - r * ASPECT - 1 : y - holeRy;
+    g.save();
+    if (!opts.exposed) {
+      ellipse(g, x, y, holeRx, holeRy);
+      g.clip();
+    }
+    g.fillStyle = shaftFinish(g, x, rodW);
+    g.beginPath();
+    g.moveTo(x - rodW / 2, startY);
+    g.lineTo(x + rodW / 2, startY);
+    g.lineTo(x + rodW / 2, y);
+    g.quadraticCurveTo(x, y + holeRy * 0.85, x - rodW / 2, y);
+    g.closePath();
+    g.fill();
+    g.restore();
+  }
+
   g.restore();
 }
 
@@ -171,15 +194,17 @@ function layout(width, height, count, capacity) {
   const rows = count <= 5 ? 1 : 2;
   const cols = Math.ceil(count / rows);
   const margin = Math.max(12, width * 0.045);
-  const rowH = (height - 28) / rows;
+  const availableRowH = (height - 28) / rows;
   const colW = (width - margin * 2) / cols;
-  const radius = Math.max(10, Math.min(32, colW * 0.35, (rowH - 55) / (capacity * 0.66 + 1.9)));
+  const radius = Math.max(10, Math.min(38, colW * 0.36, (availableRowH - 55) / (capacity * 0.66 + 1.9)));
   const step = radius * 0.64;
   const rodH = capacity * step + radius * 1.4;
+  const rowH = Math.min(availableRowH, rodH + radius * 3.45);
+  const trayTop = (height - rowH * rows) / 2;
   const positions = [];
   for (let row = 0; row < rows; row++) {
     const n = Math.min(cols, count - row * cols);
-    const baseY = rows === 1 ? height * 0.57 + rodH * 0.35 : (row + 1) * rowH - 12;
+    const baseY = trayTop + row * rowH + (rowH + rodH) / 2;
     for (let col = 0; col < n; col++) {
       positions.push({
         x: width / 2 + (col - (n - 1) / 2) * colW,
@@ -195,14 +220,28 @@ function layout(width, height, count, capacity) {
   return { positions, radius, step, rodH, rows, cols, rowH, width, height };
 }
 
-function drawRodShaft(g, x, topY, bottomY, rodW) {
+function shaftFinish(g, x, rodW) {
   const rodGrad = g.createLinearGradient(x - rodW / 2, 0, x + rodW / 2, 0);
   rodGrad.addColorStop(0, '#A67542');
   rodGrad.addColorStop(0.35, '#F4DAB0');
   rodGrad.addColorStop(0.7, '#D8AD78');
   rodGrad.addColorStop(1, '#85562B');
-  g.fillStyle = rodGrad;
+  return rodGrad;
+}
+
+function drawRodShaft(g, x, topY, bottomY, rodW, step) {
+  g.fillStyle = shaftFinish(g, x, rodW);
   g.fillRect(x - rodW / 2, topY, rodW, bottomY - topY);
+
+  // 车削的浅槽与实际层距对齐。
+  g.strokeStyle = 'rgba(91, 55, 28, 0.37)';
+  g.lineWidth = 1;
+  for (let y = bottomY - step; y > topY + rodW * 0.4; y -= step) {
+    g.beginPath();
+    g.moveTo(x - rodW * 0.46, y);
+    g.quadraticCurveTo(x, y + rodW * 0.25, x + rodW * 0.46, y);
+    g.stroke();
+  }
 
   // 圆润柱顶
   ellipse(g, x, topY, rodW / 2, rodW * 0.22);
@@ -213,17 +252,38 @@ function drawRodShaft(g, x, topY, bottomY, rodW) {
 function drawStage(g, metrics) {
   const { positions, rows, rodH, radius: r } = metrics;
 
+  // 胡桃木框内嵌墨绿色台毡。整块托盘与柱架一起离屏缓存。
+  const trayH = rows * metrics.rowH;
+  const trayY = (metrics.height - trayH) / 2;
+  const trayW = metrics.width - 16;
+  drawSlab(g, 8, trayY, trayW, trayH, { base: '#84583A', depth: 3, radius: 16, seed: 19, lines: 20 });
+  g.beginPath();
+  roundRectPath(g, 14, trayY + 6, trayW - 12, trayH - 12, 11);
+  const felt = g.createLinearGradient(0, trayY, metrics.width, trayY + trayH);
+  felt.addColorStop(0, '#37534C');
+  felt.addColorStop(0.55, '#293F39');
+  felt.addColorStop(1, '#1D302C');
+  g.fillStyle = felt;
+  g.fill();
+  g.strokeStyle = '#37291E';
+  g.lineWidth = 2;
+  g.stroke();
+  g.beginPath();
+  roundRectPath(g, 18, trayY + 10, trayW - 20, trayH - 20, 8);
+  g.strokeStyle = 'rgba(220, 196, 142, 0.35)';
+  g.lineWidth = 0.8;
+  g.stroke();
+
   // 每排底座是一块干净厚实的胡桃木条，直接摆在桌面背景上
   for (let row = 0; row < rows; row++) {
     const rowPos = positions.filter(pos => pos.row === row);
     if (!rowPos.length) continue;
     const minX = rowPos[0].x;
-    const maxX = rowPos[rowPos.length - 1].x;
     const padX = r * 1.65;
-    const slabX = Math.max(10, minX - padX);
-    const slabW = Math.min(metrics.width - 20, (maxX - minX) + padX * 2);
+    const slabX = Math.max(22, minX - padX);
+    const slabW = metrics.width - 2 * slabX;
     const slabY = rowPos[0].y - r * 0.36;
-    const slabH = r * 1.05;
+    const slabH = r * 1.32;
     drawSlab(g, slabX, slabY, slabW, slabH, {
       base: '#946037',
       depth: 6,
@@ -236,7 +296,7 @@ function drawStage(g, metrics) {
   }
 
   // 绘制每根榉木圆栓与底座垫圈
-  positions.forEach(p => {
+  positions.forEach((p, i) => {
     const x = p.x, bottom = p.y - 2;
     // 底座深色凹槽与木垫圈
     ellipse(g, x + 2, bottom + 5, r * 0.68, r * 0.24);
@@ -250,7 +310,12 @@ function drawStage(g, metrics) {
     g.fill();
 
     const rodW = r * 0.36;
-    drawRodShaft(g, x, bottom - rodH, bottom, rodW);
+    drawRodShaft(g, x, bottom - rodH, bottom, rodW, p.step);
+    g.fillStyle = '#FFE3AB';
+    g.font = 'bold ' + Math.max(8, Math.round(r * 0.33)) + 'px monospace';
+    g.textAlign = 'center';
+    g.textBaseline = 'middle';
+    g.fillText(String(i + 1).padStart(2, '0'), x, p.y + r * 0.7);
   });
 }
 
@@ -283,16 +348,12 @@ function drawBoard(g, board, metrics, opts = {}) {
     const rod = board[i] || [];
     const complete = rod.length === capacity && rod.every(c => c === rod[0]);
 
-    // 选中或提示时，仅在底座垫圈外围画一道温润光环
-    if (selected === i) {
-      ellipse(g, p.x, p.y, r * 0.78, r * 0.3);
-      g.strokeStyle = '#FFE082';
-      g.lineWidth = 2.2;
-      g.stroke();
-    } else if (opts.hint && (i === opts.hint.from || i === opts.hint.to)) {
-      ellipse(g, p.x, p.y, r * 0.82, r * 0.32);
-      g.strokeStyle = i === opts.hint.from ? '#FFE082' : '#98E074';
-      g.lineWidth = 2.4;
+    const hintedSource = opts.hint && i === opts.hint.from;
+    const hintedTarget = opts.hint && i === opts.hint.to;
+    if (selected === i || hintedSource || hintedTarget || canMove(board, selected, i, capacity)) {
+      ellipse(g, p.x, p.y + r * 0.06, r * 1.1, r * 0.43);
+      g.strokeStyle = selected === i || hintedSource ? '#FFD47D' : '#AAF1C8';
+      g.lineWidth = Math.max(2, r * 0.09);
       g.stroke();
     }
 
@@ -302,6 +363,7 @@ function drawBoard(g, board, metrics, opts = {}) {
     }
 
     // 从底到顶严丝合缝叠放螺母
+    const liftedCount = opts.moving && i === opts.moving.from ? movingCount : (selected === i ? selectedRun : 0);
     rod.forEach((color, level) => {
       if (opts.moving && i === opts.moving.from && level >= rod.length - movingCount) return;
       const isLiftedGroup = selected === i && level >= rod.length - selectedRun;
@@ -310,6 +372,7 @@ function drawBoard(g, board, metrics, opts = {}) {
       drawNut(g, p.x + dx, p.y - r * 0.6 - level * step - lift, r, color, i + level, {
         lifted: isLiftedGroup && level === rod.length - selectedRun,
         floating: isLiftedGroup,
+        exposed: level === rod.length - liftedCount - 1,
         complete,
       });
     });

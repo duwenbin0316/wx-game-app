@@ -1,7 +1,6 @@
 // 螺母分类规则。柱子从底到顶存颜色编号；每次搬运将柱顶连续同色的螺母批量移至目标柱（受目标柱剩余容量限制）。
-// 关卡由完成状态逆推，每次逆推均保留合法的正向批量回退，因而保证可解。
-const { rng } = require('./wood-art');
-const LEVEL_COUNT = 30;
+const LEVELS = require('./nut-levels');
+const LEVEL_COUNT = LEVELS.length;
 const CAPACITY = 4;
 const clone = rods => rods.map(rod => rod.slice());
 const top = rod => rod[rod.length - 1];
@@ -29,7 +28,7 @@ function rateStars(steps, par) {
 function canMove(rods, from, to, capacity) {
   if (!Number.isInteger(from) || !Number.isInteger(to) || from === to) return false;
   const a = rods[from], b = rods[to];
-  return !!(a && b && a.length && b.length < capacity && (!b.length || top(a) === top(b)));
+  return !!(a && b && a.length && !isComplete(a, capacity) && b.length < capacity && (!b.length || top(a) === top(b)));
 }
 
 function transferCount(rods, from, to, capacity) {
@@ -55,60 +54,13 @@ function disorder(rods) {
 
 function generateLevel(index) {
   const level = Math.max(0, Math.min(LEVEL_COUNT - 1, Math.floor(index) || 0));
-  const colors = Math.min(7, 3 + Math.floor(level / 5));
-  const capacity = CAPACITY + Math.floor(level / 10);
-  let best = null, bestScore = -1;
-  for (let attempt = 0; attempt < 16; attempt++) {
-    const random = rng(9017 + level * 7919 + attempt * 104729);
-    const rods = Array.from({ length: colors }, (_, c) => Array(capacity).fill(c));
-    rods.push([], []);
-    const trail = [];
-    let last = null;
-    const seen = new Set([key(rods)]);
-    for (let step = 0; step < 180 + level * 8; step++) {
-      const options = [];
-      for (let a = 0; a < rods.length; a++) {
-        const source = rods[a];
-        const runA = topRun(source);
-        if (runA < 2) continue;
-        const c = top(source);
-        for (let b = 0; b < rods.length; b++) {
-          if (a === b) continue;
-          const dest = rods[b];
-          // 逆推目标柱顶端不能同色，保证正向批量移动能一次性把 k 枚完整收回
-          if (dest.length && top(dest) === c) continue;
-          if (last && last.from === b && last.to === a) continue;
-          const maxK = Math.min(runA - 1, capacity - dest.length);
-          for (let k = 1; k <= maxK; k++) {
-            const next = clone(rods);
-            for (let i = 0; i < k; i++) next[b].push(next[a].pop());
-            if (seen.has(key(next))) continue;
-            options.push({ from: a, to: b, count: k });
-          }
-        }
-      }
-      if (!options.length) break;
-      const chosen = options[Math.floor(random() * options.length)];
-      for (let i = 0; i < chosen.count; i++) rods[chosen.to].push(rods[chosen.from].pop());
-      trail.push({ from: chosen.to, to: chosen.from });
-      seen.add(key(rods));
-      last = chosen;
-      const mixed = disorder(rods);
-      const score = mixed * 10 + rods.filter(r => r.length && r.length < capacity).length;
-      // 起局至少保留一根全空柱，给玩家清楚的周转空间。
-      if (rods.some(r => !r.length) && mixed > 0 && score > bestScore) {
-        bestScore = score;
-        best = { rods: clone(rods), solution: trail.slice().reverse() };
-      }
-    }
-  }
-  if (!best) {
-    const rods = Array.from({ length: colors }, (_, c) => Array(capacity).fill(c));
-    rods.push([], []);
-    rods[0][capacity - 1] = 1; rods[1][capacity - 1] = 0;
-    best = { rods, solution: [{ from: 0, to: colors }, { from: 1, to: 0 }, { from: colors, to: 1 }] };
-  }
-  return { index: level, capacity, colors, par: best.solution.length, name: ['初识木作', '色彩工坊', '巧手匠人', '木间谜题', '归色高手', '大师工坊'][Math.floor(level / 5)], ...best };
+  const puzzle = LEVELS[level];
+  const rods = puzzle.rods.map(stack => Array.from(stack, Number));
+  const capacity = Math.max(...rods.map(rod => rod.length));
+  const colors = rods.filter(rod => rod.length).length;
+  const solution = puzzle.moves.split(' ').map(pair => ({ from: Number(pair[0]), to: Number(pair[1]) }));
+  const name = ['初识木作', '独柱周转', '五色交错', '层叠木阵', '六色连环', '七色匠心'][Math.floor(level / 5)];
+  return { index: level, capacity, colors, name, rods, solution, par: solution.length };
 }
 
 function legalMoves(rods, capacity) {
@@ -131,6 +83,7 @@ function solve(rods, capacity, opts = {}) {
   let nodes = 0;
   function dfs(board, depth, previous) {
     if (isSolved(board, capacity)) return [];
+    if (disorder(board) > depth) return null;
     if (!depth || ++nodes > maxNodes || Date.now() - start > budgetMs) return null;
     const k = canonicalKey(board);
     if ((seen.get(k) || 0) >= depth) return null;

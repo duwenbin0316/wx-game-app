@@ -10,10 +10,15 @@ page {
 }
 
 /* ── 顶部信息栏（对齐推箱子） ── */
-.header-left {
+.nuts-header {
+  padding: 14rpx 28rpx;
+  border-bottom-color: #593D29;
+}
+
+.header-left, .header-counter {
   display: flex;
-  align-items: baseline;
-  gap: 14rpx;
+  flex-direction: column;
+  gap: 3rpx;
 }
 
 .header-level {
@@ -22,6 +27,10 @@ page {
 
 .header-name {
   font-size: 22rpx;
+}
+
+.header-counter {
+  align-items: center;
 }
 
 .header-steps {
@@ -63,8 +72,33 @@ page {
 
 /* ── 底部控制台 ── */
 .nuts-console {
-  padding: 28rpx 30rpx 36rpx;
+  padding: 18rpx 26rpx 30rpx;
   padding-bottom: calc(32rpx + env(safe-area-inset-bottom));
+}
+
+.bench-status {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+  min-height: 60rpx;
+  margin-bottom: 14rpx;
+  color: #FFF1D5;
+}
+
+.bench-progress {
+  flex-shrink: 0;
+  padding: 8rpx 14rpx;
+  border: 1rpx solid #9B885D;
+  border-radius: 8rpx;
+  background: #2B4239;
+  font-size: 22rpx;
+  font-weight: 700;
+}
+
+.bench-tip {
+  flex: 1;
+  font-size: 23rpx;
+  line-height: 1.35;
 }
 
 .nuts-keys {

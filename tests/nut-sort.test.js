@@ -51,6 +51,18 @@ test('30 关确定、互异、数量守恒，且都有可逐步回放的合法�
   }
 });
 
+test('难度曲线逐步增加，开局每根实柱都需拆分，从第六关起只留一个空位柱', () => {
+  let lastPar = 0;
+  for (let i = 0; i < Rules.LEVEL_COUNT; i++) {
+    const { rods, capacity, par } = Rules.generateLevel(i);
+    assert.equal(rods.filter(r => !r.length).length, i < 5 ? 2 : 1);
+    assert.ok(rods.filter(r => r.length).every(r => r.length === capacity && new Set(r).size > 1));
+    assert.ok(par >= lastPar);
+    assert.ok(Rules.disorder(rods) >= [9, 10, 13, 16, 19, 23][Math.floor(i / 5)]);
+    lastPar = par;
+  }
+});
+
 test('偏离预设路线时，搜索提示能完成一个独立局面', () => {
   const initial = [[0, 1, 0, 1], [1, 0, 1, 0], [], []];
   const solution = Rules.solve(initial, 4, { maxNodes: 50000, budgetMs: 1000 });
@@ -64,12 +76,12 @@ test('偏离预设路线时，搜索提示能完成一个独立局面', () => {
   assert.equal(Rules.solve([[0, 1], [1, 0]], 2, { budgetMs: 30 }), null);
 });
 
-function loadPage(saved) {
+function loadPage(saved, legacy) {
   let spec;
   const storage = {};
   const warnings = [];
   const wx = {
-    getStorageSync: () => saved,
+    getStorageSync: key => key === 'nut_sort_save_v2' ? saved : legacy,
     setStorageSync: (k, v) => { storage[k] = JSON.parse(JSON.stringify(v)); },
   };
   const file = path.resolve(__dirname, '../miniprogram/pages/nut-sort/index.js');
@@ -105,7 +117,7 @@ test('完成一关保存纪录并解锁下一关；最后一关不越界', () =>
     page._finishMove();
   }
   assert.equal(page.data.gameState, 'win');
-  const saved = storage.nut_sort_save_v1;
+  const saved = storage.nut_sort_save_v2;
   assert.equal(saved.unlocked, 1);
   assert.equal(saved.best[0], page.data.steps);
   const restored = loadPage(saved).page;
@@ -117,6 +129,18 @@ test('完成一关保存纪录并解锁下一关；最后一关不越界', () =>
   assert.equal(restored.data.level, 30);
   assert.equal(restored.data.showLevels, true);
   assert.equal(restored._save.unlocked, 29);
+});
+
+test('旧版玩家保留解锁和音效设置，新版棋面独立计分', () => {
+  const legacy = { unlocked: 12, muted: true, best: { 12: 3 } };
+  const { page, storage } = loadPage(null, legacy);
+  assert.equal(page.data.level, 13);
+  assert.equal(page.data.muted, true);
+  assert.equal(page.data.best, 0);
+  for (const step of page._level.solution) { page._animation = step; page._finishMove(); }
+  const restored = loadPage(storage.nut_sort_save_v2, legacy).page;
+  assert.equal(restored.data.level, 14);
+  assert.equal(restored._save.best[12], page.data.steps);
 });
 
 test('损坏存档降级，锁定关卡不能通过事件跳入', () => {
